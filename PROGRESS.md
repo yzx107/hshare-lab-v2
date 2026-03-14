@@ -30,6 +30,8 @@
 - `2025` representative sample 上，`order_time <= trade_time` 比例约 `99.98%`，负秒级偏差仅约 `0.02%`
 - `2025` 扩展到 `7` 个样本日后，`coarse_time_anchor_status` 仍全部为 `weak_pass`
 - `2025` 的 `Time`-anchor 扩展样本共覆盖 `50,521,238` 条 matched edges，平均 `order_time <= trade_time` 比例约 `99.9786%`
+- `2025` 当前可记为 `research_time_grade = coarse_only`
+- `2026` 当前可记为 `research_time_grade = fine_ok`
 - `2025 HKDarkPool` 专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
 - `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
 - `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract

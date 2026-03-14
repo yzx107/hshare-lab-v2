@@ -122,6 +122,7 @@ class SemanticTimeAnchorTests(unittest.TestCase):
             self.assertEqual(row["matched_order_time_le_trade_time_rate"], 1.0)
             self.assertEqual(row["matched_negative_second_delta_count"], 0)
             self.assertEqual(row["coarse_time_anchor_status"], "weak_pass")
+            self.assertEqual(row["research_time_grade"], "coarse_only")
 
     def test_time_anchor_probe_marks_unavailable_when_orders_time_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -214,6 +215,7 @@ class SemanticTimeAnchorTests(unittest.TestCase):
             self.assertEqual(row["orders_time_nonnull_rate"], 0.0)
             self.assertEqual(row["matched_both_time_nonnull_rate"], 0.0)
             self.assertEqual(row["coarse_time_anchor_status"], "unavailable")
+            self.assertEqual(row["research_time_grade"], "blocked")
 
 
 if __name__ == "__main__":

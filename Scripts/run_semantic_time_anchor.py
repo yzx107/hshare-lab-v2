@@ -165,6 +165,18 @@ def coarse_time_anchor_status(
     return "fail"
 
 
+def research_time_grade(
+    *,
+    orders_sendtime_nonnull_rate: float | None,
+    coarse_status: str,
+) -> str:
+    if orders_sendtime_nonnull_rate is not None and orders_sendtime_nonnull_rate >= 0.99:
+        return "fine_ok"
+    if coarse_status in {"pass", "weak_pass"}:
+        return "coarse_only"
+    return "blocked"
+
+
 def density_metrics(frame: pl.LazyFrame, *, time_column: str, prefix: str) -> dict[str, Any]:
     second_counts = (
         frame.with_columns(time_seconds_expr(time_column).alias("time_seconds"))
@@ -343,6 +355,15 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str) -> dict[st
     matched_order_time_le_trade_time_rate = (
         matched_order_time_le_trade_time_count / matched_edge_count if matched_edge_count else None
     )
+    coarse_status = coarse_time_anchor_status(
+        matched_edge_count=matched_edge_count,
+        matched_both_time_nonnull_rate=matched_both_time_nonnull_rate,
+        matched_order_time_le_trade_time_rate=matched_order_time_le_trade_time_rate,
+        matched_same_time_rate=matched_same_time_rate,
+    )
+    orders_sendtime_nonnull_rate = (
+        int(order_summary["orders_sendtime_nonnull_count"] or 0) / order_rows if order_rows else None
+    )
 
     return {
         "year": year,
@@ -352,9 +373,7 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str) -> dict[st
             int(order_summary["orders_time_nonnull_count"] or 0) / order_rows if order_rows else None
         ),
         "orders_sendtime_nonnull_count": int(order_summary["orders_sendtime_nonnull_count"] or 0),
-        "orders_sendtime_nonnull_rate": (
-            int(order_summary["orders_sendtime_nonnull_count"] or 0) / order_rows if order_rows else None
-        ),
+        "orders_sendtime_nonnull_rate": orders_sendtime_nonnull_rate,
         "trades_time_nonnull_count": int(trade_summary["trades_time_nonnull_count"] or 0),
         "trades_time_nonnull_rate": (
             int(trade_summary["trades_time_nonnull_count"] or 0) / trade_rows if trade_rows else None
@@ -384,11 +403,10 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str) -> dict[st
         "matched_positive_second_delta_count": int(edge_summary["matched_positive_second_delta_count"] or 0),
         "matched_delta_p50_seconds": edge_summary["matched_delta_p50_seconds"],
         "matched_delta_p99_seconds": edge_summary["matched_delta_p99_seconds"],
-        "coarse_time_anchor_status": coarse_time_anchor_status(
-            matched_edge_count=matched_edge_count,
-            matched_both_time_nonnull_rate=matched_both_time_nonnull_rate,
-            matched_order_time_le_trade_time_rate=matched_order_time_le_trade_time_rate,
-            matched_same_time_rate=matched_same_time_rate,
+        "coarse_time_anchor_status": coarse_status,
+        "research_time_grade": research_time_grade(
+            orders_sendtime_nonnull_rate=orders_sendtime_nonnull_rate,
+            coarse_status=coarse_status,
         ),
     }
 
@@ -415,6 +433,7 @@ def write_report_markdown(path: Path, *, year: str, rows: list[dict[str, Any]]) 
                 f"- matched_order_time_le_trade_time_rate: {row['matched_order_time_le_trade_time_rate']}",
                 f"- matched_negative_second_delta_rate: {row['matched_negative_second_delta_rate']}",
                 f"- coarse_time_anchor_status: {row['coarse_time_anchor_status']}",
+                f"- research_time_grade: {row['research_time_grade']}",
             ]
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

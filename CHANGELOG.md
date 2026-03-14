@@ -19,6 +19,8 @@
 - `2025` 现在不只是 “ID-level linkage 成立但 SendTime 缺失”
 - `2025` 进一步可表述为：`Time` 可支撑粗粒度时间一致性检查，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
 - `2025` 的下一步从“证明是否存在替代时间锚”推进为“界定 coarse temporal validation 的有效边界”
+- `2025` 可派生为 `research_time_grade = coarse_only`
+- `2026` 可派生为 `research_time_grade = fine_ok`
 
 ## [Source-Inventory-v1] 2026-03-14 — 落地 HKDarkPool 专项 inventory CLI 并跑通全年 2025（Codex）
 

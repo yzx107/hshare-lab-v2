@@ -43,6 +43,8 @@
 - `2026`：可进入 `linkage semantic verification`
 - `2025`：`HKDarkPool inventory` 已完成，确认其为独立 trade-like source group；ID-level linkage 已成立
 - `2025`：`SendTime` 仍缺失，但 `Time` 在 `7` 个样本日、`50,521,238` 条 matched edges 上均呈现 `coarse_time_anchor_status = weak_pass`
+- `2025`：`research_time_grade = coarse_only`
+- `2026`：`research_time_grade = fine_ok`
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
 - `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚
 
