@@ -22,7 +22,9 @@
 - representative sample 已跑通：`2025-01-02 / 2025-06-12 / 2025-12-04` 与 `2026-01-05 / 2026-02-24 / 2026-03-13`
 - `2025/2026` sample 的 stage 均实现 `raw_row_count == row_count`，且 `rejected_row_count = 0`、`failed_member_count = 0`
 - `2025` 与 `2026` 不能再按同一 linkage 语义版本处理
-- `2026` direct linkage 三天均 `pass`；`2025` direct linkage 三天均 `fail`
+- `2026` representative sample 上，ID-level linkage 与 time-usable linkage 三天均 `pass`
+- `2025` representative sample 上，`BidOrderID / AskOrderID -> OrderId` 的 ID-level direct equality 三天均为 `1.0`
+- `2025` orders 侧 `SendTime` 在 representative sample 上为全空，因此 lag-aware linkage DQA 当前应解释为 `time_anchor_unavailable`，而不是 “direct linkage 全 fail”
 - `2025 HKDarkPool` 专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
 - `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
 - `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract
@@ -110,7 +112,8 @@
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `run_source_group_inventory.py` 已落地为正式 CLI，并已完成 `2025 HKDarkPool` inventory
 - `HKDarkPool` 已确认不是 `2025-12-04` 单日偶发，而是 `2025-07-04` 到 `2025-12-31` 间多日反复出现的独立 source group
-- `2025` 的 old-format ID space 仍未调查清楚，linkage 不可直接沿用 `2026` 范式
+- `run_semantic_idspace.py` 已落地为语义探针，确认 `2025` representative sample 的 ID-level linkage 成立，但 order-side 时间锚仍缺失
+- `2025` 的下一步不再是“证明 ID 不直连”，而是调查可用 order-side temporal anchor 与 old-format 时间验证边界
 - `golden sample` 还没正式冻结
 
 ## 当前状态

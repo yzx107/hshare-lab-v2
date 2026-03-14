@@ -15,7 +15,7 @@
 
 ### 影响
 - `HKDarkPool` 现在可按事实层 inventory 单独研究，不需要先并入主 `Orders / Trades` contract
-- `2025` 的下一步从“先确认是否单日异常”推进为“old-format ID space investigation + 是否需要独立 verified 分支”
+- `2025` 的下一步从“先确认是否单日异常”推进为“old-format temporal anchor / time-aware validation investigation + 是否需要独立 verified 分支”
 
 ## [Stage-Sample-v1] 2026-03-14 — 完成真实 raw 单日 stage sample（Codex）
 
@@ -80,12 +80,13 @@
 - 对 `2025-01-02 / 2025-06-12 / 2025-12-04` 与 `2026-01-05 / 2026-02-24 / 2026-03-13` 跑通 representative sample stage
 - 对上述 sample 同步跑完 `coverage / schema / linkage` 三条高优先 DQA
 - 明确 `2025-12-04` 出现未映射 source group `HKDarkPool`
-- 明确 `2026` direct linkage 三天全 `pass`，而 `2025` direct linkage 三天全 `fail`
+- 明确 `2026` 的 ID-level + time-usable linkage 三天全 `pass`
+- 通过 `run_semantic_idspace.py` 更正 `2025` 口径：ID-level direct equality 三天均为 `1.0`，但 orders 侧 `SendTime` 全空，lag-aware linkage DQA 应标记为 `time_anchor_unavailable`
 
 ### 影响
 - `stage` 层已可放行到全量，不需要回头重写 stage 架构
 - linkage 相关研究从现在开始按年份拆开推进
-- `2026` 进入 linkage semantic verification；`2025` 先做 `HKDarkPool inventory + old-format ID space investigation`
+- `2026` 进入 linkage semantic verification；`2025` 先做 `HKDarkPool inventory + old-format temporal anchor investigation`
 
 ## [Stage-Pipeline-v1] 2026-03-14 — 新增真实 stage cleaning 入口（Codex）
 

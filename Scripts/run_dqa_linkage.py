@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build first-pass trade-order linkage feasibility audit from stage parquet."
     )
-    parser.add_argument("--year", required=True, help="Year such as 2025 or 2026.")
+    parser.add_argument("--year", help="Year such as 2025 or 2026.")
     parser.add_argument(
         "--stage-root",
         type=Path,
@@ -174,7 +174,13 @@ def order_lookup_lazy(task: LinkageTask) -> pl.LazyFrame:
         pl.scan_parquet(list(task.order_paths))
         .filter(present_id_expr("OrderId"))
         .group_by("OrderId")
-        .agg(pl.col("SendTime").min().alias("order_first_sendtime"))
+        .agg(
+            [
+                pl.len().alias("order_event_count"),
+                pl.col("SendTime").is_not_null().any().alias("order_has_sendtime"),
+                pl.col("SendTime").min().alias("order_first_sendtime"),
+            ]
+        )
     )
 
 
@@ -183,6 +189,8 @@ def compute_edge_metrics(task: LinkageTask) -> dict[str, Any]:
     order_lookup = order_lookup_lazy(task).select(
         [
             pl.col("OrderId").alias("trade_order_id"),
+            pl.col("order_event_count"),
+            pl.col("order_has_sendtime"),
             pl.col("order_first_sendtime"),
         ]
     )
@@ -211,26 +219,38 @@ def compute_edge_metrics(task: LinkageTask) -> dict[str, Any]:
             [
                 (pl.col("side") == "bid").cast(pl.Int64).sum().alias("bid_present_count"),
                 (
-                    (pl.col("side") == "bid") & pl.col("order_first_sendtime").is_not_null()
+                    (pl.col("side") == "bid") & pl.col("order_event_count").is_not_null()
                 )
                 .cast(pl.Int64)
                 .sum()
-                .alias("bid_matched_count"),
+                .alias("bid_id_equal_match_count"),
+                (
+                    (pl.col("side") == "bid") & pl.col("order_has_sendtime").fill_null(False)
+                )
+                .cast(pl.Int64)
+                .sum()
+                .alias("bid_time_usable_match_count"),
                 (pl.col("side") == "ask").cast(pl.Int64).sum().alias("ask_present_count"),
                 (
-                    (pl.col("side") == "ask") & pl.col("order_first_sendtime").is_not_null()
+                    (pl.col("side") == "ask") & pl.col("order_event_count").is_not_null()
                 )
                 .cast(pl.Int64)
                 .sum()
-                .alias("ask_matched_count"),
+                .alias("ask_id_equal_match_count"),
                 (
-                    pl.col("order_first_sendtime").is_not_null() & pl.col("trade_sendtime").is_not_null()
+                    (pl.col("side") == "ask") & pl.col("order_has_sendtime").fill_null(False)
                 )
                 .cast(pl.Int64)
                 .sum()
-                .alias("matched_with_time_count"),
+                .alias("ask_time_usable_match_count"),
                 (
-                    pl.col("order_first_sendtime").is_not_null()
+                    pl.col("order_has_sendtime").fill_null(False) & pl.col("trade_sendtime").is_not_null()
+                )
+                .cast(pl.Int64)
+                .sum()
+                .alias("time_usable_match_count"),
+                (
+                    pl.col("order_has_sendtime").fill_null(False)
                     & pl.col("trade_sendtime").is_not_null()
                     & (pl.col("trade_sendtime") < pl.col("order_first_sendtime"))
                 )
@@ -254,6 +274,8 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
             order_ids.select(
                 [
                     pl.col("OrderId").alias("bid_lookup_order_id"),
+                    pl.col("order_event_count").alias("bid_lookup_order_event_count"),
+                    pl.col("order_has_sendtime").alias("bid_lookup_has_sendtime"),
                     pl.col("order_first_sendtime").alias("bid_lookup_sendtime"),
                 ]
             ),
@@ -265,6 +287,8 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
             order_ids.select(
                 [
                     pl.col("OrderId").alias("ask_lookup_order_id"),
+                    pl.col("order_event_count").alias("ask_lookup_order_event_count"),
+                    pl.col("order_has_sendtime").alias("ask_lookup_has_sendtime"),
                     pl.col("order_first_sendtime").alias("ask_lookup_sendtime"),
                 ]
             ),
@@ -276,11 +300,19 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
             [
                 pl.len().alias("both_sides_present_count"),
                 (
-                    pl.col("bid_lookup_sendtime").is_not_null() & pl.col("ask_lookup_sendtime").is_not_null()
+                    pl.col("bid_lookup_order_event_count").is_not_null()
+                    & pl.col("ask_lookup_order_event_count").is_not_null()
                 )
                 .cast(pl.Int64)
                 .sum()
-                .alias("both_sides_matched_count"),
+                .alias("both_sides_id_equal_match_count"),
+                (
+                    pl.col("bid_lookup_has_sendtime").fill_null(False)
+                    & pl.col("ask_lookup_has_sendtime").fill_null(False)
+                )
+                .cast(pl.Int64)
+                .sum()
+                .alias("both_sides_time_usable_match_count"),
             ]
         )
         .collect()
@@ -288,21 +320,102 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
     )
 
 
-def linkage_status(
+def collect_anchor_availability(task: LinkageTask) -> dict[str, Any]:
+    orders = pl.scan_parquet(list(task.order_paths))
+    trades = pl.scan_parquet(list(task.trade_paths))
+    order_metrics = (
+        orders.select(
+            [
+                pl.len().cast(pl.Int64).alias("order_rows"),
+                pl.col("SendTime").is_not_null().sum().cast(pl.Int64).alias("order_sendtime_present_count"),
+                pl.col("Time").is_not_null().sum().cast(pl.Int64).alias("order_time_present_count"),
+            ]
+        )
+        .collect()
+        .to_dicts()[0]
+    )
+    trade_metrics = (
+        trades.select(
+            [
+                pl.len().cast(pl.Int64).alias("trade_rows"),
+                pl.col("SendTime").is_not_null().sum().cast(pl.Int64).alias("trade_sendtime_present_count"),
+            ]
+        )
+        .collect()
+        .to_dicts()[0]
+    )
+    return {
+        **order_metrics,
+        **trade_metrics,
+    }
+
+
+def id_equality_status(
     *,
     combined_present_count: int,
-    combined_match_rate: float | None,
-    negative_time_lag_rate: float | None,
+    combined_id_equal_rate: float | None,
 ) -> str:
     if combined_present_count == 0:
         return "not_applicable"
-    if combined_match_rate is None or combined_match_rate == 0:
+    if combined_id_equal_rate is None or combined_id_equal_rate == 0:
         return "fail"
+    if combined_id_equal_rate < 0.50:
+        return "warn"
+    return "pass"
+
+
+def lag_validation_status(
+    *,
+    combined_id_equal_count: int,
+    combined_time_usable_count: int,
+    order_sendtime_present_rate: float | None,
+    negative_time_lag_rate: float | None,
+) -> str:
+    if combined_id_equal_count == 0:
+        return "not_applicable"
+    if order_sendtime_present_rate is None or order_sendtime_present_rate == 0:
+        return "time_anchor_unavailable"
+    if combined_time_usable_count == 0:
+        return "fail"
+    time_usable_rate = combined_time_usable_count / combined_id_equal_count
     if negative_time_lag_rate is not None and negative_time_lag_rate > 0.25:
         return "fail"
-    if combined_match_rate < 0.50:
+    if time_usable_rate < 0.50:
         return "warn"
     if negative_time_lag_rate is not None and negative_time_lag_rate > 0.05:
+        return "warn"
+    return "pass"
+
+
+def time_anchor_status(
+    *,
+    combined_id_equal_count: int,
+    order_sendtime_present_rate: float | None,
+    combined_time_usable_count: int,
+) -> str:
+    if combined_id_equal_count == 0:
+        return "not_applicable"
+    if order_sendtime_present_rate is None or order_sendtime_present_rate == 0:
+        return "unavailable"
+    if combined_time_usable_count < combined_id_equal_count:
+        return "partial"
+    return "pass"
+
+
+def lag_linkage_status(*, lag_validation: str) -> str:
+    if lag_validation == "time_anchor_unavailable":
+        return "not_verifiable"
+    return lag_validation
+
+
+def combined_status(*, id_status: str, time_status: str) -> str:
+    if id_status == "not_applicable":
+        return "not_applicable"
+    if id_status == "fail" or time_status == "fail":
+        return "fail"
+    if id_status == "warn":
+        return "warn"
+    if time_status in {"warn", "time_anchor_unavailable", "not_applicable"}:
         return "warn"
     return "pass"
 
@@ -310,50 +423,117 @@ def linkage_status(
 def process_task(task: LinkageTask) -> dict[str, Any]:
     edge_metrics = compute_edge_metrics(task)
     both_metrics = compute_both_sides_metrics(task)
+    anchor_metrics = collect_anchor_availability(task)
 
     bid_present_count = int(edge_metrics["bid_present_count"] or 0)
-    bid_matched_count = int(edge_metrics["bid_matched_count"] or 0)
+    bid_id_equal_match_count = int(edge_metrics["bid_id_equal_match_count"] or 0)
+    bid_time_usable_match_count = int(edge_metrics["bid_time_usable_match_count"] or 0)
     ask_present_count = int(edge_metrics["ask_present_count"] or 0)
-    ask_matched_count = int(edge_metrics["ask_matched_count"] or 0)
+    ask_id_equal_match_count = int(edge_metrics["ask_id_equal_match_count"] or 0)
+    ask_time_usable_match_count = int(edge_metrics["ask_time_usable_match_count"] or 0)
     both_sides_present_count = int(both_metrics["both_sides_present_count"] or 0)
-    both_sides_matched_count = int(both_metrics["both_sides_matched_count"] or 0)
-    matched_with_time_count = int(edge_metrics["matched_with_time_count"] or 0)
+    both_sides_id_equal_match_count = int(both_metrics["both_sides_id_equal_match_count"] or 0)
+    both_sides_time_usable_match_count = int(both_metrics["both_sides_time_usable_match_count"] or 0)
+    matched_with_time_count = int(edge_metrics["time_usable_match_count"] or 0)
     negative_time_lag_count = int(edge_metrics["negative_time_lag_count"] or 0)
     combined_present_count = bid_present_count + ask_present_count
-    combined_matched_count = bid_matched_count + ask_matched_count
+    combined_id_equal_count = bid_id_equal_match_count + ask_id_equal_match_count
+    combined_time_usable_count = bid_time_usable_match_count + ask_time_usable_match_count
+    order_rows = int(anchor_metrics["order_rows"] or 0)
+    order_sendtime_present_count = int(anchor_metrics["order_sendtime_present_count"] or 0)
+    order_time_present_count = int(anchor_metrics["order_time_present_count"] or 0)
+    trade_rows = int(anchor_metrics["trade_rows"] or 0)
+    trade_sendtime_present_count = int(anchor_metrics["trade_sendtime_present_count"] or 0)
+    order_sendtime_present_rate = order_sendtime_present_count / order_rows if order_rows else None
+    order_time_present_rate = order_time_present_count / order_rows if order_rows else None
+    trade_sendtime_present_rate = trade_sendtime_present_count / trade_rows if trade_rows else None
+    negative_lag_rate = negative_time_lag_count / matched_with_time_count if matched_with_time_count else None
+    id_status = id_equality_status(
+        combined_present_count=combined_present_count,
+        combined_id_equal_rate=(combined_id_equal_count / combined_present_count if combined_present_count else None),
+    )
+    time_status = lag_validation_status(
+        combined_id_equal_count=combined_id_equal_count,
+        combined_time_usable_count=combined_time_usable_count,
+        order_sendtime_present_rate=order_sendtime_present_rate,
+        negative_time_lag_rate=negative_lag_rate,
+    )
+    anchor_status = time_anchor_status(
+        combined_id_equal_count=combined_id_equal_count,
+        order_sendtime_present_rate=order_sendtime_present_rate,
+        combined_time_usable_count=combined_time_usable_count,
+    )
+    lag_status = lag_linkage_status(lag_validation=time_status)
 
     return {
         "year": task.year,
         "date": task.date,
         "bid_orderid_present_count": bid_present_count,
-        "bid_orderid_matched_count": bid_matched_count,
-        "bid_match_rate": (bid_matched_count / bid_present_count) if bid_present_count else None,
+        "bid_orderid_id_equal_match_count": bid_id_equal_match_count,
+        "bid_orderid_id_equal_match_rate": (
+            bid_id_equal_match_count / bid_present_count if bid_present_count else None
+        ),
+        "bid_match_with_usable_order_time_count": bid_time_usable_match_count,
+        "bid_match_with_usable_order_time_rate": (
+            bid_time_usable_match_count / bid_present_count if bid_present_count else None
+        ),
+        "bid_orderid_matched_count": bid_time_usable_match_count,
+        "bid_match_rate": (
+            bid_time_usable_match_count / bid_present_count if bid_present_count else None
+        ),
         "ask_orderid_present_count": ask_present_count,
-        "ask_orderid_matched_count": ask_matched_count,
-        "ask_match_rate": (ask_matched_count / ask_present_count) if ask_present_count else None,
+        "ask_orderid_id_equal_match_count": ask_id_equal_match_count,
+        "ask_orderid_id_equal_match_rate": (
+            ask_id_equal_match_count / ask_present_count if ask_present_count else None
+        ),
+        "ask_match_with_usable_order_time_count": ask_time_usable_match_count,
+        "ask_match_with_usable_order_time_rate": (
+            ask_time_usable_match_count / ask_present_count if ask_present_count else None
+        ),
+        "ask_orderid_matched_count": ask_time_usable_match_count,
+        "ask_match_rate": (
+            ask_time_usable_match_count / ask_present_count if ask_present_count else None
+        ),
         "both_sides_present_count": both_sides_present_count,
-        "both_sides_matched_count": both_sides_matched_count,
-        "both_sides_match_rate": (
-            both_sides_matched_count / both_sides_present_count
+        "both_sides_id_equal_match_count": both_sides_id_equal_match_count,
+        "both_sides_id_equal_match_rate": (
+            both_sides_id_equal_match_count / both_sides_present_count
             if both_sides_present_count
             else None
         ),
-        "matched_link_count": combined_matched_count,
-        "negative_time_lag_count": negative_time_lag_count,
-        "negative_time_lag_rate": (
-            negative_time_lag_count / matched_with_time_count if matched_with_time_count else None
+        "both_sides_match_with_usable_order_time_count": both_sides_time_usable_match_count,
+        "both_sides_match_with_usable_order_time_rate": (
+            both_sides_time_usable_match_count / both_sides_present_count
+            if both_sides_present_count
+            else None
         ),
+        "both_sides_matched_count": both_sides_time_usable_match_count,
+        "both_sides_match_rate": (
+            both_sides_time_usable_match_count / both_sides_present_count
+            if both_sides_present_count
+            else None
+        ),
+        "matched_link_count": combined_time_usable_count,
+        "id_equal_link_count": combined_id_equal_count,
+        "orders_sendtime_nonnull_count": order_sendtime_present_count,
+        "orders_sendtime_nonnull_rate": order_sendtime_present_rate,
+        "orders_time_nonnull_count": order_time_present_count,
+        "orders_time_nonnull_rate": order_time_present_rate,
+        "trades_sendtime_nonnull_count": trade_sendtime_present_count,
+        "trades_sendtime_nonnull_rate": trade_sendtime_present_rate,
+        "matched_orders_sendtime_nonnull_rate": (
+            combined_time_usable_count / combined_id_equal_count if combined_id_equal_count else None
+        ),
+        "negative_time_lag_count": negative_time_lag_count,
+        "negative_time_lag_rate": negative_lag_rate,
         "cross_session_match_rate": None,
         "cross_session_supported": False,
-        "status": linkage_status(
-            combined_present_count=combined_present_count,
-            combined_match_rate=(
-                combined_matched_count / combined_present_count if combined_present_count else None
-            ),
-            negative_time_lag_rate=(
-                negative_time_lag_count / matched_with_time_count if matched_with_time_count else None
-            ),
-        ),
+        "id_linkage_status": id_status,
+        "time_anchor_status": anchor_status,
+        "lag_linkage_status": lag_status,
+        "id_equality_status": id_status,
+        "lag_validation_status": time_status,
+        "status": combined_status(id_status=id_status, time_status=time_status),
     }
 
 
@@ -407,13 +587,19 @@ def report_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], state:
         passes = sum(1 for row in rows if row["status"] == "pass")
         warns = sum(1 for row in rows if row["status"] == "warn")
         fails = sum(1 for row in rows if row["status"] == "fail")
+        id_passes = sum(1 for row in rows if row["id_linkage_status"] == "pass")
+        anchor_unavailable = sum(1 for row in rows if row["time_anchor_status"] == "unavailable")
+        lag_not_verifiable = sum(1 for row in rows if row["lag_linkage_status"] == "not_verifiable")
         top_lines.extend(
             [
                 f"- pass_days: {passes}",
                 f"- warn_days: {warns}",
                 f"- fail_days: {fails}",
+                f"- id_equality_pass_days: {id_passes}",
+                f"- time_anchor_unavailable_days: {anchor_unavailable}",
+                f"- lag_not_verifiable_days: {lag_not_verifiable}",
                 "",
-                "First-pass linkage feasibility focuses only on same-day OrderId matchability and lag sanity.",
+                "This linkage audit now separates direct OrderId equality from lag validation that requires usable order-side SendTime.",
             ]
         )
     else:
@@ -428,8 +614,8 @@ def main() -> int:
             name="run_dqa_linkage",
             purpose="Measure same-day trade-order linkage feasibility before semantic claims are made.",
             responsibilities=[
-                "Estimate BidOrderID and AskOrderID matchability into same-day Orders.OrderId.",
-                "Measure first-pass negative lag rate using trade SendTime versus earliest matched order SendTime.",
+                "Estimate BidOrderID and AskOrderID direct equality into same-day Orders.OrderId.",
+                "Measure lag validation only for matches that also have usable order-side SendTime.",
                 "Persist a daily linkage feasibility table plus resumable task state and summary report.",
             ],
             inputs=[
@@ -442,6 +628,8 @@ def main() -> int:
             ],
         )
         return 0
+    if not args.year:
+        raise SystemExit("--year is required unless --print-plan is used.")
 
     tasks = discover_tasks(args)
     output_dir = args.output_root / "linkage" / f"year={args.year}"
@@ -497,10 +685,10 @@ def main() -> int:
             append_jsonl(linkage_jsonl_path, row)
             completed_task_keys.add(task.task_key)
             logger.info(
-                "DQA linkage task %s complete: bid_match_rate=%s ask_match_rate=%s status=%s",
+                "DQA linkage task %s complete: bid_id_equal_rate=%s bid_time_usable_rate=%s status=%s",
                 task.task_key,
-                row["bid_match_rate"],
-                row["ask_match_rate"],
+                row["bid_orderid_id_equal_match_rate"],
+                row["bid_match_with_usable_order_time_rate"],
                 row["status"],
             )
         except Exception as exc:

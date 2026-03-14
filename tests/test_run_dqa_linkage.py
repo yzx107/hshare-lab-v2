@@ -133,13 +133,128 @@ class DQALinkageTests(unittest.TestCase):
 
             self.assertEqual(linkage.height, 1)
             self.assertEqual(linkage.get_column("bid_orderid_present_count").item(), 2)
+            self.assertEqual(linkage.get_column("bid_orderid_id_equal_match_count").item(), 2)
             self.assertEqual(linkage.get_column("bid_orderid_matched_count").item(), 2)
+            self.assertEqual(linkage.get_column("bid_match_with_usable_order_time_count").item(), 2)
             self.assertEqual(linkage.get_column("ask_orderid_present_count").item(), 2)
+            self.assertEqual(linkage.get_column("ask_orderid_id_equal_match_count").item(), 1)
             self.assertEqual(linkage.get_column("ask_orderid_matched_count").item(), 1)
             self.assertEqual(linkage.get_column("both_sides_present_count").item(), 1)
+            self.assertEqual(linkage.get_column("both_sides_id_equal_match_count").item(), 1)
             self.assertEqual(linkage.get_column("both_sides_matched_count").item(), 1)
+            self.assertEqual(linkage.get_column("orders_sendtime_nonnull_count").item(), 3)
             self.assertEqual(linkage.get_column("negative_time_lag_count").item(), 0)
+            self.assertEqual(linkage.get_column("id_linkage_status").item(), "pass")
+            self.assertEqual(linkage.get_column("time_anchor_status").item(), "pass")
+            self.assertEqual(linkage.get_column("lag_linkage_status").item(), "pass")
+            self.assertEqual(linkage.get_column("id_equality_status").item(), "pass")
+            self.assertEqual(linkage.get_column("lag_validation_status").item(), "pass")
             self.assertEqual(linkage.get_column("status").item(), "pass")
+
+    def test_run_dqa_linkage_marks_time_anchor_unavailable_when_order_sendtime_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stage_root = root / "candidate_cleaned"
+            output_root = root / "dqa"
+            research_root = root / "research"
+            log_root = root / "logs"
+
+            orders_dir = stage_root / "orders" / "date=2025-12-04"
+            trades_dir = stage_root / "trades" / "date=2025-12-04"
+            orders_dir.mkdir(parents=True)
+            trades_dir.mkdir(parents=True)
+
+            write_stage_parquet(
+                orders_dir / "20251204_orders.parquet",
+                "orders",
+                {
+                    "Channel": [None, None],
+                    "SendTimeRaw": [None, None],
+                    "SendTime": [None, None],
+                    "SeqNum": [1, 2],
+                    "OrderId": [9001, 9002],
+                    "OrderType": [1, 1],
+                    "Ext": [None, None],
+                    "Time": ["155959", "155958"],
+                    "Price": [10.0, 10.1],
+                    "Volume": [100, 200],
+                    "Level": [0, 0],
+                    "BrokerNo": ["1", "2"],
+                    "VolumePre": [0, 0],
+                    "date": [date(2025, 12, 4), date(2025, 12, 4)],
+                    "table_name": ["orders", "orders"],
+                    "source_file": ["OrderAdd/a.csv", "OrderAdd/b.csv"],
+                    "ingest_ts": [
+                        datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc),
+                        datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc),
+                    ],
+                    "row_num_in_file": [1, 1],
+                },
+            )
+
+            write_stage_parquet(
+                trades_dir / "20251204_trades.parquet",
+                "trades",
+                {
+                    "SendTimeRaw": [None, None],
+                    "SendTime": [None, None],
+                    "SeqNum": [10, 11],
+                    "TickID": [1, 2],
+                    "Time": ["155959", "155958"],
+                    "Price": [10.0, 10.1],
+                    "Volume": [100, 200],
+                    "Dir": [1, -1],
+                    "Type": ["X", "X"],
+                    "BrokerNo": ["1", "2"],
+                    "BidOrderID": [9001, 0],
+                    "BidVolume": [100, 0],
+                    "AskOrderID": [0, 9002],
+                    "AskVolume": [0, 200],
+                    "date": [date(2025, 12, 4), date(2025, 12, 4)],
+                    "table_name": ["trades", "trades"],
+                    "source_file": ["TradeResumes/a.csv", "TradeResumes/b.csv"],
+                    "ingest_ts": [
+                        datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc),
+                        datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc),
+                    ],
+                    "row_num_in_file": [1, 1],
+                },
+            )
+
+            subprocess.run(
+                [
+                    "python3",
+                    "-m",
+                    "Scripts.run_dqa_linkage",
+                    "--year",
+                    "2025",
+                    "--stage-root",
+                    str(stage_root),
+                    "--output-root",
+                    str(output_root),
+                    "--research-root",
+                    str(research_root),
+                    "--log-root",
+                    str(log_root),
+                ],
+                cwd="/Users/yxin/AI_Workstation/Hshare_Lab_v2",
+                check=True,
+            )
+
+            linkage = pl.read_parquet(output_root / "linkage" / "year=2025" / "audit_linkage_feasibility_daily.parquet")
+            self.assertEqual(linkage.height, 1)
+            row = linkage.to_dicts()[0]
+            self.assertEqual(row["bid_orderid_id_equal_match_count"], 1)
+            self.assertEqual(row["ask_orderid_id_equal_match_count"], 1)
+            self.assertEqual(row["bid_orderid_matched_count"], 0)
+            self.assertEqual(row["ask_orderid_matched_count"], 0)
+            self.assertEqual(row["orders_sendtime_nonnull_count"], 0)
+            self.assertEqual(row["id_linkage_status"], "pass")
+            self.assertEqual(row["time_anchor_status"], "unavailable")
+            self.assertEqual(row["lag_linkage_status"], "not_verifiable")
+            self.assertEqual(row["id_equality_status"], "pass")
+            self.assertEqual(row["lag_validation_status"], "time_anchor_unavailable")
+            self.assertEqual(row["status"], "warn")
 
 
 if __name__ == "__main__":
