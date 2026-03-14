@@ -9,7 +9,7 @@
 - 当前主线已从“继续清洗旧产物”切换为“重建研究基础设施 contract”
 - 旧版逻辑整体失效，保留为 `legacy evidence`
 - `raw layer` 保留
-- 旧 `cleaned/temp` 数据层已从新主线剥离
+- 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## Reboot Milestones
 
@@ -26,10 +26,10 @@
 - [x] 确认 raw layer 位于 `/Volumes/Data/港股Tick数据/{2025,2026}`
 - [x] 确认旧 cleaned layer 位于 `/Volumes/Data/港股Tick数据/clean_parquet`
 - [x] 确认旧 temp layer 位于 `/Volumes/Data/港股Tick数据/.tmp_parquet`
-- [x] 删除旧 `clean_parquet/`
-- [x] 删除旧 `.tmp_parquet/`
-- [x] 建立新骨架目录：`candidate_cleaned/`、`dqa/`、`verified/`、`manifests/`、`logs/`
-- **状态**: ✅ 完成
+- [/] 删除旧 `clean_parquet/`（删除命令已发起，外置盘仍在处理）
+- [/] 删除旧 `.tmp_parquet/`（删除命令已发起，外置盘仍在处理）
+- [ ] 建立新骨架目录：`candidate_cleaned/`、`dqa/`、`verified/`、`manifests/`、`logs/`
+- **状态**: 🔄 执行中
 
 ### R2: Raw Inventory
 - **目标**: 让 raw layer 可回溯、可核对、可重建

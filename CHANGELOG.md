@@ -18,10 +18,10 @@
 ## [Data-Reset-v1] 2026-03-14 — 删除旧 cleaned/temp 数据层，仅保留 raw（Codex）
 
 ### 变更概述
-- 删除旧的 `/Volumes/Data/港股Tick数据/clean_parquet/`
-- 删除旧的 `/Volumes/Data/港股Tick数据/.tmp_parquet/`
-- 建立新的 `/Volumes/Data/港股Tick数据/{candidate_cleaned,dqa,verified,manifests,logs}/`
+- 已发起删除旧的 `/Volumes/Data/港股Tick数据/clean_parquet/`
+- 已发起删除旧的 `/Volumes/Data/港股Tick数据/.tmp_parquet/`
+- 新的 `/Volumes/Data/港股Tick数据/{candidate_cleaned,dqa,verified,manifests,logs}/` 将在旧目录清理完成后建立
 
 ### 影响
-- 旧 cleaned 数据、旧 DQA temp、旧 DuckDB temp 不再纳入新主线。
+- 旧 cleaned 数据、旧 DQA temp、旧 DuckDB temp 正在退出新主线。
 - 新主线从 raw inventory 和 contract definition 重新开始。
