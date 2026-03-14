@@ -66,14 +66,14 @@
 
 ### R4: DQA Framework
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
-- [ ] Ingestion Completeness
-- [ ] Schema Integrity
+- [x] Ingestion Completeness
+- [x] Schema Integrity
 - [ ] Row-Level Validity
 - [ ] Sequence and Time Integrity
 - [ ] Session Quality
 - [ ] Cross-Table Feasibility
 - [ ] Broker Map Quality
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 已启动
 
 ### R5: Semantic Verification
 - **目标**: 给关键字段打 `pass / fail / unknown`
@@ -98,6 +98,7 @@
 - raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
 - `stage parquet / candidate_cleaned_2025_v1` 已完成真实单日样本验收，但还没扩到多日样本
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
+- `run_dqa_coverage.py` 与 `run_dqa_schema.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `golden sample` 还没选定
 
 ## 当前状态

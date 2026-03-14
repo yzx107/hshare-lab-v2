@@ -54,7 +54,7 @@
 
 ## T-R04: Mechanical DQA v1
 - **阶段**: Stage 1 数据清洗
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 进行中
 - **目标**: 建立研究导向 DQA 基线
 - **模块**:
   - Ingestion Completeness
@@ -64,6 +64,10 @@
   - Session Quality
   - Cross-Table Feasibility
   - Broker Map Quality
+- **当前进展**:
+  - `run_dqa_coverage.py` 已 materialize `audit_stage_partitions / audit_stage_row_reconciliation / audit_stage_source_groups / audit_stage_failures`
+  - `run_dqa_schema.py` 已 materialize `audit_schema_fingerprint / audit_field_nulls / audit_field_value_rules / audit_time_profile`
+  - 两条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
 - **验收门禁**:
   - 每个模块都有报告
   - 所有长任务都支持 checkpoint / resume

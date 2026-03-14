@@ -38,6 +38,18 @@
 - 长任务现在具备 member-level 可见性，能直接看出当前卡在哪个 raw member
 - progress 读写在并发场景下更稳，适合后续全量 stage 与 DQA 复用
 
+## [DQA-Foundation-v1] 2026-03-14 — 落地 coverage/schema 两条可执行审计入口（Codex）
+
+### 变更概述
+- `run_dqa_coverage.py` 从 scaffold 变为正式 CLI，基于 stage manifests materialize `audit_stage_partitions`、`audit_stage_row_reconciliation`、`audit_stage_source_groups`、`audit_stage_failures`
+- `run_dqa_schema.py` 从 scaffold 变为正式 CLI，基于 stage parquet materialize `audit_schema_fingerprint`、`audit_field_nulls`、`audit_field_value_rules`、`audit_time_profile`
+- 两条 DQA 入口都补齐 `checkpoint`、`heartbeat`、`summary` 与 `Research/Audits/*.md` 报告输出
+- 新增覆盖/模式审计测试，确保合成样本上可直接落盘并完成断言
+
+### 影响
+- v2 主线已从“只有 stage”推进到“stage + first-pass DQA foundation”
+- 后续可以在不改 stage contract 的前提下，直接扩展 representative sample、全量跑数与更深的 research-oriented audit
+
 ## [Stage-Pipeline-v1] 2026-03-14 — 新增真实 stage cleaning 入口（Codex）
 
 ### 变更概述

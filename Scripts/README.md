@@ -65,4 +65,26 @@
 - `manifests/stage_parquet_<year>/failures.jsonl`
 - `manifests/stage_parquet_<year>/summary.json`
 
+## run_dqa_coverage 输出
+
+- `dqa/coverage/year=<year>/audit_stage_partitions.parquet`
+- `dqa/coverage/year=<year>/audit_stage_row_reconciliation.parquet`
+- `dqa/coverage/year=<year>/audit_stage_source_groups.parquet`
+- `dqa/coverage/year=<year>/audit_stage_failures.parquet`
+- `dqa/coverage/year=<year>/checkpoint.json`
+- `dqa/coverage/year=<year>/heartbeat.json`
+- `dqa/coverage/year=<year>/summary.json`
+- `Research/Audits/dqa_coverage_<year>.md`
+
+## run_dqa_schema 输出
+
+- `dqa/schema/year=<year>/audit_schema_fingerprint.parquet`
+- `dqa/schema/year=<year>/audit_field_nulls.parquet`
+- `dqa/schema/year=<year>/audit_field_value_rules.parquet`
+- `dqa/schema/year=<year>/audit_time_profile.parquet`
+- `dqa/schema/year=<year>/checkpoint.json`
+- `dqa/schema/year=<year>/heartbeat.json`
+- `dqa/schema/year=<year>/summary.json`
+- `Research/Audits/dqa_schema_<year>.md`
+
 旧的 lowercase `scripts/` 目录视为 legacy，不再作为新主线入口。
