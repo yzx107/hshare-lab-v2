@@ -4,6 +4,18 @@
 
 ---
 
+## [Docs-Status-Alignment-v1] 2026-03-15 — 拉齐前置任务与当前执行主线的文档口径（Codex）
+
+### 变更概述
+- 更新 `README.md`、`PROGRESS.md`、`TASKS.md`，明确区分“架构前置是否完整”和“当前执行主线推进到哪里”
+- 明确 `raw inventory`、旧外置盘清理、`golden sample` 冻结仍是待补基础项
+- 明确当前执行主线已经后移到：`2026` 全量 staging、sample-year semantic boundary、research admissibility matrix
+
+### 影响
+- 后续阅读文档时，不会再把“前置未补齐”误读成“后续样本结论无效”
+- 项目口径从“伪 waterfall”收口为“基础项待补、主线并行推进”的真实状态
+- `raw inventory` 继续保留为待补基础项，但不再被写成当前唯一执行主线
+
 ## [Semantic-Time-Anchor-v1] 2026-03-14 — 新增 2025 粗粒度时间锚探针并确认 weak-pass（Codex）
 
 ### 变更概述
