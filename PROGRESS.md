@@ -19,6 +19,12 @@
 - `raw layer` 保留
 - `candidate_cleaned` 已明确为 `stage parquet` 层，而不是研究层
 - `stage parquet` 真实单日 sample 已跑通：`2025-02-18` 与 `2026-03-13`
+- representative sample 已跑通：`2025-01-02 / 2025-06-12 / 2025-12-04` 与 `2026-01-05 / 2026-02-24 / 2026-03-13`
+- `2025/2026` sample 的 stage 均实现 `raw_row_count == row_count`，且 `rejected_row_count = 0`、`failed_member_count = 0`
+- `2025` 与 `2026` 不能再按同一 linkage 语义版本处理
+- `2026` direct linkage 三天均 `pass`；`2025` direct linkage 三天均 `fail`
+- `2025-12-04` 出现未映射 source group `HKDarkPool`，当前按专项 inventory 处理，不并入主 contract
+- linkage 相关研究从现在开始拆年推进；`2026` 表内排序默认 `SeqNum` 优先
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
@@ -58,6 +64,7 @@
 - [x] 将同日 `orders/trades` 优化为单次 zip 扫描，并改为 `ZipFile.open(...)` 直读 CSV member stream
 - [x] 完成真实单日 sample run：`2025-02-18` 与 `2026-03-13`
 - [x] 核对 raw source mapping、实际 parquet schema、`SendTimeRaw -> SendTime` 样本对照
+- [x] 完成 representative sample run：`2025 x 3`、`2026 x 3`
 - [ ] 固定 schema spec
 - [ ] 固定 partition spec
 - [ ] 固定 candidate key spec
@@ -68,10 +75,10 @@
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
 - [x] Ingestion Completeness
 - [x] Schema Integrity
-- [ ] Row-Level Validity
-- [ ] Sequence and Time Integrity
+- [x] Row-Level Validity
+- [x] Sequence and Time Integrity
 - [ ] Session Quality
-- [ ] Cross-Table Feasibility
+- [x] Cross-Table Feasibility
 - [ ] Broker Map Quality
 - **状态**: 🔄 已启动
 
@@ -83,7 +90,7 @@
 - [ ] `OrderId`
 - [ ] `OrderType`
 - [ ] `Level / VolumePre / Type`
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 规划中（按年份拆开）
 
 ### R6: Verified Layer
 - **目标**: 输出 research-ready 表，而不是直接消费 cleaned 原表
@@ -96,10 +103,12 @@
 ## 当前阻塞
 
 - raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
-- `stage parquet / candidate_cleaned_2025_v1` 已完成真实单日样本验收，但还没扩到多日样本
+- `stage parquet / candidate_cleaned_2025_v1` 已完成 representative sample 验收，但还没进入全量阶段
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
-- `run_dqa_coverage.py` 与 `run_dqa_schema.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
-- `golden sample` 还没选定
+- `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
+- `2025-12-04` 出现 `HKDarkPool`，需要先做专项 inventory，而不是直接扩进主 contract
+- `2025` 的 old-format ID space 仍未调查清楚，linkage 不可直接沿用 `2026` 范式
+- `golden sample` 还没正式冻结
 
 ## 当前状态
 

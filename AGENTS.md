@@ -35,3 +35,10 @@ Hshare Lab v2 是港股 tick / order / trade 研究基础设施重启版。
 3. DQA
 4. semantic verification
 5. verified layer
+
+## 大数据管路管理
+1. 不可黑箱要visilbe
+2. 可恢复resumable
+3. 可追溯traceable
+4. 可观测
+

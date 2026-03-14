@@ -50,6 +50,30 @@
 - v2 主线已从“只有 stage”推进到“stage + first-pass DQA foundation”
 - 后续可以在不改 stage contract 的前提下，直接扩展 representative sample、全量跑数与更深的 research-oriented audit
 
+## [DQA-Linkage-v1] 2026-03-14 — 落地轻量版 trade-order linkage feasibility CLI（Codex）
+
+### 变更概述
+- `run_dqa_linkage.py` 从 scaffold 变为正式 CLI，先回答 `BidOrderID / AskOrderID` 能否同日连到 `Orders.OrderId`
+- 第一版只输出日级 `match rate / both-side match / negative lag rate`，不提前做 lifecycle、broker-side 或语义推断
+- 新增合成样本测试，确保 linkage 结果能落盘为 `audit_linkage_feasibility_daily`
+
+### 影响
+- 高优先 audit 表中的第 5 张已经具备正式入口，可以直接接 representative sample 与真实 stage 产物
+- 后续可以在不改 stage 层的前提下，逐步加深 linkage 诊断，而不是把 linkage 逻辑混回 cleaning
+
+## [Representative-Sample-v1] 2026-03-14 — 跑通 2025/2026 representative sample 并明确拆年结论（Codex）
+
+### 变更概述
+- 对 `2025-01-02 / 2025-06-12 / 2025-12-04` 与 `2026-01-05 / 2026-02-24 / 2026-03-13` 跑通 representative sample stage
+- 对上述 sample 同步跑完 `coverage / schema / linkage` 三条高优先 DQA
+- 明确 `2025-12-04` 出现未映射 source group `HKDarkPool`
+- 明确 `2026` direct linkage 三天全 `pass`，而 `2025` direct linkage 三天全 `fail`
+
+### 影响
+- `stage` 层已可放行到全量，不需要回头重写 stage 架构
+- linkage 相关研究从现在开始按年份拆开推进
+- `2026` 进入 linkage semantic verification；`2025` 先做 `HKDarkPool inventory + old-format ID space investigation`
+
 ## [Stage-Pipeline-v1] 2026-03-14 — 新增真实 stage cleaning 入口（Codex）
 
 ### 变更概述

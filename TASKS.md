@@ -47,6 +47,7 @@
   - 同日 `orders/trades` 不重复扫 zip，默认走 direct zip streaming
   - `heartbeat.json` 需要包含 bundle 级 active progress，并可追踪当前 source member
   - 真实单日 sample run 已完成，且已核对 schema / mapping / time sanity / failures / unmapped
+  - representative sample run 已完成：`2025 x 3`、`2026 x 3`
   - schema spec 固定
   - partition spec 固定
   - candidate key spec 固定
@@ -67,7 +68,10 @@
 - **当前进展**:
   - `run_dqa_coverage.py` 已 materialize `audit_stage_partitions / audit_stage_row_reconciliation / audit_stage_source_groups / audit_stage_failures`
   - `run_dqa_schema.py` 已 materialize `audit_schema_fingerprint / audit_field_nulls / audit_field_value_rules / audit_time_profile`
-  - 两条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
+  - `run_dqa_linkage.py` 已 materialize `audit_linkage_feasibility_daily`
+  - 三条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
+  - representative sample 结论：`2026` direct linkage 三天全 `pass`；`2025` direct linkage 三天全 `fail`
+  - representative sample 结论：`2025-12-04` 出现 `HKDarkPool`，当前作为 source inventory 问题隔离处理
 - **验收门禁**:
   - 每个模块都有报告
   - 所有长任务都支持 checkpoint / resume
@@ -75,7 +79,7 @@
 
 ## T-R05: Semantic Verification Matrix
 - **阶段**: Stage 3 研究验证
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 规划中
 - **目标**: 给关键字段打 `pass / fail / unknown`
 - **首批字段**:
   - `TradeDir`
@@ -84,6 +88,11 @@
   - `AskOrderID`
   - `OrderId`
   - `OrderType`
+- **当前策略**:
+  - `2026`：进入 linkage semantic verification
+  - `2025`：先做 `HKDarkPool inventory + old-format ID space investigation`
+  - linkage 相关研究从现在开始拆年，不混年推进
+  - `2026` 表内排序默认 `SeqNum` 优先
 
 ## T-R06: Verified Layer v1
 - **阶段**: Stage 3 研究验证

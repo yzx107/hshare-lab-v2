@@ -35,6 +35,13 @@
 - `run_dqa_linkage.py`：`BidOrderID / AskOrderID -> OrderId` linkage feasibility
 - `build_verified_layer.py`：verified tables materialization
 
+## 当前研究边界
+
+- `2026`：可进入 `linkage semantic verification`
+- `2025`：先做 `HKDarkPool inventory + old-format ID space investigation`
+- linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
+- `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚
+
 ## 推荐调用
 
 - `python -m Scripts.build_raw_inventory --year 2025`
@@ -86,5 +93,13 @@
 - `dqa/schema/year=<year>/heartbeat.json`
 - `dqa/schema/year=<year>/summary.json`
 - `Research/Audits/dqa_schema_<year>.md`
+
+## run_dqa_linkage 输出
+
+- `dqa/linkage/year=<year>/audit_linkage_feasibility_daily.parquet`
+- `dqa/linkage/year=<year>/checkpoint.json`
+- `dqa/linkage/year=<year>/heartbeat.json`
+- `dqa/linkage/year=<year>/summary.json`
+- `Research/Audits/dqa_linkage_<year>.md`
 
 旧的 lowercase `scripts/` 目录视为 legacy，不再作为新主线入口。
