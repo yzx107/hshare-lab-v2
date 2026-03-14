@@ -35,12 +35,14 @@
 - `run_dqa_linkage.py`：将 `BidOrderID / AskOrderID -> OrderId` 的 ID-level equality 与 time-usable linkage 分开审计
 - `run_source_group_inventory.py`：指定 raw source group 专项 inventory，例如 `2025 HKDarkPool`
 - `run_semantic_idspace.py`：在 representative sample 上探测 old-format ID equality 与时间锚可用性
+- `run_semantic_time_anchor.py`：在 `SendTime` 缺失时，评估 `Time` 是否仍能支撑 coarse temporal validation
 - `build_verified_layer.py`：verified tables materialization
 
 ## 当前研究边界
 
 - `2026`：可进入 `linkage semantic verification`
-- `2025`：`HKDarkPool inventory` 已完成，确认其为独立 trade-like source group；representative sample 已确认 ID-level linkage 成立，但 orders 侧 `SendTime` 缺失，下一步做 old-format temporal anchor investigation
+- `2025`：`HKDarkPool inventory` 已完成，确认其为独立 trade-like source group；ID-level linkage 已成立
+- `2025`：`SendTime` 仍缺失，但 `Time` 在 `7` 个样本日、`50,521,238` 条 matched edges 上均呈现 `coarse_time_anchor_status = weak_pass`
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
 - `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚
 
@@ -55,6 +57,7 @@
 - `python -m Scripts.run_dqa_linkage --print-plan`
 - `python -m Scripts.run_source_group_inventory --print-plan`
 - `python -m Scripts.run_semantic_idspace --print-plan`
+- `python -m Scripts.run_semantic_time_anchor --print-plan`
 - `python -m Scripts.run_source_group_inventory --year 2025 --group HKDarkPool`
 - `python -m Scripts.build_verified_layer --print-plan`
 

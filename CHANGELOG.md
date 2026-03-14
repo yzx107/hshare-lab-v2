@@ -4,6 +4,22 @@
 
 ---
 
+## [Semantic-Time-Anchor-v1] 2026-03-14 — 新增 2025 粗粒度时间锚探针并确认 weak-pass（Codex）
+
+### 变更概述
+- 新增 `run_semantic_time_anchor.py`，用于在 `SendTime` 缺失时，评估 `Time` 是否还能支撑保守的 coarse temporal validation
+- 新增 `test_run_semantic_time_anchor.py`，覆盖 `weak_pass` 与 `unavailable` 两类最小样本
+- 对 `2025-01-02 / 2025-06-12 / 2025-12-04` representative sample 跑通 time-anchor probe，输出至 `/tmp/hshare_semantic_time_anchor_probe`
+- 进一步补跑 `2025-02-28 / 2025-04-30 / 2025-07-04 / 2025-09-29` 四个扩展样本日，输出至 `/tmp/hshare_time_anchor_ext_2025` 与 `/tmp/hshare_semantic_time_anchor_ext`
+- 确认三天的 `Orders.Time` 与 `Trades.Time` 非空率均为 `1.0`
+- 确认 matched ID edges 上 `order_time <= trade_time` 比例约 `99.98%`，负秒级偏差仅约 `0.02%`
+- 确认扩展到 `7` 个样本日、`50,521,238` 条 matched edges 后，全部样本日仍可标记为 `coarse_time_anchor_status = weak_pass`
+
+### 影响
+- `2025` 现在不只是 “ID-level linkage 成立但 SendTime 缺失”
+- `2025` 进一步可表述为：`Time` 可支撑粗粒度时间一致性检查，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
+- `2025` 的下一步从“证明是否存在替代时间锚”推进为“界定 coarse temporal validation 的有效边界”
+
 ## [Source-Inventory-v1] 2026-03-14 — 落地 HKDarkPool 专项 inventory CLI 并跑通全年 2025（Codex）
 
 ### 变更概述

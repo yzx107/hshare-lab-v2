@@ -92,7 +92,9 @@
   - `OrderType`
 - **当前策略**:
   - `2026`：进入 linkage semantic verification
-  - `2025`：`HKDarkPool inventory` 已完成；ID-level linkage 已确认成立，下一步转 `old-format temporal anchor / time-aware validation investigation`
+  - `2025`：`HKDarkPool inventory` 已完成；ID-level linkage 已确认成立；`Time` 在 representative sample 上为 `coarse_time_anchor_status = weak_pass`
+  - `2025`：扩展到 `7` 个样本日后，`Time` 仍全部为 `coarse_time_anchor_status = weak_pass`
+  - `2025`：下一步转“界定 `Time` 可支撑的粗粒度验证边界”，而不是继续假设 `SendTime` 级 lag 校验可行
   - linkage 相关研究从现在开始拆年，不混年推进
   - `2026` 表内排序默认 `SeqNum` 优先
 
