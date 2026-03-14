@@ -10,7 +10,7 @@
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
 - 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
-- 当前最关心的下一步：先做 raw inventory，把 `2025/2026` raw layer 固化成可重复生成的 manifest 基线
+- 当前最关心的下一步：继续推进 `2026` 全量 staging，并把 `2025/2026` 的研究可用性边界按矩阵固化
 
 ## 当前主线
 
@@ -21,6 +21,18 @@
 3. `DQA`
 4. `semantic verification`
 5. `verified layer`
+
+说明：
+- 这仍然是架构顺序，不等于当前执行严格串行
+- 目前项目处于“前置项未全部收口，但 stage / DQA / semantic sample 已并行推进”的状态
+- `raw inventory` 仍未对真实 `2025/2026` 全量落盘，这是待补基础项，不是已经完成的前置
+
+## 当前执行主线
+
+- `2026`：全量 `staging` 后台长跑进行中
+- `2025`：`HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
+- `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
+- `raw inventory`：CLI 已就位，但真实全年 manifest 仍待回补
 
 ## 当前原则
 

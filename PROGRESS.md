@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：先做 raw inventory，把 raw 层沉淀成 manifest-first 的可回溯基线
+- 当前最关心的下一步：继续推进 `2026` 全量 staging，并把 `2025/2026` 的研究可用性边界固化到后续研究入口
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -39,6 +39,15 @@
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
+## 当前执行说明
+
+- 当前不是严格 waterfall 执行；`raw inventory` 尚未对真实全年落盘，但 `stage / DQA / semantic sample` 已并行推进
+- 因此文档中的 `R1 / R2` 仍显示未完成，不表示后续结论失效，而是表示这些基础项仍待回补
+- 当前真正的执行主线是：
+  - `2026` 全量 staging
+  - `2025/2026` sample-year semantic boundary 固化
+  - `research admissibility matrix` 收口
+
 ## Reboot Milestones
 
 ### R0: Reboot Freeze
@@ -57,7 +66,7 @@
 - [/] 删除旧 `clean_parquet/`（删除命令已发起，外置盘仍在处理）
 - [/] 删除旧 `.tmp_parquet/`（删除命令已发起，外置盘仍在处理）
 - [ ] 建立新骨架目录：`candidate_cleaned/`、`dqa/`、`verified/`、`manifests/`、`logs/`
-- **状态**: 🔄 执行中
+- **状态**: 🔄 遗留收尾
 
 ### R2: Raw Inventory
 - **目标**: 让 raw layer 可回溯、可核对、可重建
@@ -66,7 +75,7 @@
 - [ ] 生成 `raw_inventory_2026`
 - [ ] 记录文件数、总字节数、日期覆盖、异常文件
 - [ ] 生成 schema snapshot 与 source metadata
-- **状态**: 🔄 已启动
+- **状态**: ⏳ CLI 已就位，真实全年落盘待补
 
 ### R3: Stage Parquet / Candidate Cleaned Contract
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
@@ -80,7 +89,7 @@
 - [ ] 固定 partition spec
 - [ ] 固定 candidate key spec
 - [ ] 选定 golden sample 日期与股票池
-- **状态**: 🔄 已启动
+- **状态**: 🔄 sample 已验收，`2026` 全量进行中
 
 ### R4: DQA Framework
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
@@ -88,10 +97,10 @@
 - [x] Schema Integrity
 - [x] Row-Level Validity
 - [x] Sequence and Time Integrity
-- [ ] Session Quality
+- [ ] Session Quality（sample 尚未单列固化）
 - [x] Cross-Table Feasibility
-- [ ] Broker Map Quality
-- **状态**: 🔄 已启动
+- [ ] Broker Map Quality（尚未系统展开）
+- **状态**: 🔄 sample-year 已完成，full-year 待跟进
 
 ### R5: Semantic Verification
 - **目标**: 给关键字段打 `pass / fail / unknown`
@@ -101,7 +110,7 @@
 - [ ] `OrderId`
 - [ ] `OrderType`
 - [ ] `Level / VolumePre / Type`
-- **状态**: 🔄 规划中（按年份拆开）
+- **状态**: 🔄 sample-year 边界已建立（按年份拆开）
 
 ### R6: Verified Layer
 - **目标**: 输出 research-ready 表，而不是直接消费 cleaned 原表
@@ -111,10 +120,10 @@
 - [ ] `broker_reference`
 - **状态**: ⏳ 待开始
 
-## 当前阻塞
+## 当前阻塞 / 待补基础项
 
 - raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
-- `stage parquet / candidate_cleaned_2025_v1` 已完成 representative sample 验收，但还没进入全量阶段
+- `stage parquet / candidate_cleaned_2025_v1` 已完成 representative sample 验收，但 full-year 仍只推进到 `2026`
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `run_source_group_inventory.py` 已落地为正式 CLI，并已完成 `2025 HKDarkPool` inventory
@@ -127,4 +136,4 @@
 
 ## 当前状态
 
-**状态**: reboot 已启动；旧世界冻结；新主线进入 `raw inventory + contract definition`，其中当前首要推进项是 raw inventory
+**状态**: reboot 已启动；旧世界冻结；新主线已进入 `stage + DQA + semantic boundary` 并行推进，`raw inventory` 仍是待补基础项而非已完成前置

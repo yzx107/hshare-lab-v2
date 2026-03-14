@@ -9,8 +9,16 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：推进 `T-R02`，先把 raw inventory manifest 跑通
+- 当前最关心的下一步：继续推进 `T-R03` 的 `2026` 全量 staging，并把 `T-R05` 的研究可用性矩阵变成后续研究入口
 - 旧仓库不再修改，只保留为 `legacy evidence`
+
+## 当前执行说明
+
+- 当前任务不是严格按 `T-R00 -> T-R07` 串行完成
+- `T-R01 / T-R02` 仍有未补基础项，但 `T-R03 / T-R04 / T-R05` 已经在 sample-year 层面并行推进
+- 看状态时请区分：
+  - `架构前置是否完整`
+  - `当前执行主线是否已向后推进`
 
 ## T-R00: Reboot 主线切换
 - **阶段**: Stage 0 需求/规格 + Stage 4 工程加固
@@ -20,14 +28,14 @@
 
 ## T-R01: 删除旧 cleaned/temp 数据层
 - **阶段**: Stage 1 数据清洗
-- **状态**: 🔄 执行中
+- **状态**: 🔄 遗留收尾
 - **目标**: 外置盘仅保留 raw layer
 - **验收门禁**: `clean_parquet/` 与 `.tmp_parquet/` 不再存在；新骨架目录已创建
 - **可观测性**: 删除前记录边界，删除后复核目录树
 
 ## T-R02: 建立 Raw Inventory Manifest
 - **阶段**: Stage 1 数据清洗
-- **状态**: 🔄 执行中
+- **状态**: ⏳ CLI 已就位，真实全年落盘待补
 - **目标**: 让 raw layer 具备可回溯性
 - **验收门禁**:
   - `build_raw_inventory.py` CLI 已固化并可重复调用
@@ -35,11 +43,11 @@
   - 记录文件数、总字节数、日期覆盖、异常文件
   - manifest 可重复生成
 - **可观测性**: 必须按日期或批次输出进度、心跳、错误计数
-- **当前说明**: 这是 v2 主线当前最该先落地的执行任务
+- **当前说明**: 这是仍未补齐的基础项，但不再是当前唯一执行主线
 
 ## T-R03: 定义 Stage Parquet / Candidate Cleaned Contract
 - **阶段**: Stage 0 需求/规格 + Stage 1 数据清洗
-- **状态**: 🔄 执行中
+- **状态**: 🔄 sample 已验收，`2026` 全量进行中
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
 - **验收门禁**:
   - `STAGE_SCHEMA.md` 固定 Trades / Orders 的 raw source mapping 与 stage schema
@@ -55,7 +63,7 @@
 
 ## T-R04: Mechanical DQA v1
 - **阶段**: Stage 1 数据清洗
-- **状态**: 🔄 进行中
+- **状态**: 🔄 sample-year 已完成，full-year 待跟进
 - **目标**: 建立研究导向 DQA 基线
 - **模块**:
   - Ingestion Completeness
@@ -81,7 +89,7 @@
 
 ## T-R05: Semantic Verification Matrix
 - **阶段**: Stage 3 研究验证
-- **状态**: 🔄 规划中
+- **状态**: 🔄 sample-year 边界已建立
 - **目标**: 给关键字段打 `pass / fail / unknown`
 - **首批字段**:
   - `TradeDir`
