@@ -23,7 +23,9 @@
 - `2025/2026` sample 的 stage 均实现 `raw_row_count == row_count`，且 `rejected_row_count = 0`、`failed_member_count = 0`
 - `2025` 与 `2026` 不能再按同一 linkage 语义版本处理
 - `2026` direct linkage 三天均 `pass`；`2025` direct linkage 三天均 `fail`
-- `2025-12-04` 出现未映射 source group `HKDarkPool`，当前按专项 inventory 处理，不并入主 contract
+- `2025 HKDarkPool` 专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
+- `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
+- `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract
 - linkage 相关研究从现在开始拆年推进；`2026` 表内排序默认 `SeqNum` 优先
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
@@ -106,7 +108,8 @@
 - `stage parquet / candidate_cleaned_2025_v1` 已完成 representative sample 验收，但还没进入全量阶段
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
-- `2025-12-04` 出现 `HKDarkPool`，需要先做专项 inventory，而不是直接扩进主 contract
+- `run_source_group_inventory.py` 已落地为正式 CLI，并已完成 `2025 HKDarkPool` inventory
+- `HKDarkPool` 已确认不是 `2025-12-04` 单日偶发，而是 `2025-07-04` 到 `2025-12-31` 间多日反复出现的独立 source group
 - `2025` 的 old-format ID space 仍未调查清楚，linkage 不可直接沿用 `2026` 范式
 - `golden sample` 还没正式冻结
 

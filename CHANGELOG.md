@@ -4,6 +4,19 @@
 
 ---
 
+## [Source-Inventory-v1] 2026-03-14 — 落地 HKDarkPool 专项 inventory CLI 并跑通全年 2025（Codex）
+
+### 变更概述
+- 新增 `run_source_group_inventory.py`，用于在扩主 contract 之前，对指定 raw source group 做可见、可恢复的专项 inventory
+- 新增 `test_run_source_group_inventory.py`，覆盖合成 zip 上的 member inventory、daily summary、schema fingerprint 落盘
+- 对真实 `2025` raw 全年执行 `HKDarkPool` inventory，输出至 `/tmp/hshare_hkdarkpool_inventory`
+- 确认 `HKDarkPool` 并非 `2025-12-04` 单日异常，而是在 `246` 个交易日中命中 `44` 天、共 `142` 个 member、`935,527` 行
+- 确认 `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
+
+### 影响
+- `HKDarkPool` 现在可按事实层 inventory 单独研究，不需要先并入主 `Orders / Trades` contract
+- `2025` 的下一步从“先确认是否单日异常”推进为“old-format ID space investigation + 是否需要独立 verified 分支”
+
 ## [Stage-Sample-v1] 2026-03-14 — 完成真实 raw 单日 stage sample（Codex）
 
 ### 变更概述

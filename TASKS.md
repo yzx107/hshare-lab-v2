@@ -69,9 +69,10 @@
   - `run_dqa_coverage.py` 已 materialize `audit_stage_partitions / audit_stage_row_reconciliation / audit_stage_source_groups / audit_stage_failures`
   - `run_dqa_schema.py` 已 materialize `audit_schema_fingerprint / audit_field_nulls / audit_field_value_rules / audit_time_profile`
   - `run_dqa_linkage.py` 已 materialize `audit_linkage_feasibility_daily`
-  - 三条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
+  - `run_source_group_inventory.py` 已 materialize `audit_source_member_inventory / audit_source_daily_summary / audit_source_schema_fingerprints`
+  - 四条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
   - representative sample 结论：`2026` direct linkage 三天全 `pass`；`2025` direct linkage 三天全 `fail`
-  - representative sample 结论：`2025-12-04` 出现 `HKDarkPool`，当前作为 source inventory 问题隔离处理
+  - `2025 HKDarkPool inventory` 结论：`246` 个交易日中 `44` 天命中、`142` 个 member、`935,527` 行、单一 `7` 列 trade-like schema
 - **验收门禁**:
   - 每个模块都有报告
   - 所有长任务都支持 checkpoint / resume
@@ -90,7 +91,7 @@
   - `OrderType`
 - **当前策略**:
   - `2026`：进入 linkage semantic verification
-  - `2025`：先做 `HKDarkPool inventory + old-format ID space investigation`
+  - `2025`：`HKDarkPool inventory` 已完成，下一步转 `old-format ID space investigation`
   - linkage 相关研究从现在开始拆年，不混年推进
   - `2026` 表内排序默认 `SeqNum` 优先
 
