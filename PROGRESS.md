@@ -4,11 +4,21 @@
 
 ---
 
+## 会话接续
+
+- canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
+- legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
+- GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
+- 当前最关心的下一步：先做 raw inventory，把 raw 层沉淀成 manifest-first 的可回溯基线
+- 旧仓库不再修改，只保留为 `legacy evidence`
+
 ## 当前结论
 
 - 当前主线已从“继续清洗旧产物”切换为“重建研究基础设施 contract”
 - 旧版逻辑整体失效，保留为 `legacy evidence`
 - `raw layer` 保留
+- `candidate_cleaned` 已明确为 `stage parquet` 层，而不是研究层
+- `stage parquet` 真实单日 sample 已跑通：`2025-02-18` 与 `2026-03-13`
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## Reboot Milestones
@@ -33,19 +43,24 @@
 
 ### R2: Raw Inventory
 - **目标**: 让 raw layer 可回溯、可核对、可重建
+- [x] 建立 `build_raw_inventory.py` CLI 骨架
 - [ ] 生成 `raw_inventory_2025`
 - [ ] 生成 `raw_inventory_2026`
 - [ ] 记录文件数、总字节数、日期覆盖、异常文件
 - [ ] 生成 schema snapshot 与 source metadata
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 已启动
 
-### R3: Candidate Cleaned Contract
-- **目标**: 定义 `candidate_cleaned_2025_v1`
+### R3: Stage Parquet / Candidate Cleaned Contract
+- **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
+- [x] 建立 `STAGE_SCHEMA.md`，固定 Trades / Orders 的首版 stage contract
+- [x] 建立 `build_stage_parquet.py` CLI，支持 `date + table` task、checkpoint、heartbeat、多进程并行
+- [x] 完成真实单日 sample run：`2025-02-18` 与 `2026-03-13`
+- [x] 核对 raw source mapping、实际 parquet schema、`SendTimeRaw -> SendTime` 样本对照
 - [ ] 固定 schema spec
 - [ ] 固定 partition spec
 - [ ] 固定 candidate key spec
 - [ ] 选定 golden sample 日期与股票池
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 已启动
 
 ### R4: DQA Framework
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
@@ -78,10 +93,11 @@
 
 ## 当前阻塞
 
-- 新版 raw inventory 脚本尚未建立
-- `candidate_cleaned_2025_v1` 尚未重新定义
+- raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
+- `stage parquet / candidate_cleaned_2025_v1` 已完成真实单日样本验收，但还没扩到多日样本
+- 当前 heartbeat 仍以 `date + table` task 为粒度，长任务的 member-level 可见性还不够细
 - `golden sample` 还没选定
 
 ## 当前状态
 
-**状态**: reboot 已启动；旧世界冻结；新主线进入 `raw inventory + contract definition`
+**状态**: reboot 已启动；旧世界冻结；新主线进入 `raw inventory + contract definition`，其中当前首要推进项是 raw inventory

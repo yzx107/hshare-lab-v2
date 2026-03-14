@@ -14,3 +14,4 @@
 - 所有研究结论必须说明基于哪一层数据
 - `candidate cleaned` 与 `verified` 的结论不得混用
 - legacy 报告不可直接视为 v2 事实
+- notebook 只做探索、图表、临时 sanity check；正式产物必须回到 `Scripts/` 与可重跑输出

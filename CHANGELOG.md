@@ -4,6 +4,67 @@
 
 ---
 
+## [Stage-Sample-v1] 2026-03-14 — 完成真实 raw 单日 stage sample（Codex）
+
+### 变更概述
+- 对真实 raw `2025-02-18` 与 `2026-03-13` 跑通 `build_stage_parquet.py`
+- 核对实际 parquet schema、`partitions.jsonl`、`source_groups.jsonl`、`failures/unmapped` 留痕
+- 增加 `SendTimeRaw` 保留列，并验证 `SendTimeRaw -> SendTime` 与 `Time` 的样本对照
+- 新增 `unmapped source members` 与 `rejection_reason_counts` 留痕能力
+
+### 影响
+- stage pipeline 已从“可执行”进入“经真实 raw 样本验证”
+- 当前主要剩余风险从 schema/mapping 转向长任务 heartbeat 粒度与全量性能
+
+## [Stage-Pipeline-v1] 2026-03-14 — 新增真实 stage cleaning 入口（Codex）
+
+### 变更概述
+- 新增 `STAGE_SCHEMA.md`，明确 2025/2026 raw source mapping 以及 Trades / Orders 的 stage schema
+- 新增 `Scripts/build_stage_parquet.py`，支持 `date + table` task、checkpoint、heartbeat、分区 manifest、多进程并行
+- 新增 `Scripts/stage_contract.py`，把 stage schema、技术列和 required-for-stage 规则集中定义
+- 新增 stage 相关 `Makefile` 入口与端到端测试
+
+### 影响
+- v2 已经可以从 raw zip 真正进入 stage parquet，而不再只是停留在 contract 讨论
+- stage cleaning 的边界、坏行处理、并行与断点续跑规则都有了代码级落点
+
+## [Stage-Definition-v1] 2026-03-14 — 明确 stage parquet 的最小保守标准化口径（Codex）
+
+### 变更概述
+- 明确 `candidate_cleaned` 就是当前的 `stage parquet` 层
+- 固定 stage 层定义为 “loss-minimizing typed projection of raw CSV into partitioned parquet, without semantic enrichment”
+- 明确 stage 层保持原始记录粒度、尽量保留原始字段，只允许技术列与工程标准化
+- 明确禁止字段语义重命名、aggressor 推断、book/queue 推断、linkage 衍生和研究特征
+
+### 影响
+- `candidate_cleaned` 不再容易被误解为研究层或语义已验证层
+- 后续 Trades / Orders schema 规范可以直接围绕 stage contract 落地
+
+## [Engineering-Scaffold-v1] 2026-03-14 — 固化 v2 主栈与脚本职责（Codex）
+
+### 变更概述
+- 新增 `pyproject.toml`，固定 `DuckDB + Polars + PyArrow` 主栈以及 `pytest + ruff` 轻量工程化约束
+- 新增 `Makefile`，提供 raw inventory 与后续 DQA / verified 层的轻编排入口
+- 将 `Scripts/` 从纯文档目录升级为 Python CLI 入口，并新增 `build_raw_inventory.py`
+- 为 `candidate cleaned`、DQA、verified layer 建立占位脚本，明确职责边界与后续接线点
+
+### 影响
+- v2 不再只有“文档主线”，而是有了可以继续扩展的工程骨架
+- raw inventory 成为第一个正式落地的可执行 pipeline 入口
+
+## [Session-Handoff-v1] 2026-03-14 — 固化 v2 会话接续入口（Codex）
+
+### 变更概述
+- 明确 canonical repo 为 `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
+- 明确 `/Users/yxin/AI_Workstation/Hshare_Lab` 仅作为 `legacy evidence`
+- 补充 GitHub 仓库地址与新会话入口文件
+- 统一记录当前最关心的下一步为 `raw inventory`
+- 修正 `README.md` 与 `DATA_CONTRACT.md` 中残留的旧仓库绝对路径
+
+### 影响
+- 后续新会话可以直接从 v2 仓库恢复，不会误入 legacy repo
+- `raw inventory` 被固定为当前最优先的执行焦点
+
 ## [Reboot-v1] 2026-03-14 — 切换到 Hshare Lab v2 主线（Codex）
 
 ### 变更概述

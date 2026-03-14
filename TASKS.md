@@ -4,6 +4,14 @@
 
 ---
 
+## 会话接续
+
+- canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
+- legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
+- GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
+- 当前最关心的下一步：推进 `T-R02`，先把 raw inventory manifest 跑通
+- 旧仓库不再修改，只保留为 `legacy evidence`
+
 ## T-R00: Reboot 主线切换
 - **阶段**: Stage 0 需求/规格 + Stage 4 工程加固
 - **状态**: ✅ 完成
@@ -19,19 +27,24 @@
 
 ## T-R02: 建立 Raw Inventory Manifest
 - **阶段**: Stage 1 数据清洗
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 执行中
 - **目标**: 让 raw layer 具备可回溯性
 - **验收门禁**:
+  - `build_raw_inventory.py` CLI 已固化并可重复调用
   - `2025` 与 `2026` raw inventory 都落盘
   - 记录文件数、总字节数、日期覆盖、异常文件
   - manifest 可重复生成
 - **可观测性**: 必须按日期或批次输出进度、心跳、错误计数
+- **当前说明**: 这是 v2 主线当前最该先落地的执行任务
 
-## T-R03: 定义 Candidate Cleaned Contract
+## T-R03: 定义 Stage Parquet / Candidate Cleaned Contract
 - **阶段**: Stage 0 需求/规格 + Stage 1 数据清洗
-- **状态**: ⏳ 待开始
-- **目标**: 定义 `candidate_cleaned_2025_v1`
+- **状态**: 🔄 执行中
+- **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
 - **验收门禁**:
+  - `STAGE_SCHEMA.md` 固定 Trades / Orders 的 raw source mapping 与 stage schema
+  - `build_stage_parquet.py` 可按 `date + table` task 执行并支持 resume
+  - 真实单日 sample run 已完成，且已核对 schema / mapping / time sanity / failures / unmapped
   - schema spec 固定
   - partition spec 固定
   - candidate key spec 固定

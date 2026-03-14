@@ -4,39 +4,72 @@
 
 自 `2026-03-14` 起，本仓库进入 `reboot` 主线：旧版清洗、DQA、feature、查询逻辑统一降级为 `legacy evidence`，不再作为事实源或研究入口。
 
-## 当前目标
+## 会话接续
 
-当前主线不是继续全量重清洗，而是：
+- canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
+- legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
+- GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
+- 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
+- 当前最关心的下一步：先做 raw inventory，把 `2025/2026` raw layer 固化成可重复生成的 manifest 基线
 
-1. 保留 `raw layer`
-2. 冻结 `candidate cleaned 2025`
-3. 完成 `DQA + semantic verification`
-4. 产出 `verified research-ready layer`
-5. 再决定是否推广到更多年份
+## 当前主线
+
+当前主线按以下顺序推进：
+
+1. `raw inventory`
+2. `stage parquet / candidate_cleaned contract`
+3. `DQA`
+4. `semantic verification`
+5. `verified layer`
 
 ## 当前原则
 
 - `raw` 不可变，只补 metadata
-- `cleaning` 只做 mechanical transformation，不做主观语义解释
+- `cleaning` 只做最小保守标准化，不做主观语义解释
 - `DQA` 必须 `visible + resumable`
 - `semantic verification` 先于复杂 alpha
+- 旧仓库 `/Users/yxin/AI_Workstation/Hshare_Lab` 只作为 `legacy evidence`，不再继续开发
 - 旧目录 `scripts/`、旧 `src/features/`、旧 DQA 报告均视为 `legacy evidence`
 
-## 仓库入口
+## Stage Layer 定义
 
-- [DATA_CONTRACT.md](/Users/yxin/AI_Workstation/Hshare_Lab/DATA_CONTRACT.md)
-- [CLEANING_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab/CLEANING_SPEC.md)
-- [DQA_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab/DQA_SPEC.md)
-- [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab/SEMANTIC_MATRIX.md)
-- [LEGACY_STATUS.md](/Users/yxin/AI_Workstation/Hshare_Lab/LEGACY_STATUS.md)
-- [PROGRESS.md](/Users/yxin/AI_Workstation/Hshare_Lab/PROGRESS.md)
-- [TASKS.md](/Users/yxin/AI_Workstation/Hshare_Lab/TASKS.md)
-- [CHANGELOG.md](/Users/yxin/AI_Workstation/Hshare_Lab/CHANGELOG.md)
+- `candidate_cleaned` 就是当前的 `stage parquet` 层
+- 一条 raw 记录对应一条 stage 记录，保持原始记录粒度
+- 尽量保留原始字段，只补最少量技术列与工程标准化
+- 允许类型、时间、空值、schema、分区标准化
+- 不允许字段语义重命名、aggressor 推断、book/queue 推断、linkage 衍生、研究特征
+
+## 主栈分工
+
+- `Parquet`：唯一工作格式；`CSV` 只保留在 raw evidence 层
+- `DuckDB`：主查询、主审计、主 linkage 检查、研究中间表 materialization
+- `Polars`：主 ETL、主 mechanical transformation、主特征工程
+- `PyArrow`：schema、dataset、metadata、manifest 底座
+- `Python CLI + Jupyter`：正式 pipeline 与探索验证双轨并存
+- `pytest + ruff + Make`：轻量工程化；暂缓 `Spark / Airflow / Dagster / Delta / Iceberg / Hudi`
+
+## 新会话入口
+
+- [README.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/README.md)
+- [PROGRESS.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/PROGRESS.md)
+- [TASKS.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/TASKS.md)
+- [CHANGELOG.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/CHANGELOG.md)
+
+## 核心规范
+
+- [DATA_CONTRACT.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DATA_CONTRACT.md)
+- [CLEANING_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/CLEANING_SPEC.md)
+- [STAGE_SCHEMA.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/STAGE_SCHEMA.md)
+- [DQA_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DQA_SPEC.md)
+- [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/SEMANTIC_MATRIX.md)
+- [LEGACY_STATUS.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/LEGACY_STATUS.md)
 
 ## 新目录约定
 
 ```text
-Hshare_Lab/
+Hshare_Lab_v2/
+├── pyproject.toml           # 依赖与 lint/test 约束
+├── Makefile                 # 轻量编排入口
 ├── Scripts/                 # 新主线脚本入口
 ├── Research/                # 审计、验证、研究产出
 ├── manifests/               # 清单、schema snapshot、fingerprint
@@ -54,7 +87,7 @@ Hshare_Lab/
 /Volumes/Data/港股Tick数据/
 ├── 2025/                    # raw layer
 ├── 2026/                    # raw layer
-├── candidate_cleaned/       # 待验证 cleaned layer
+├── candidate_cleaned/       # stage parquet / 待验证 cleaned layer
 ├── dqa/                     # DQA 报告与中间产物
 ├── verified/                # verified research-ready layer
 ├── manifests/               # 数据清单
@@ -63,10 +96,18 @@ Hshare_Lab/
 
 旧版 `clean_parquet/` 和 `.tmp_parquet/` 已不再属于新主线。
 
+## 工程入口
+
+- `python -m Scripts.build_raw_inventory --year 2025`：首个正式 CLI，负责 raw inventory manifest
+- `python -m Scripts.build_stage_parquet --year 2025 --max-days 3`：真实 stage cleaning 入口，按 `date + table` task 构建 parquet
+- `make raw-inventory-2025` / `make raw-inventory-2026`：轻量编排入口
+- `python -m pytest`：校验最小行为约束
+- `python -m ruff check .`：保持脚本与规范一致
+
 ## 当前下一步
 
 1. 对 raw layer 建立 inventory 与 manifest
-2. 定义 `candidate_cleaned_2025_v1` contract
+2. 定义 `stage parquet / candidate_cleaned_2025_v1` contract
 3. 选取 `golden sample` 做语义验真
 4. 按模块实现 DQA
 5. 再决定 verified layer 的字段边界
