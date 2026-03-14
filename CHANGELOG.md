@@ -16,6 +16,28 @@
 - stage pipeline 已从“可执行”进入“经真实 raw 样本验证”
 - 当前主要剩余风险从 schema/mapping 转向长任务 heartbeat 粒度与全量性能
 
+## [Stage-Perf-v1] 2026-03-14 — 优化 zip 读取与同日双表扫描路径（Codex）
+
+### 变更概述
+- `build_stage_parquet.py` 改为通过 `ZipFile.open(...)` 直接读取 CSV member stream，不再先 `zf.read()` 整块复制到 Python bytes
+- 保持外部 `date + table` task 语义不变，但内部将同一交易日的 `orders/trades` 合并为单次 zip 扫描、按 source group 分流写 parquet
+- 新增 bundle 级测试，覆盖同日 `orders + trades` 一次处理的输出与兼容性
+
+### 影响
+- 降低单个 zip member 的额外内存拷贝开销
+- 避免同日 `orders/trades` 各自重复扫描和重复解压同一个 raw zip
+
+## [Stage-Observability-v1] 2026-03-14 — 补 bundle 级 progress/heartbeat（Codex）
+
+### 变更概述
+- `build_stage_parquet.py` 新增 `bundle_progress/*.json`，worker 会在 member 处理中持续刷新当前 source file、已处理 member 数以及两张表的中间行数
+- 顶层 `heartbeat.json` 现在会聚合 `active_bundles`，不再只在整张表完成后跳一次
+- `Scripts/runtime.write_json` 改为原子替换，避免主进程读取 progress 时撞上半截 JSON
+
+### 影响
+- 长任务现在具备 member-level 可见性，能直接看出当前卡在哪个 raw member
+- progress 读写在并发场景下更稳，适合后续全量 stage 与 DQA 复用
+
 ## [Stage-Pipeline-v1] 2026-03-14 — 新增真实 stage cleaning 入口（Codex）
 
 ### 变更概述

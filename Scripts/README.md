@@ -28,7 +28,7 @@
 ## 当前入口
 
 - `build_raw_inventory.py`：首个正式 CLI，负责 raw layer inventory、checkpoint、heartbeat、manifest
-- `build_stage_parquet.py`：真实 stage cleaning 入口，按 `date + table` task 产出 `candidate_cleaned` parquet
+- `build_stage_parquet.py`：真实 stage cleaning 入口，对外保持 `date + table` task，可见/可恢复；实现上会把同日 `orders/trades` 合并为单次 zip 扫描并直读 member stream
 - `freeze_candidate_cleaned.py`：冻结 `stage parquet / candidate_cleaned_2025_v1` contract 与落盘流程
 - `run_dqa_coverage.py`：raw vs candidate_cleaned 覆盖校验
 - `run_dqa_schema.py`：schema drift / type stability / nullability 校验
@@ -60,6 +60,7 @@
 - `candidate_cleaned/{orders,trades}/date=YYYY-MM-DD/*.parquet`
 - `manifests/stage_parquet_<year>/checkpoint.json`
 - `manifests/stage_parquet_<year>/heartbeat.json`
+- `manifests/stage_parquet_<year>/bundle_progress/*.json`
 - `manifests/stage_parquet_<year>/partitions.jsonl`
 - `manifests/stage_parquet_<year>/failures.jsonl`
 - `manifests/stage_parquet_<year>/summary.json`

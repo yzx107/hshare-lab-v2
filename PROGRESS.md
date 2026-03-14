@@ -19,6 +19,7 @@
 - `raw layer` 保留
 - `candidate_cleaned` 已明确为 `stage parquet` 层，而不是研究层
 - `stage parquet` 真实单日 sample 已跑通：`2025-02-18` 与 `2026-03-13`
+- `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## Reboot Milestones
@@ -54,6 +55,7 @@
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
 - [x] 建立 `STAGE_SCHEMA.md`，固定 Trades / Orders 的首版 stage contract
 - [x] 建立 `build_stage_parquet.py` CLI，支持 `date + table` task、checkpoint、heartbeat、多进程并行
+- [x] 将同日 `orders/trades` 优化为单次 zip 扫描，并改为 `ZipFile.open(...)` 直读 CSV member stream
 - [x] 完成真实单日 sample run：`2025-02-18` 与 `2026-03-13`
 - [x] 核对 raw source mapping、实际 parquet schema、`SendTimeRaw -> SendTime` 样本对照
 - [ ] 固定 schema spec
@@ -95,7 +97,7 @@
 
 - raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
 - `stage parquet / candidate_cleaned_2025_v1` 已完成真实单日样本验收，但还没扩到多日样本
-- 当前 heartbeat 仍以 `date + table` task 为粒度，长任务的 member-level 可见性还不够细
+- `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `golden sample` 还没选定
 
 ## 当前状态

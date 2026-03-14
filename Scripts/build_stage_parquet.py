@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import io
 import json
 import os
+import time
 import zipfile
 from collections import Counter
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -31,6 +30,8 @@ from Scripts.runtime import (
 from Scripts.stage_contract import CONTRACTS, NULL_TOKENS, StageColumn, StageTableContract
 
 DEFAULT_STAGE_ROOT = DEFAULT_DATA_ROOT / "candidate_cleaned"
+PROGRESS_EMIT_MEMBER_INTERVAL = 100
+PROGRESS_EMIT_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,44 @@ class StageTask:
     @property
     def task_key(self) -> str:
         return f"{self.trade_date}:{self.table_name}"
+
+
+@dataclass(frozen=True)
+class StageBundleTask:
+    year: str
+    trade_date: str
+    zip_path: str
+    tasks: tuple[StageTask, ...]
+    progress_path: str | None = None
+
+    @property
+    def bundle_key(self) -> str:
+        return f"{self.trade_date}:{','.join(task.table_name for task in self.tasks)}"
+
+
+@dataclass
+class TableBuildState:
+    task: StageTask
+    contract: StageTableContract
+    output_path: Path
+    tmp_output_path: Path
+    started_at: str
+    ingest_dt: datetime
+    buffer_frames: list[pl.DataFrame] = field(default_factory=list)
+    buffer_rows: int = 0
+    writer: pq.ParquetWriter | None = None
+    raw_row_count: int = 0
+    rejected_rows: int = 0
+    row_count: int = 0
+    source_member_count: int = 0
+    failed_members: list[dict[str, str]] = field(default_factory=list)
+    required_null_counts: Counter[str] = field(default_factory=Counter)
+    rejection_reason_counts: Counter[str] = field(default_factory=Counter)
+    send_time_parse_failure_count: int = 0
+    min_send_time: Any = None
+    max_send_time: Any = None
+    min_time: Any = None
+    max_time: Any = None
 
 
 def default_workers() -> int:
@@ -163,21 +202,18 @@ def mapped_tables_by_group(year: str) -> dict[str, list[str]]:
     return group_to_tables
 
 
-def read_csv_member_as_strings(member_bytes: bytes) -> pl.DataFrame:
-    if not member_bytes.strip():
-        return pl.DataFrame(schema={"row_num_in_file": pl.Int64})
-
-    header_line = member_bytes.splitlines()[0].decode("utf-8-sig")
-    header = next(csv.reader([header_line]))
-    schema = {column: pl.String for column in header}
+def read_csv_member_as_strings(member_stream: Any) -> pl.DataFrame:
     frame = pl.read_csv(
-        io.BytesIO(member_bytes),
-        schema=schema,
+        member_stream,
         null_values=NULL_TOKENS,
         infer_schema=False,
         row_index_name="row_num_in_file",
         row_index_offset=1,
+        low_memory=True,
+        raise_if_empty=False,
     )
+    if "row_num_in_file" not in frame.columns:
+        return pl.DataFrame(schema={"row_num_in_file": pl.Int64})
     return frame.with_columns(pl.col("row_num_in_file").cast(pl.Int64))
 
 
@@ -402,15 +438,87 @@ def flush_buffer(
     return writer
 
 
-def format_datetime_value(value: Any) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.isoformat()
-    return str(value)
+def bundle_progress_snapshot(
+    bundle: StageBundleTask,
+    states: dict[str, TableBuildState],
+    *,
+    member_total: int,
+    members_processed: int,
+    current_source_file: str | None,
+    current_raw_group: str | None,
+    status: str,
+) -> dict[str, Any]:
+    tables: dict[str, Any] = {}
+    for table_name, state in states.items():
+        tmp_output_bytes = 0
+        if state.tmp_output_path.exists():
+            tmp_output_bytes = state.tmp_output_path.stat().st_size
+        elif state.output_path.exists():
+            tmp_output_bytes = state.output_path.stat().st_size
+
+        tables[table_name] = {
+            "raw_row_count": state.raw_row_count,
+            "row_count": state.row_count,
+            "rejected_row_count": state.rejected_rows,
+            "failed_member_count": len(state.failed_members),
+            "source_member_count": state.source_member_count,
+            "tmp_output_bytes": tmp_output_bytes,
+        }
+
+    return {
+        "bundle_key": bundle.bundle_key,
+        "year": bundle.year,
+        "date": bundle.trade_date,
+        "zip_path": bundle.zip_path,
+        "status": status,
+        "updated_at": iso_utc_now(),
+        "member_total": member_total,
+        "members_processed": members_processed,
+        "current_source_file": current_source_file,
+        "current_raw_group": current_raw_group,
+        "tables": tables,
+    }
 
 
-def process_stage_task(task: StageTask) -> dict[str, Any]:
+def write_bundle_progress(
+    bundle: StageBundleTask,
+    states: dict[str, TableBuildState],
+    *,
+    member_total: int,
+    members_processed: int,
+    current_source_file: str | None,
+    current_raw_group: str | None,
+    status: str,
+) -> None:
+    if not bundle.progress_path:
+        return
+    write_json(
+        Path(bundle.progress_path),
+        bundle_progress_snapshot(
+            bundle,
+            states,
+            member_total=member_total,
+            members_processed=members_processed,
+            current_source_file=current_source_file,
+            current_raw_group=current_raw_group,
+            status=status,
+        ),
+    )
+
+
+def read_active_bundle_progress(progress_dir: Path) -> list[dict[str, Any]]:
+    if not progress_dir.exists():
+        return []
+
+    active_rows: list[dict[str, Any]] = []
+    for progress_path in sorted(progress_dir.glob("*.json")):
+        payload = json.loads(progress_path.read_text(encoding="utf-8"))
+        if payload.get("status") in {"running", "finalizing"}:
+            active_rows.append(payload)
+    return active_rows
+
+
+def prepare_build_state(task: StageTask, *, started_at: str, ingest_dt: datetime) -> TableBuildState:
     contract = CONTRACTS[task.table_name]
     output_path = Path(task.output_path)
     tmp_output_path = output_path.with_suffix(".parquet.tmp")
@@ -421,135 +529,316 @@ def process_stage_task(task: StageTask) -> dict[str, Any]:
     if tmp_output_path.exists():
         tmp_output_path.unlink()
 
-    started_at = iso_utc_now()
-    ingest_dt = datetime.now(timezone.utc).replace(microsecond=0)
-    buffer_frames: list[pl.DataFrame] = []
-    buffer_rows = 0
-    writer: pq.ParquetWriter | None = None
-    raw_row_count = 0
-    rejected_rows = 0
-    row_count = 0
-    source_member_count = 0
-    failed_members: list[dict[str, str]] = []
-    required_null_counts = Counter()
-    rejection_reason_counts = Counter()
-    send_time_parse_failure_count = 0
-    min_send_time = None
-    max_send_time = None
-    min_time = None
-    max_time = None
+    return TableBuildState(
+        task=task,
+        contract=contract,
+        output_path=output_path,
+        tmp_output_path=tmp_output_path,
+        started_at=started_at,
+        ingest_dt=ingest_dt,
+    )
 
-    with zipfile.ZipFile(task.zip_path) as zf:
-        members = discover_source_members(zf, year=task.year, contract=contract)
-        if not members:
-            raise RuntimeError(f"No source members found for {task.task_key} in {task.zip_path}")
 
-        for original_name, normalized_name in members:
-            try:
-                member_bytes = zf.read(original_name)
-                raw_frame = read_csv_member_as_strings(member_bytes)
-                raw_row_count += raw_frame.height
-                standardized = standardize_member_frame(
-                    raw_frame,
-                    contract,
-                    trade_date=task.trade_date,
-                    source_file=normalized_name,
-                    ingest_dt=ingest_dt,
-                )
-                rejection_reason_counts.update(required_issue_counts(raw_frame, standardized, contract))
-                if "SendTimeRaw" in standardized.columns and "SendTime" in standardized.columns:
-                    send_time_parse_failure_count += standardized.filter(
-                        pl.col("SendTimeRaw").is_not_null() & pl.col("SendTime").is_null()
-                    ).height
-                invalid_mask = invalid_required_mask(contract)
-                invalid_rows = standardized.filter(invalid_mask)
-                valid_rows = standardized.filter(~invalid_mask)
+def record_failed_member(state: TableBuildState, *, source_file: str, error: Exception) -> None:
+    state.failed_members.append({"source_file": source_file, "error": str(error)})
 
-                rejected_rows += invalid_rows.height
-                if invalid_rows.height:
-                    for column_name in contract.required_columns:
-                        required_null_counts[column_name] += invalid_rows.filter(
-                            pl.col(column_name).is_null()
-                        ).height
 
-                if valid_rows.height == 0:
-                    source_member_count += 1
-                    continue
+def process_member_frame_for_state(
+    state: TableBuildState,
+    *,
+    raw_frame: pl.DataFrame,
+    source_file: str,
+) -> None:
+    state.raw_row_count += raw_frame.height
+    standardized = standardize_member_frame(
+        raw_frame,
+        state.contract,
+        trade_date=state.task.trade_date,
+        source_file=source_file,
+        ingest_dt=state.ingest_dt,
+    )
+    state.rejection_reason_counts.update(required_issue_counts(raw_frame, standardized, state.contract))
+    if "SendTimeRaw" in standardized.columns and "SendTime" in standardized.columns:
+        state.send_time_parse_failure_count += standardized.filter(
+            pl.col("SendTimeRaw").is_not_null() & pl.col("SendTime").is_null()
+        ).height
 
-                row_count += valid_rows.height
-                source_member_count += 1
-                buffer_frames.append(valid_rows)
-                buffer_rows += valid_rows.height
+    invalid_mask = invalid_required_mask(state.contract)
+    invalid_rows = standardized.filter(invalid_mask)
+    valid_rows = standardized.filter(~invalid_mask)
 
-                if "SendTime" in valid_rows.columns:
-                    send_series = valid_rows.get_column("SendTime").drop_nulls()
-                    if len(send_series):
-                        member_min = send_series.min()
-                        member_max = send_series.max()
-                        min_send_time = member_min if min_send_time is None else min(min_send_time, member_min)
-                        max_send_time = member_max if max_send_time is None else max(max_send_time, member_max)
+    state.rejected_rows += invalid_rows.height
+    if invalid_rows.height:
+        for column_name in state.contract.required_columns:
+            state.required_null_counts[column_name] += invalid_rows.filter(
+                pl.col(column_name).is_null()
+            ).height
 
-                time_series = valid_rows.get_column("Time").drop_nulls()
-                if len(time_series):
-                    member_min_time = time_series.min()
-                    member_max_time = time_series.max()
-                    min_time = member_min_time if min_time is None else min(min_time, member_min_time)
-                    max_time = member_max_time if max_time is None else max(max_time, member_max_time)
+    if valid_rows.height == 0:
+        return
 
-                if buffer_rows >= task.row_group_target:
-                    writer = flush_buffer(
-                        buffer_frames=buffer_frames,
-                        writer=writer,
-                        output_path=tmp_output_path,
-                        schema=contract.arrow_schema,
-                    )
-                    buffer_rows = 0
+    state.row_count += valid_rows.height
+    state.buffer_frames.append(valid_rows)
+    state.buffer_rows += valid_rows.height
 
-            except Exception as exc:
-                failed_members.append({"source_file": normalized_name, "error": str(exc)})
+    if "SendTime" in valid_rows.columns:
+        send_series = valid_rows.get_column("SendTime").drop_nulls()
+        if len(send_series):
+            member_min = send_series.min()
+            member_max = send_series.max()
+            state.min_send_time = member_min if state.min_send_time is None else min(state.min_send_time, member_min)
+            state.max_send_time = member_max if state.max_send_time is None else max(state.max_send_time, member_max)
 
-    if row_count == 0 and failed_members:
+    time_series = valid_rows.get_column("Time").drop_nulls()
+    if len(time_series):
+        member_min_time = time_series.min()
+        member_max_time = time_series.max()
+        state.min_time = member_min_time if state.min_time is None else min(state.min_time, member_min_time)
+        state.max_time = member_max_time if state.max_time is None else max(state.max_time, member_max_time)
+
+    if state.buffer_rows >= state.task.row_group_target:
+        state.writer = flush_buffer(
+            buffer_frames=state.buffer_frames,
+            writer=state.writer,
+            output_path=state.tmp_output_path,
+            schema=state.contract.arrow_schema,
+        )
+        state.buffer_rows = 0
+
+
+def cleanup_build_state(state: TableBuildState) -> None:
+    if state.writer is not None:
+        state.writer.close()
+        state.writer = None
+    if state.tmp_output_path.exists():
+        state.tmp_output_path.unlink()
+
+
+def finalize_build_state(state: TableBuildState) -> dict[str, Any]:
+    if state.row_count == 0 and state.failed_members:
+        cleanup_build_state(state)
         raise RuntimeError(
-            f"All source members failed for {task.task_key}; first error: {failed_members[0]}"
+            f"All source members failed for {state.task.task_key}; first error: {state.failed_members[0]}"
         )
 
-    writer = flush_buffer(
-        buffer_frames=buffer_frames,
-        writer=writer,
-        output_path=tmp_output_path,
-        schema=contract.arrow_schema,
-    )
-    if writer is not None:
-        writer.close()
-    tmp_output_path.replace(output_path)
+    try:
+        state.writer = flush_buffer(
+            buffer_frames=state.buffer_frames,
+            writer=state.writer,
+            output_path=state.tmp_output_path,
+            schema=state.contract.arrow_schema,
+        )
+        if state.writer is not None:
+            state.writer.close()
+            state.writer = None
+        state.tmp_output_path.replace(state.output_path)
+    except Exception:
+        cleanup_build_state(state)
+        raise
 
-    status = "completed_with_member_errors" if failed_members else "completed"
+    status = "completed_with_member_errors" if state.failed_members else "completed"
 
     return {
-        "task_key": task.task_key,
+        "task_key": state.task.task_key,
         "status": status,
-        "year": task.year,
-        "date": task.trade_date,
-        "table_name": task.table_name,
-        "zip_path": task.zip_path,
-        "output_file": str(output_path),
-        "output_bytes": output_path.stat().st_size,
-        "raw_row_count": raw_row_count,
-        "row_count": row_count,
-        "source_member_count": source_member_count,
-        "failed_member_count": len(failed_members),
-        "failed_member_examples": failed_members[:10],
-        "rejected_row_count": rejected_rows,
-        "required_null_counts": dict(required_null_counts),
-        "rejection_reason_counts": dict(rejection_reason_counts),
-        "send_time_parse_failure_count": send_time_parse_failure_count,
-        "min_send_time": format_datetime_value(min_send_time),
-        "max_send_time": format_datetime_value(max_send_time),
-        "min_time": min_time,
-        "max_time": max_time,
-        "started_at": started_at,
+        "year": state.task.year,
+        "date": state.task.trade_date,
+        "table_name": state.task.table_name,
+        "zip_path": state.task.zip_path,
+        "output_file": str(state.output_path),
+        "output_bytes": state.output_path.stat().st_size,
+        "raw_row_count": state.raw_row_count,
+        "row_count": state.row_count,
+        "source_member_count": state.source_member_count,
+        "failed_member_count": len(state.failed_members),
+        "failed_member_examples": state.failed_members[:10],
+        "rejected_row_count": state.rejected_rows,
+        "required_null_counts": dict(state.required_null_counts),
+        "rejection_reason_counts": dict(state.rejection_reason_counts),
+        "send_time_parse_failure_count": state.send_time_parse_failure_count,
+        "min_send_time": format_datetime_value(state.min_send_time),
+        "max_send_time": format_datetime_value(state.max_send_time),
+        "min_time": state.min_time,
+        "max_time": state.max_time,
+        "started_at": state.started_at,
         "finished_at": iso_utc_now(),
     }
+
+
+def format_datetime_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
+def process_stage_bundle(bundle: StageBundleTask) -> dict[str, Any]:
+    started_at = iso_utc_now()
+    ingest_dt = datetime.now(timezone.utc).replace(microsecond=0)
+    states = {
+        task.table_name: prepare_build_state(task, started_at=started_at, ingest_dt=ingest_dt)
+        for task in bundle.tasks
+    }
+    group_to_table_names: dict[str, list[str]] = {}
+    seen_member_for_table = {task.table_name: False for task in bundle.tasks}
+    last_progress_emit = 0.0
+
+    for table_name, state in states.items():
+        for group in state.contract.source_groups_by_year[bundle.year]:
+            group_to_table_names.setdefault(group, []).append(table_name)
+
+    try:
+        with zipfile.ZipFile(bundle.zip_path) as zf:
+            bundle_members: list[tuple[str, str, str, tuple[str, ...]]] = []
+            for original_name in sorted(zf.namelist()):
+                normalized_name = normalize_zip_member_name(original_name)
+                if not normalized_name.lower().endswith(".csv"):
+                    continue
+
+                raw_group = raw_group_for_member(bundle.year, normalized_name)
+                target_tables = tuple(group_to_table_names.get(raw_group or "", []))
+                if not target_tables:
+                    continue
+                bundle_members.append((original_name, normalized_name, raw_group or "", target_tables))
+
+            member_total = len(bundle_members)
+            write_bundle_progress(
+                bundle,
+                states,
+                member_total=member_total,
+                members_processed=0,
+                current_source_file=None,
+                current_raw_group=None,
+                status="running",
+            )
+
+            for member_index, (original_name, normalized_name, raw_group, target_tables) in enumerate(
+                bundle_members, start=1
+            ):
+                for table_name in target_tables:
+                    seen_member_for_table[table_name] = True
+
+                try:
+                    with zf.open(original_name) as member_stream:
+                        raw_frame = read_csv_member_as_strings(member_stream)
+                except Exception as exc:
+                    for table_name in target_tables:
+                        record_failed_member(states[table_name], source_file=normalized_name, error=exc)
+                else:
+                    for table_name in target_tables:
+                        state = states[table_name]
+                        try:
+                            process_member_frame_for_state(
+                                state,
+                                raw_frame=raw_frame,
+                                source_file=normalized_name,
+                            )
+                            state.source_member_count += 1
+                        except Exception as exc:
+                            record_failed_member(state, source_file=normalized_name, error=exc)
+
+                now = time.monotonic()
+                should_emit = (
+                    member_index == member_total
+                    or member_index == 1
+                    or member_index % PROGRESS_EMIT_MEMBER_INTERVAL == 0
+                    or (now - last_progress_emit) >= PROGRESS_EMIT_SECONDS
+                )
+                if should_emit:
+                    write_bundle_progress(
+                        bundle,
+                        states,
+                        member_total=member_total,
+                        members_processed=member_index,
+                        current_source_file=normalized_name,
+                        current_raw_group=raw_group,
+                        status="running",
+                    )
+                    last_progress_emit = now
+
+        results: list[dict[str, Any]] = []
+        failures: list[dict[str, Any]] = []
+
+        write_bundle_progress(
+            bundle,
+            states,
+            member_total=member_total,
+            members_processed=member_total,
+            current_source_file=None,
+            current_raw_group=None,
+            status="finalizing",
+        )
+
+        for table_name, state in states.items():
+            if not seen_member_for_table[table_name]:
+                cleanup_build_state(state)
+                failures.append(
+                    {
+                        "task_key": state.task.task_key,
+                        "year": state.task.year,
+                        "date": state.task.trade_date,
+                        "table_name": state.task.table_name,
+                        "zip_path": state.task.zip_path,
+                        "error": f"No source members found for {state.task.task_key} in {state.task.zip_path}",
+                    }
+                )
+                continue
+
+            try:
+                results.append(finalize_build_state(state))
+            except Exception as exc:
+                failures.append(
+                    {
+                        "task_key": state.task.task_key,
+                        "year": state.task.year,
+                        "date": state.task.trade_date,
+                        "table_name": state.task.table_name,
+                        "zip_path": state.task.zip_path,
+                        "error": str(exc),
+                    }
+                )
+
+        write_bundle_progress(
+            bundle,
+            states,
+            member_total=member_total,
+            members_processed=member_total,
+            current_source_file=None,
+            current_raw_group=None,
+            status="completed" if not failures else "completed_with_failures",
+        )
+
+        return {
+            "bundle_key": bundle.bundle_key,
+            "results": results,
+            "failures": failures,
+        }
+    except Exception:
+        write_bundle_progress(
+            bundle,
+            states,
+            member_total=0,
+            members_processed=0,
+            current_source_file=None,
+            current_raw_group=None,
+            status="failed",
+        )
+        raise
+
+
+def process_stage_task(task: StageTask) -> dict[str, Any]:
+    bundle_result = process_stage_bundle(
+        StageBundleTask(
+            year=task.year,
+            trade_date=task.trade_date,
+            zip_path=task.zip_path,
+            tasks=(task,),
+        )
+    )
+    if bundle_result["failures"]:
+        raise RuntimeError(bundle_result["failures"][0]["error"])
+    return bundle_result["results"][0]
 
 
 def initial_state(args: argparse.Namespace, selected_dates: list[str], tasks: list[StageTask]) -> dict[str, Any]:
@@ -568,6 +857,7 @@ def initial_state(args: argparse.Namespace, selected_dates: list[str], tasks: li
         "failed_count": 0,
         "pending_count": len(tasks),
         "executor_mode": "process",
+        "active_bundle_progress": [],
     }
 
 
@@ -598,6 +888,7 @@ def write_checkpoint(checkpoint_path: Path, heartbeat_path: Path, state: dict[st
         "completed_count": state["completed_count"],
         "failed_count": state["failed_count"],
         "pending_count": state["pending_count"],
+        "active_bundles": state.get("active_bundle_progress", []),
     }
     write_json(heartbeat_path, heartbeat)
 
@@ -658,6 +949,27 @@ def build_tasks(
     return tasks, conflicts
 
 
+def build_task_bundles(tasks: list[StageTask], *, progress_dir: Path) -> list[StageBundleTask]:
+    grouped: dict[tuple[str, str, str], list[StageTask]] = {}
+    for task in tasks:
+        key = (task.year, task.trade_date, task.zip_path)
+        grouped.setdefault(key, []).append(task)
+
+    bundles: list[StageBundleTask] = []
+    for (year, trade_date, zip_path), grouped_tasks in sorted(grouped.items()):
+        table_slug = "-".join(sorted(task.table_name for task in grouped_tasks))
+        bundles.append(
+            StageBundleTask(
+                year=year,
+                trade_date=trade_date,
+                zip_path=zip_path,
+                tasks=tuple(sorted(grouped_tasks, key=lambda item: item.table_name)),
+                progress_path=str(progress_dir / f"{trade_date}_{table_slug}.json"),
+            )
+        )
+    return bundles
+
+
 def build_summary(state: dict[str, Any], manifest_dir: Path) -> dict[str, Any]:
     return {
         "pipeline": "stage_parquet",
@@ -676,6 +988,7 @@ def build_summary(state: dict[str, Any], manifest_dir: Path) -> dict[str, Any]:
             "failures_manifest": str(manifest_dir / "failures.jsonl"),
             "source_group_inventory": str(manifest_dir / "source_groups.jsonl"),
             "unmapped_source_members": str(manifest_dir / "unmapped_source_members.jsonl"),
+            "bundle_progress_dir": str(manifest_dir / "bundle_progress"),
             "summary": str(manifest_dir / "summary.json"),
         },
     }
@@ -731,9 +1044,11 @@ def main() -> int:
     failures_manifest_path = manifest_dir / "failures.jsonl"
     source_groups_path = manifest_dir / "source_groups.jsonl"
     unmapped_members_path = manifest_dir / "unmapped_source_members.jsonl"
+    progress_dir = manifest_dir / "bundle_progress"
     summary_path = manifest_dir / "summary.json"
 
     ensure_dir(manifest_dir)
+    ensure_dir(progress_dir)
     if not args.resume:
         reset_manifest_files(
             [
@@ -746,6 +1061,7 @@ def main() -> int:
                 summary_path,
             ]
         )
+        reset_manifest_files(list(progress_dir.glob("*.json")))
 
     if args.resume and partitions_manifest_path.exists() and not checkpoint_path.exists():
         logger.error(
@@ -788,6 +1104,7 @@ def main() -> int:
         return 1
 
     state["pending_count"] = len(tasks)
+    state["active_bundle_progress"] = []
     write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     if not tasks:
@@ -796,7 +1113,14 @@ def main() -> int:
         logger.info("All selected stage tasks are already complete.")
         return 0
 
-    future_to_task: dict[Any, StageTask] = {}
+    bundles = build_task_bundles(tasks, progress_dir=progress_dir)
+    logger.info(
+        "Prepared %s stage tasks across %s zip bundles using direct zip streaming.",
+        len(tasks),
+        len(bundles),
+    )
+
+    future_to_bundle: dict[Any, StageBundleTask] = {}
     try:
         executor: Any = ProcessPoolExecutor(max_workers=args.workers)
         state["executor_mode"] = "process"
@@ -810,47 +1134,65 @@ def main() -> int:
         write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     with executor:
-        for task in tasks:
-            future_to_task[executor.submit(process_stage_task, task)] = task
+        for bundle in bundles:
+            future_to_bundle[executor.submit(process_stage_bundle, bundle)] = bundle
 
-        for future in as_completed(future_to_task):
-            task = future_to_task[future]
-            try:
-                result = future.result()
-                completed_task_keys.add(task.task_key)
-                state["completed_task_keys"] = sorted(completed_task_keys)
-                state["completed_count"] = len(completed_task_keys)
-                state["pending_count"] = max(0, len(tasks) - state["completed_count"] - state["failed_count"])
-                append_jsonl(partitions_manifest_path, result)
-                logger.info(
-                    "Stage task %s finished: status=%s raw_rows=%s rows=%s rejected=%s failed_members=%s",
-                    task.task_key,
-                    result["status"],
-                    result["raw_row_count"],
-                    result["row_count"],
-                    result["rejected_row_count"],
-                    result["failed_member_count"],
-                )
-            except Exception as exc:
-                state["failed_tasks"][task.task_key] = str(exc)
-                state["failed_count"] = len(state["failed_tasks"])
-                state["pending_count"] = max(0, len(tasks) - state["completed_count"] - state["failed_count"])
-                append_jsonl(
-                    failures_manifest_path,
-                    {
-                        "task_key": task.task_key,
-                        "year": task.year,
-                        "date": task.trade_date,
-                        "table_name": task.table_name,
-                        "zip_path": task.zip_path,
-                        "error": str(exc),
-                    },
-                )
-                logger.error("Stage task %s failed: %s", task.task_key, exc)
-            finally:
-                write_checkpoint(checkpoint_path, heartbeat_path, state)
+        pending_futures = set(future_to_bundle)
+        while pending_futures:
+            done_futures, pending_futures = wait(
+                pending_futures,
+                timeout=PROGRESS_EMIT_SECONDS,
+                return_when=FIRST_COMPLETED,
+            )
+            state["active_bundle_progress"] = read_active_bundle_progress(progress_dir)
+            write_checkpoint(checkpoint_path, heartbeat_path, state)
+
+            for future in done_futures:
+                bundle = future_to_bundle[future]
+                try:
+                    bundle_result = future.result()
+                    for result in bundle_result["results"]:
+                        completed_task_keys.add(result["task_key"])
+                        append_jsonl(partitions_manifest_path, result)
+                        logger.info(
+                            "Stage task %s finished: status=%s raw_rows=%s rows=%s rejected=%s failed_members=%s",
+                            result["task_key"],
+                            result["status"],
+                            result["raw_row_count"],
+                            result["row_count"],
+                            result["rejected_row_count"],
+                            result["failed_member_count"],
+                        )
+
+                    for failure in bundle_result["failures"]:
+                        state["failed_tasks"][failure["task_key"]] = failure["error"]
+                        append_jsonl(failures_manifest_path, failure)
+                        logger.error("Stage task %s failed: %s", failure["task_key"], failure["error"])
+                except Exception as exc:
+                    for task in bundle.tasks:
+                        state["failed_tasks"][task.task_key] = str(exc)
+                        append_jsonl(
+                            failures_manifest_path,
+                            {
+                                "task_key": task.task_key,
+                                "year": task.year,
+                                "date": task.trade_date,
+                                "table_name": task.table_name,
+                                "zip_path": task.zip_path,
+                                "error": str(exc),
+                            },
+                        )
+                        logger.error("Stage task %s failed: %s", task.task_key, exc)
+                finally:
+                    state["completed_task_keys"] = sorted(completed_task_keys)
+                    state["completed_count"] = len(completed_task_keys)
+                    state["failed_count"] = len(state["failed_tasks"])
+                    state["pending_count"] = max(0, len(tasks) - state["completed_count"] - state["failed_count"])
+                    state["active_bundle_progress"] = read_active_bundle_progress(progress_dir)
+                    write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     state["status"] = "completed" if not state["failed_tasks"] else "completed_with_failures"
+    state["active_bundle_progress"] = []
     write_checkpoint(checkpoint_path, heartbeat_path, state)
     write_json(summary_path, build_summary(state, manifest_dir))
     logger.info(

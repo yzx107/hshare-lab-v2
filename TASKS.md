@@ -44,6 +44,8 @@
 - **验收门禁**:
   - `STAGE_SCHEMA.md` 固定 Trades / Orders 的 raw source mapping 与 stage schema
   - `build_stage_parquet.py` 可按 `date + table` task 执行并支持 resume
+  - 同日 `orders/trades` 不重复扫 zip，默认走 direct zip streaming
+  - `heartbeat.json` 需要包含 bundle 级 active progress，并可追踪当前 source member
   - 真实单日 sample run 已完成，且已核对 schema / mapping / time sanity / failures / unmapped
   - schema spec 固定
   - partition spec 固定

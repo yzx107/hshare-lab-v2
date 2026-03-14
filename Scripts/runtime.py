@@ -42,10 +42,12 @@ def configure_logger(name: str, log_path: Path | None = None) -> logging.Logger:
 
 def write_json(path: Path, payload: Any) -> None:
     ensure_dir(path.parent)
-    path.write_text(
+    tmp_path = path.with_name(f"{path.name}.tmp")
+    tmp_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    tmp_path.replace(path)
 
 
 def append_jsonl(path: Path, payload: Any) -> None:

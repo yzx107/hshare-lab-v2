@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 import zipfile
@@ -7,7 +8,14 @@ from pathlib import Path
 
 import polars as pl
 
-from Scripts.build_stage_parquet import StageTask, inspect_source_inventory, process_stage_task
+from Scripts.build_stage_parquet import (
+    StageBundleTask,
+    StageTask,
+    inspect_source_inventory,
+    process_stage_bundle,
+    process_stage_task,
+    read_active_bundle_progress,
+)
 
 
 class StageParquetTests(unittest.TestCase):
@@ -133,6 +141,130 @@ class StageParquetTests(unittest.TestCase):
             self.assertEqual(trades["SendTimeRaw"].to_list(), ["1767576015543000000"])
             self.assertEqual(trades["Type"].to_list(), ["U"])
             self.assertEqual(str(trades.schema["SendTime"]), "Datetime(time_unit='ns', time_zone='UTC')")
+
+    def test_process_stage_bundle_builds_orders_and_trades_in_one_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            zip_path = self.build_zip(
+                root,
+                "20260105.zip",
+                {
+                    "order/00001.csv": (
+                        "Channel,SendTime,SeqNum,OrderId,OrderType,Ext,Time,Price,Volume,Level,BrokerNo,VolumePre\n"
+                        "30,1767576015546000000,35143,3027201,1,110,092015,54.000,1000,0,3436,0\n"
+                    ),
+                    "trade/00001.csv": (
+                        "SendTime,SeqNum,TickID,Time,Price,Volume,Dir,Type,BrokerNo,BidOrderID,BidVolume,AskOrderID,AskVolume\n"
+                        "1767576015543000000,35079,1,092015,53.900,500,0,U,0,0,0,0,0\n"
+                    ),
+                },
+            )
+
+            orders_output = root / "stage" / "orders" / "date=2026-01-05" / "20260105_orders.parquet"
+            trades_output = root / "stage" / "trades" / "date=2026-01-05" / "20260105_trades.parquet"
+
+            bundle_result = process_stage_bundle(
+                StageBundleTask(
+                    year="2026",
+                    trade_date="2026-01-05",
+                    zip_path=str(zip_path),
+                    tasks=(
+                        StageTask(
+                            year="2026",
+                            trade_date="2026-01-05",
+                            zip_path=str(zip_path),
+                            table_name="orders",
+                            output_path=str(orders_output),
+                            row_group_target=10,
+                            overwrite_existing=True,
+                        ),
+                        StageTask(
+                            year="2026",
+                            trade_date="2026-01-05",
+                            zip_path=str(zip_path),
+                            table_name="trades",
+                            output_path=str(trades_output),
+                            row_group_target=10,
+                            overwrite_existing=True,
+                        ),
+                    ),
+                )
+            )
+
+            result_by_table = {row["table_name"]: row for row in bundle_result["results"]}
+            self.assertEqual(bundle_result["failures"], [])
+            self.assertEqual(sorted(result_by_table), ["orders", "trades"])
+            self.assertEqual(result_by_table["orders"]["row_count"], 1)
+            self.assertEqual(result_by_table["trades"]["row_count"], 1)
+
+            orders = pl.read_parquet(orders_output)
+            trades = pl.read_parquet(trades_output)
+            self.assertEqual(orders["OrderId"].to_list(), [3027201])
+            self.assertEqual(trades["TickID"].to_list(), [1])
+
+    def test_process_stage_bundle_writes_progress_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            zip_path = self.build_zip(
+                root,
+                "20260105.zip",
+                {
+                    "order/00001.csv": (
+                        "Channel,SendTime,SeqNum,OrderId,OrderType,Ext,Time,Price,Volume,Level,BrokerNo,VolumePre\n"
+                        "30,1767576015546000000,35143,3027201,1,110,092015,54.000,1000,0,3436,0\n"
+                    ),
+                },
+            )
+            progress_path = root / "bundle_progress" / "2026-01-05_orders.json"
+            orders_output = root / "stage" / "orders" / "date=2026-01-05" / "20260105_orders.parquet"
+
+            bundle_result = process_stage_bundle(
+                StageBundleTask(
+                    year="2026",
+                    trade_date="2026-01-05",
+                    zip_path=str(zip_path),
+                    tasks=(
+                        StageTask(
+                            year="2026",
+                            trade_date="2026-01-05",
+                            zip_path=str(zip_path),
+                            table_name="orders",
+                            output_path=str(orders_output),
+                            row_group_target=10,
+                            overwrite_existing=True,
+                        ),
+                    ),
+                    progress_path=str(progress_path),
+                )
+            )
+
+            self.assertEqual(bundle_result["failures"], [])
+            self.assertTrue(progress_path.exists())
+            payload = json.loads(progress_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "completed")
+            self.assertEqual(payload["member_total"], 1)
+            self.assertEqual(payload["members_processed"], 1)
+            self.assertEqual(payload["tables"]["orders"]["row_count"], 1)
+
+    def test_read_active_bundle_progress_filters_completed_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            progress_dir = Path(tmpdir)
+            (progress_dir / "running.json").write_text(
+                json.dumps({"bundle_key": "a", "status": "running", "tables": {}}),
+                encoding="utf-8",
+            )
+            (progress_dir / "completed.json").write_text(
+                json.dumps({"bundle_key": "b", "status": "completed", "tables": {}}),
+                encoding="utf-8",
+            )
+            (progress_dir / "finalizing.json").write_text(
+                json.dumps({"bundle_key": "c", "status": "finalizing", "tables": {}}),
+                encoding="utf-8",
+            )
+
+            active_rows = read_active_bundle_progress(progress_dir)
+
+            self.assertEqual(sorted(row["bundle_key"] for row in active_rows), ["a", "c"])
 
     def test_invalid_required_time_is_rejected_with_reason(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
