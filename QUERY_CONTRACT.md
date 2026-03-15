@@ -117,6 +117,54 @@ unless and until Lab semantic verification promotes them further.
 
 The query layer must not present vendor-documented fields as already research-verified by default.
 
+## Lab Operational Rules In Query
+
+`Hshare Query Layer` does not maintain an independent semantic rulebook.
+
+When Lab defines an operational interpretation that downstream products may safely use, Query should inherit that interpretation rather than redefine it locally.
+
+### Broker seat attribution
+
+For broker-seat style outputs such as net-buy / net-sell seat summaries:
+
+- `BrokerNo` may be used as a seat key only when it maps to a non-zero broker / participant code
+- `BrokerNo in {"0", "0000"}` must not be treated as a normal broker seat
+- those rows should be handled as `unattributed / no-seat-record`
+
+Under the current Lab interpretation, this bucket is compatible with odd-lot / no-seat-record style rows for seat-attribution usage.
+
+This means Query may:
+
+- exclude those rows from broker-seat ranking
+- or place them in a separate unattributed bucket
+
+This does **not** mean Query is allowed to promote `BrokerNo=0` into a globally research-verified semantic fact outside Lab contracts.
+
+## Upstream Sync Rule
+
+`Hshare Query Layer` must track Lab mainline changes that affect data interpretation.
+
+Query should not keep a parallel, drifting explanation of:
+
+- field semantics
+- source-layer boundaries
+- admissibility boundaries
+- operational handling rules
+
+Whenever `main` updates any of the following, Query must sync from Lab before continuing product-facing interpretation work:
+
+- `DATA_CONTRACT.md`
+- `QUERY_CONTRACT.md`
+- `DQA_SPEC.md`
+- `Research/References/`
+- `Research/Notes/`
+
+In practice:
+
+- Lab rules are authored on `main`
+- Query work should regularly merge or rebase from `main`
+- Query may add product-specific access behavior, but must not override Lab-level interpretation silently
+
 ## Output Metadata
 
 Query outputs should carry the following metadata whenever practical:

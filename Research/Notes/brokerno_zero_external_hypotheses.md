@@ -24,9 +24,25 @@
 
 ## Current Project-Safe Conclusion
 
-- 当前最安全的项目口径是：`BrokerNo` 仍然只是 mechanical stage field。
-- `BrokerNo=0` 目前不能被默认解释成 market order、odd lot、anonymous bucket 或任何单一 broker role。
-- 在 semantic verification 完成前，所有 `BrokerNo=0` 相关研究都必须写明“基于 candidate_cleaned，语义未确认”。
+- 当前最安全的全局项目口径仍然是：`BrokerNo` 只是 mechanical / vendor-defined stage field。
+- `BrokerNo=0` 目前仍不应被提升成全项目通用、已验证的 broker 语义事实。
+- 在 semantic verification 完成前，所有 `BrokerNo=0` 相关研究都必须写明“基于 candidate_cleaned，语义未完全确认”。
+
+## Query-Specific Operational Rule
+
+上面这层“全局未验证”并不等于 query 侧完全不能使用。
+
+对于 **净买入席位 / 经纪商席位归因** 这类 query 产品场景，当前仓库允许采用更窄、可操作的规则：
+
+- `BrokerNo in {"0", "0000"}` 不作为正常 broker seat 参与席位映射
+- 这些记录应视为 `unattributed / no-seat-record`
+- 在当前 Gemini 研究解释下，它们可兼容地看作“碎股 / 无可归因席位记录”这一类 query-safe bucket
+
+这条规则的边界是：
+
+- 它服务于 query 产品里的 seat attribution
+- 它不自动等于 `BrokerNo=0` 已成为 Lab 全局 research-verified semantic fact
+- 它不放行 `BrokerNo=0` 在所有研究中都被直接解释成单一业务语义
 
 ## Repo Grounding
 
@@ -45,6 +61,6 @@
 
 ## Usage Rule
 
-若后续再遇到 “`BrokerNo=0` 是什么” 这类 query，默认回答应先落在下面这句上：
+若后续再遇到 “`BrokerNo=0` 是什么” 这类 query，应优先先分场景回答：
 
-> In Hshare Lab v2, `BrokerNo=0` is currently an unverified stage value, not a confirmed semantic category.
+> In Hshare Lab v2, `BrokerNo=0` is not yet a globally research-verified semantic category. For broker-seat query workflows, it should currently be handled as unattributed / no-seat-record, compatible with odd-lot-style rows rather than a normal broker seat.
