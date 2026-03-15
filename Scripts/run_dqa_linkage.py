@@ -709,9 +709,17 @@ def main() -> int:
         write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     with executor:
-        for task in pending_tasks:
-            future_to_task[executor.submit(process_task, task)] = task
+        task_iter = iter(pending_tasks)
 
+        def submit_until_capacity() -> None:
+            while len(future_to_task) < args.workers:
+                try:
+                    task = next(task_iter)
+                except StopIteration:
+                    break
+                future_to_task[executor.submit(process_task, task)] = task
+
+        submit_until_capacity()
         pending_futures = set(future_to_task)
         while pending_futures:
             done_futures, pending_futures = wait(
@@ -724,7 +732,10 @@ def main() -> int:
             state["active_task_key"] = state["active_task_keys"][0] if state["active_task_keys"] else None
             state["pending_count"] = max(
                 0,
-                len(tasks) - len(completed_task_keys) - len(state["failed_tasks"]),
+                len(tasks)
+                - len(completed_task_keys)
+                - len(state["failed_tasks"])
+                - len(state["active_task_keys"]),
             )
             write_checkpoint(checkpoint_path, heartbeat_path, state)
 
@@ -745,7 +756,11 @@ def main() -> int:
                 except Exception as exc:
                     state["failed_tasks"][task.task_key] = str(exc)
                     logger.error("DQA linkage task %s failed: %s", task.task_key, exc)
+                finally:
+                    future_to_task.pop(future, None)
 
+                submit_until_capacity()
+                pending_futures = set(future_to_task)
                 state["completed_task_keys"] = sorted(completed_task_keys)
                 state["completed_count"] = len(completed_task_keys)
                 state["failed_count"] = len(state["failed_tasks"])
@@ -754,7 +769,10 @@ def main() -> int:
                 state["active_task_key"] = state["active_task_keys"][0] if state["active_task_keys"] else None
                 state["pending_count"] = max(
                     0,
-                    len(tasks) - state["completed_count"] - state["failed_count"],
+                    len(tasks)
+                    - state["completed_count"]
+                    - state["failed_count"]
+                    - len(state["active_task_keys"]),
                 )
                 write_checkpoint(checkpoint_path, heartbeat_path, state)
 
