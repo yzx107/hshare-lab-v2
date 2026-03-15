@@ -4,6 +4,19 @@
 
 ---
 
+## [Docs-Raw-Inventory-And-Policy-Closeout-v1] 2026-03-15 — 拉平 raw inventory、reference、golden sample 与 verified 准入状态（Codex）
+
+### 变更概述
+- 完成 `2025` 与 `2026` full-year raw inventory，并落盘到外置盘 manifest 目录
+- 补充 `2025/2026` raw inventory notes 与总览页，明确 support files、跨年 notice 文件与 `inventory_closed` 项目口径
+- 新增 verified admission boundary / policy、reference usage boundary / policy、golden sample policy、raw inventory completion criteria
+- 同步更新 `README.md`、`PROGRESS.md`、`TASKS.md`、`QUERY_CONTRACT.md`、`DATA_CONTRACT.md`、`Research/References/README.md`
+
+### 影响
+- `raw inventory` 不再是未完成基础项，而是已完成并可引用的 baseline
+- `verified`、`reference`、`golden sample` 三条规则线已从临时分析升级为 repo 内正式 policy
+- 后续主线更明确收缩为：冻结 `golden sample` 具体日期清单、推进 full-year DQA、继续 semantic boundary 与 verified 实装
+
 ## [Semantic-Lifecycle-Hardening-v1] 2026-03-15 — 加固 lifecycle probe 的真实数据路径与可观测性（Codex）
 
 ### 变更概述

@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：回到 `OrderId lifecycle` semantic verification，并继续收口 `2026` admissibility matrix
+- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并继续推进 `OrderId lifecycle` semantic verification
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -46,12 +46,16 @@
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - `2026` 全量 `staging` 已完成：`96` 个 task、`0` failed，完成于 `2026-03-15 02:03 CST`
 - `2025` 全量 `staging` 已完成：`492` 个 task、`0` failed，完成于 `2026-03-15 06:31 CST`
+- `2025` full-year raw inventory 已完成：`250` files、`293,335,032,932` bytes、`247` distinct trade dates
+- `2026` full-year raw inventory 已完成：`52` files、`89,509,988,059` bytes、`49` distinct trade dates
+- `raw inventory` 当前可记为：`2025 = year_scanned`、`2026 = year_scanned`、combined status = `inventory_closed`
+- `golden sample` policy、reference usage boundary、verified admission policy 已形成 repo 内正式文档
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## 当前执行说明
 
-- 当前不是严格 waterfall 执行；`raw inventory` 尚未对真实全年落盘，但 `stage / DQA / semantic sample` 已并行推进
-- 因此文档中的 `R1 / R2` 仍显示未完成，不表示后续结论失效，而是表示这些基础项仍待回补
+- 当前不是严格 waterfall 执行；在 `stage / DQA / semantic sample` 并行推进的同时，`raw inventory` 已补齐到真实全年落盘
+- 因此后续主线不再受 `raw inventory` 阻塞，当前真正未收口的是 `golden sample` 日期清单、verified 实装与剩余 semantic boundary
 - 当前真正的执行主线是：
   - `2025/2026` semantic boundary 固化
   - `OrderId lifecycle` semantic verification
@@ -80,11 +84,12 @@
 ### R2: Raw Inventory
 - **目标**: 让 raw layer 可回溯、可核对、可重建
 - [x] 建立 `build_raw_inventory.py` CLI 骨架
-- [ ] 生成 `raw_inventory_2025`
-- [ ] 生成 `raw_inventory_2026`
-- [ ] 记录文件数、总字节数、日期覆盖、异常文件
-- [ ] 生成 schema snapshot 与 source metadata
-- **状态**: ⏳ CLI 已就位，真实全年落盘待补
+- [x] 生成 `raw_inventory_2025`
+- [x] 生成 `raw_inventory_2026`
+- [x] 记录文件数、总字节数、日期覆盖、异常文件
+- [x] 生成 summary / manifest / parquet artifacts
+- [x] 补充 `2025/2026` inventory notes 与 overview
+- **状态**: ✅ 已完成（`inventory_closed`）
 
 ### R3: Stage Parquet / Candidate Cleaned Contract
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
@@ -131,7 +136,6 @@
 
 ## 当前阻塞 / 待补基础项
 
-- raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
 - `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key / golden sample 仍待正式收口
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
@@ -147,4 +151,4 @@
 
 ## 当前状态
 
-**状态**: reboot 已启动；旧世界冻结；`2025/2026` full-year staging 已完成；新主线切到 `full-year DQA + semantic boundary`，`raw inventory` 仍是待补基础项而非已完成前置
+**状态**: reboot 已启动；旧世界冻结；`2025/2026` full-year staging 已完成；`2025/2026` raw inventory 已闭合；新主线切到 `full-year DQA + semantic boundary + verified admission implementation`

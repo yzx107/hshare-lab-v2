@@ -10,7 +10,7 @@
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
 - 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
-- 当前最关心的下一步：启动 `2025/2026` full-year DQA，并把研究可用性边界固化到后续研究入口
+- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并继续推进 `2025/2026` full-year DQA 与 verified layer 实装
 
 ## 当前主线
 
@@ -25,14 +25,14 @@
 说明：
 - 这仍然是架构顺序，不等于当前执行严格串行
 - 目前项目处于“前置项未全部收口，但 stage / DQA / semantic sample 已并行推进”的状态
-- `raw inventory` 仍未对真实 `2025/2026` 全量落盘，这是待补基础项，不是已经完成的前置
+- `raw inventory` 已对真实 `2025/2026` 全量落盘并形成 manifest / note / overview，当前不再是待补前置项
 
 ## 当前执行主线
 
 - `2025/2026`：全量 `staging` 已完成，当前主线切到 `full-year DQA`
 - `2025`：`HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
 - `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
-- `raw inventory`：CLI 已就位，但真实全年 manifest 仍待回补
+- `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 
 ## 当前原则
 
@@ -126,7 +126,7 @@ Hshare_Lab_v2/
 ## 当前下一步
 
 1. 对 `2025/2026` 的 full-year stage 产物跑 `coverage / schema / linkage` DQA
-2. 固定 `golden sample` policy、日期清单与语义验真入口
-3. 对 raw layer 建立真实全年 inventory，并按完成标准补齐 manifest
-4. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
-5. 再决定 verified layer 的字段边界
+2. 固定 `golden sample` 具体日期清单与语义验真入口
+3. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
+4. 按已定义准入 policy 实装 verified layer
+5. 让 Query / report / verified 实现逐步接入新的 field/reference policy

@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：固化 `OrderType` 的 sample evidence 与研究边界，并回到 `OrderId lifecycle` semantic verification
+- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并回到 `OrderId lifecycle` semantic verification
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -35,7 +35,7 @@
 
 ## T-R02: 建立 Raw Inventory Manifest
 - **阶段**: Stage 1 数据清洗
-- **状态**: ⏳ CLI 已就位，真实全年落盘待补
+- **状态**: ✅ 已完成（`inventory_closed`）
 - **目标**: 让 raw layer 具备可回溯性
 - **验收门禁**:
   - `build_raw_inventory.py` CLI 已固化并可重复调用
@@ -43,7 +43,7 @@
   - 记录文件数、总字节数、日期覆盖、异常文件
   - manifest 可重复生成
 - **可观测性**: 必须按日期或批次输出进度、心跳、错误计数
-- **当前说明**: 这是仍未补齐的基础项，但不再是当前唯一执行主线
+- **当前说明**: 已补齐到真实全年落盘，并形成 notes / overview；后续只需做 reporting refinement，不再是 blocker
 
 ## T-R03: 定义 Stage Parquet / Candidate Cleaned Contract
 - **阶段**: Stage 0 需求/规格 + Stage 1 数据清洗
@@ -118,7 +118,7 @@
 
 ## T-R06: Verified Layer v1
 - **阶段**: Stage 3 研究验证
-- **状态**: ⏳ 待开始
+- **状态**: 🔄 policy 已完成，实装待开始
 - **目标**: 构建可直接研究使用的 verified tables
 - **产物**:
   - `verified_trades`
