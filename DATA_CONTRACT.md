@@ -45,6 +45,7 @@
 - **logs**: `/Volumes/Data/港股Tick数据/logs`
 - **references**: `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References`
   - 保存 vendor notice、vendor readme、broker / participant reference
+  - 保存 full-book / securities-reference file specification
   - 这些 reference 可支持 contract、query join 和 DQA 对照
   - 但它们本身不自动放行字段为 research-verified semantics
 

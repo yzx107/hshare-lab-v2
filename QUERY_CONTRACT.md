@@ -45,6 +45,7 @@ If queried at all, it should be treated as exceptional and clearly marked as raw
 Reference files are allowed read inputs for joins and lookup enrichment, for example:
 
 - broker / participant lookup
+- security reference / symbol-master lookup
 - vendor field-definition lookup
 - source-contract notes
 

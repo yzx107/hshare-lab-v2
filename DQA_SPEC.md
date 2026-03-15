@@ -58,10 +58,12 @@ DQA may use the following read-only reference inputs:
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/List_of_Current_SEHK_EP.utf8.tsv`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/ReadMe.utf8.txt`
 - `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/raw_vendor_notice_2026-01-01.txt`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/vendor/CFBC_File_Specification_wef_20250630.pdf`
 
 These references support:
 
 - broker / participant lookup coverage
+- securities reference / file-layout interpretation
 - source-contract drift interpretation
 - vendor-definition awareness
 

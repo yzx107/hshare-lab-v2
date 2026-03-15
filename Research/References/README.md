@@ -9,6 +9,10 @@ DQA interpretation, and query-side lookup joins.
   - Original vendor data description.
   - Source evidence for `2025 -> OrderAdd / OrderModifyDelete / TradeResumes`
     and `2026 -> order / trade`.
+- `vendor/CFBC_File_Specification_wef_20250630.pdf`
+  - Historical Full Book / Securities Market CSV file specification.
+  - Reference source for `MC01` securities reference, full order book message layout,
+    and post-2025-06-30 reference-field additions such as `DomainStmtSecurityCode`.
 - `vendor/brokerno.csv`
   - Original broker number mapping file.
 - `vendor/List_of_Current_SEHK_EP.CSV`
@@ -26,6 +30,7 @@ DQA interpretation, and query-side lookup joins.
 ## Intended usage
 
 - `ReadMe` supports source-contract and raw schema change interpretation.
+- `CFBC file specification` supports security reference / full-book file interpretation.
 - `brokerno` supports `BrokerNo -> broker / participant` lookup.
 - `List_of_Current_SEHK_EP` supports richer broker / participant reference joins.
 
