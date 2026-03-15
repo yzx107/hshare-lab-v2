@@ -30,7 +30,7 @@
 ## 当前执行主线
 
 - `2025/2026`：全量 `staging` 已完成，当前主线切到 `full-year DQA`
-- `2025`：`HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
+- `2025`：观测到的 raw source group label `HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
 - `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 

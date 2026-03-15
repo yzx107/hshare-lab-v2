@@ -1,0 +1,224 @@
+{
+  "version": "2026-03-16",
+  "purpose": "Frozen golden sample manifest for stage regression, DQA reruns, semantic boundary reproduction, and report/query examples.",
+  "notes": [
+    "All mainline samples default to source_group_scope=main_only.",
+    "HKDarkPool is excluded from the main golden sample set and should remain source-group-specific.",
+    "Golden sample is a reproducibility anchor, not a shortcut around full-year evidence."
+  ],
+  "samples": [
+    {
+      "sample_tier": "smoke_sample",
+      "year": "2025",
+      "trade_date": "2025-02-18",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "First real-data stage smoke date already used to validate stage contract and row preservation.",
+      "known_caveats": [
+        "2025 remains coarse_only for time-sensitive research.",
+        "Not intended to stand in for representative semantic evidence by itself."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "pipeline_smoke_test",
+        "schema_sanity_check",
+        "stage_contract_regression"
+      ],
+      "time_grade": "coarse_only",
+      "linkage_grade": "id_linkage_available",
+      "semantic_focus": ["stage_contract", "time_anchor_sanity"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "smoke_sample",
+      "year": "2026",
+      "trade_date": "2026-03-13",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "First real-data 2026 stage smoke date and also a representative day with strong reuse across semantic work.",
+      "known_caveats": [
+        "Field-level semantics remain partially unverified even though 2026 is fine_ok for time-sensitive studies."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "pipeline_smoke_test",
+        "schema_sanity_check",
+        "stage_contract_regression"
+      ],
+      "time_grade": "fine_ok",
+      "linkage_grade": "id_linkage_and_time_usable",
+      "semantic_focus": ["stage_contract", "linkage_boundary"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2025",
+      "trade_date": "2025-01-02",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Representative-sample anchor used in 2025 linkage and time-anchor boundary work.",
+      "known_caveats": [
+        "2025 is coarse_only for time-sensitive research."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "coarse_time_anchor_recheck"
+      ],
+      "time_grade": "coarse_only",
+      "linkage_grade": "id_linkage_available",
+      "semantic_focus": ["id_linkage", "coarse_time_anchor"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2025",
+      "trade_date": "2025-06-12",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Mid-year representative date for 2025 stability checks.",
+      "known_caveats": [
+        "2025 is coarse_only for time-sensitive research."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "coarse_time_anchor_recheck"
+      ],
+      "time_grade": "coarse_only",
+      "linkage_grade": "id_linkage_available",
+      "semantic_focus": ["id_linkage", "coarse_time_anchor"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2025",
+      "trade_date": "2025-12-04",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Late-year representative date retained for year-end coverage and prior semantic boundary work.",
+      "known_caveats": [
+        "Representative work on this date surfaced HKDarkPool as a separate source group; mainline usage must keep source_group_scope=main_only."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "source_group_guardrail_check"
+      ],
+      "time_grade": "coarse_only",
+      "linkage_grade": "id_linkage_available",
+      "semantic_focus": ["id_linkage", "source_group_boundary"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2026",
+      "trade_date": "2026-01-05",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Representative 2026 date used in linkage, TradeDir, and OrderType work.",
+      "known_caveats": [
+        "2026 fine-grained time usage is allowed, but several vendor-defined fields remain semantically unverified."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "fine_time_recheck"
+      ],
+      "time_grade": "fine_ok",
+      "linkage_grade": "id_linkage_and_time_usable",
+      "semantic_focus": ["tradedir", "ordertype", "time_usable_linkage"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2026",
+      "trade_date": "2026-02-24",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Representative mid-period 2026 date used across semantic probes.",
+      "known_caveats": [
+        "Field-level semantics remain partially unverified."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "fine_time_recheck"
+      ],
+      "time_grade": "fine_ok",
+      "linkage_grade": "id_linkage_and_time_usable",
+      "semantic_focus": ["tradedir", "ordertype", "time_usable_linkage"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2026",
+      "trade_date": "2026-03-13",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Representative late-period 2026 date reused across smoke and semantic work.",
+      "known_caveats": [
+        "Field-level semantics remain partially unverified."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check",
+        "fine_time_recheck"
+      ],
+      "time_grade": "fine_ok",
+      "linkage_grade": "id_linkage_and_time_usable",
+      "semantic_focus": ["tradedir", "ordertype", "time_usable_linkage"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "golden_sample",
+      "year": "2025",
+      "trade_date": "2025-06-12",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Chosen as the central 2025 regression anchor because it is representative, mid-year, and free from the year-end HKDarkPool source-group caveat.",
+      "known_caveats": [
+        "2025 remains coarse_only for time-sensitive research."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "regression_anchor",
+        "report_example",
+        "query_example",
+        "semantic_boundary_reproduction"
+      ],
+      "time_grade": "coarse_only",
+      "linkage_grade": "id_linkage_available",
+      "semantic_focus": ["2025_mainline_anchor"],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "golden_sample",
+      "year": "2026",
+      "trade_date": "2026-02-24",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "Chosen as the central 2026 regression anchor because it sits between the earliest and latest representative dates and is already reused in semantic probes.",
+      "known_caveats": [
+        "2026 is fine_ok for time-sensitive studies, but vendor-defined fields are not automatically research-verified."
+      ],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "regression_anchor",
+        "report_example",
+        "query_example",
+        "semantic_boundary_reproduction"
+      ],
+      "time_grade": "fine_ok",
+      "linkage_grade": "id_linkage_and_time_usable",
+      "semantic_focus": ["2026_mainline_anchor"],
+      "source_group_specific": false
+    }
+  ]
+}

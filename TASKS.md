@@ -82,7 +82,7 @@
   - `2025/2026` full-year `staging` 已完成，`2026` 完成 `96` task、`2025` 完成 `492` task，均为 `0 failed`
   - representative sample 结论：`2026` 的 ID-level + time-usable linkage 三天全 `pass`
   - representative sample 结论：`2025` 的 ID-level linkage 三天均成立，但因 orders 侧 `SendTime` 全空而处于 `time_anchor_unavailable`
-  - `2025 HKDarkPool inventory` 结论：`246` 个交易日中 `44` 天命中、`142` 个 member、`935,527` 行、单一 `7` 列 trade-like schema
+  - `2025` 中观测到的 `HKDarkPool` raw source group label 的 inventory 结论：`246` 个交易日中 `44` 天命中、`142` 个 member、`935,527` 行、单一 `7` 列 trade-like schema
 - **验收门禁**:
   - 每个模块都有报告
   - 所有长任务都支持 checkpoint / resume
@@ -108,7 +108,7 @@
   - `2026 OrderType`：当前正式口径为 `status = weak_pass`，`admissibility_impact = allow_with_caveat`
   - `2026 OrderType`：当前支持 `ordertype_weak_consistency_check / order_lifecycle_shape_by_event_count`，但仍阻塞 `event_semantics_inference`
   - `2026 OrderType`：当前不继续做 full-year 扩量，先把保守研究边界固化到矩阵和研究入口
-  - `2025`：`HKDarkPool inventory` 已完成；ID-level linkage 已确认成立；`Time` 在 representative sample 上为 `coarse_time_anchor_status = weak_pass`
+  - `2025`：针对 `HKDarkPool` raw source group label 的 inventory 已完成；ID-level linkage 已确认成立；`Time` 在 representative sample 上为 `coarse_time_anchor_status = weak_pass`
   - `2025`：扩展到 `7` 个样本日后，`Time` 仍全部为 `coarse_time_anchor_status = weak_pass`
   - `2025`：下一步转“界定 `Time` 可支撑的粗粒度验证边界”，而不是继续假设 `SendTime` 级 lag 校验可行
   - `2025`：`research_time_grade = coarse_only`

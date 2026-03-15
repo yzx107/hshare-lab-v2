@@ -10,6 +10,7 @@
 - 完成 `2025` 与 `2026` full-year raw inventory，并落盘到外置盘 manifest 目录
 - 补充 `2025/2026` raw inventory notes 与总览页，明确 support files、跨年 notice 文件与 `inventory_closed` 项目口径
 - 新增 verified admission boundary / policy、reference usage boundary / policy、golden sample policy、raw inventory completion criteria
+- 收紧 `HKDarkPool` 口径：统一表述为仓库在 raw 中观测到的 source group label，而非当前官方/vendor reference 已直接确认的正式术语
 - 同步更新 `README.md`、`PROGRESS.md`、`TASKS.md`、`QUERY_CONTRACT.md`、`DATA_CONTRACT.md`、`Research/References/README.md`
 
 ### 影响

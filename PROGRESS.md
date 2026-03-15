@@ -32,9 +32,9 @@
 - `2025` 的 `Time`-anchor 扩展样本共覆盖 `50,521,238` 条 matched edges，平均 `order_time <= trade_time` 比例约 `99.9786%`
 - `2025` 当前可记为 `research_time_grade = coarse_only`
 - `2026` 当前可记为 `research_time_grade = fine_ok`
-- `2025 HKDarkPool` 专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
-- `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
-- `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract
+- `2025` 针对观测到的 raw source group label `HKDarkPool` 的专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
+- 该 `HKDarkPool` 标签当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
+- 该 `HKDarkPool` 标签首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract；仓库内官方/vendor reference 尚未直接确认它是正式官方术语
 - linkage 相关研究从现在开始拆年推进；`2026` 表内排序默认 `SeqNum` 优先
 - `2026` representative sample 上，`TradeDir` 已确认是稳定三值编码 `{0,1,2}`
 - `2026` representative sample 上，`TradeDir` 的 `Dir=1 / 2` 并非靠 linkage 结构区分，但在 `previous-trade price move` 上存在稳定且方向一致的差异
@@ -139,8 +139,8 @@
 - `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key / golden sample 仍待正式收口
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
-- `run_source_group_inventory.py` 已落地为正式 CLI，并已完成 `2025 HKDarkPool` inventory
-- `HKDarkPool` 已确认不是 `2025-12-04` 单日偶发，而是 `2025-07-04` 到 `2025-12-31` 间多日反复出现的独立 source group
+- `run_source_group_inventory.py` 已落地为正式 CLI，并已完成针对 `2025` 中 `HKDarkPool` raw source group label 的 inventory
+- `HKDarkPool` 已确认不是 `2025-12-04` 单日偶发，而是 `2025-07-04` 到 `2025-12-31` 间多日反复出现的独立 source group label
 - `run_semantic_idspace.py` 已落地为语义探针，确认 `2025` representative sample 的 ID-level linkage 成立，但 order-side 时间锚仍缺失
 - `run_semantic_time_anchor.py` 已确认 `2025` 的 `Time` 可支持保守的 coarse temporal validation，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
 - `2025` 的下一步从“证明 ID 不直连”进一步收缩为：界定 `Time` 可支撑的粗粒度验证边界，以及哪些研究仍必须排除
