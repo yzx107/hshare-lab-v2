@@ -1,0 +1,142 @@
+{
+  "version": "2026-03-15",
+  "purpose": "First-pass admission policy for the verified layer.",
+  "admission_buckets": {
+    "admit_now": "May enter verified v1 as conservative structural or mechanically safe fields.",
+    "admit_with_explicit_caveat_only": "Do not include by default; only expose with clear caveat metadata or separate namespace.",
+    "keep_out_for_now": "Must remain outside verified v1 pending explicit semantic verification."
+  },
+  "orders": {
+    "date": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "table_name": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "source_file": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "ingest_ts": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "row_num_in_file": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "SeqNum": {
+      "bucket": "admit_now",
+      "reason": "conservative_structural_field",
+      "caveat": "project_level_verified_only_not_official_native_mapping"
+    },
+    "OrderId": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_identifier",
+      "caveat": "not_claimed_as_official_native_field_identity"
+    },
+    "Time": {
+      "bucket": "admit_now",
+      "reason": "project_level_time_field",
+      "caveat": "coarse_or_project_level_time_not_official_native_mapping"
+    },
+    "Price": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_measure"
+    },
+    "Volume": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_measure"
+    },
+    "OrderType": {
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "stable_but_semantically_unverified_vendor_code"
+    },
+    "Ext": {
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "vendor_bitfield_without_verified_semantics"
+    },
+    "Level": {
+      "bucket": "keep_out_for_now",
+      "reason": "queue_or_depth_semantics_not_verified"
+    },
+    "BrokerNo": {
+      "bucket": "keep_out_for_now",
+      "reason": "broker_identity_semantics_not_verified"
+    },
+    "VolumePre": {
+      "bucket": "keep_out_for_now",
+      "reason": "pre_modify_quantity_semantics_not_verified"
+    }
+  },
+  "trades": {
+    "date": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "table_name": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "source_file": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "ingest_ts": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "row_num_in_file": {
+      "bucket": "admit_now",
+      "reason": "mechanically_safe_tech_field"
+    },
+    "TickID": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_identifier",
+      "caveat": "not_claimed_as_official_tradeid_identity"
+    },
+    "Time": {
+      "bucket": "admit_now",
+      "reason": "project_level_time_field",
+      "caveat": "coarse_or_project_level_time_not_official_native_mapping"
+    },
+    "Price": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_measure"
+    },
+    "Volume": {
+      "bucket": "admit_now",
+      "reason": "high_value_structural_measure"
+    },
+    "Type": {
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "vendor_trade_type_code_without_verified_trdtype_mapping"
+    },
+    "Dir": {
+      "bucket": "keep_out_for_now",
+      "reason": "signed_side_semantics_not_verified"
+    },
+    "BrokerNo": {
+      "bucket": "keep_out_for_now",
+      "reason": "broker_identity_semantics_not_verified"
+    },
+    "BidOrderID": {
+      "bucket": "keep_out_for_now",
+      "reason": "linkage_native_meaning_not_verified"
+    },
+    "BidVolume": {
+      "bucket": "keep_out_for_now",
+      "reason": "linkage_native_meaning_not_verified"
+    },
+    "AskOrderID": {
+      "bucket": "keep_out_for_now",
+      "reason": "linkage_native_meaning_not_verified"
+    },
+    "AskVolume": {
+      "bucket": "keep_out_for_now",
+      "reason": "linkage_native_meaning_not_verified"
+    }
+  }
+}

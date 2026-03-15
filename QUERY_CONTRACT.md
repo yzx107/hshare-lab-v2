@@ -117,6 +117,21 @@ unless and until Lab semantic verification promotes them further.
 
 The query layer must not present vendor-documented fields as already research-verified by default.
 
+## Verified Admission Handling
+
+When Lab publishes a first-pass `verified` layer, Query should interpret it conservatively:
+
+- `verified` may contain project-level verified structural fields
+- `verified` does not imply that every included field is an officially mapped HKEX native field
+- if a field is excluded from verified admission policy, Query should continue to read it only from `candidate_cleaned` with explicit caveat
+
+Query must not silently upgrade:
+
+- `admit_with_explicit_caveat_only`
+- `keep_out_for_now`
+
+fields into default high-confidence product truth.
+
 ## Lab Operational Rules In Query
 
 `Hshare Query Layer` does not maintain an independent semantic rulebook.

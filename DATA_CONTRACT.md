@@ -41,6 +41,9 @@
 - **规则**:
   - 只包含 mechanically safe 或语义已验证字段
   - 所有研究脚本优先从 verified layer 读取
+  - verified v1 优先接纳 conservative structural fields，不优先接纳语义诱人但未验证的 vendor-defined 字段
+  - 如果某字段的主要价值来自未验证业务语义，则该字段默认不得进入 verified
+  - 若字段仅能以 caveat 方式暴露，应使用显式受限视图或元数据，不得默认伪装成 fully verified truth
 
 ### Supporting Layers
 - **manifests**: `/Volumes/Data/港股Tick数据/manifests`
