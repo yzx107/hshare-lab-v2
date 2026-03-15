@@ -35,3 +35,4 @@ DQA interpretation, and query-side lookup joins.
 - `List_of_Current_SEHK_EP` supports richer broker / participant reference joins.
 
 These files are references only. They do not override stage/DQA/semantic contracts by themselves.
+They should also not be silently collapsed into `verified` truth without explicit policy.

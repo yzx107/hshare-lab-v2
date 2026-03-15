@@ -1,0 +1,98 @@
+{
+  "version": "2026-03-15",
+  "purpose": "Machine-readable usage policy for reference files in Lab, Query, and verified-layer design.",
+  "references": {
+    "normalized/brokerno.utf8.csv": {
+      "role": "broker_lookup",
+      "query_join_allowed": true,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "reference_lookup",
+      "allowed_uses": [
+        "broker_name_lookup",
+        "coverage_analysis",
+        "ambiguity_analysis",
+        "seat_summary_enrichment"
+      ],
+      "forbidden_claims": [
+        "official_brokerid_identity",
+        "official_zero_code_semantics",
+        "verified_truth_by_default"
+      ]
+    },
+    "normalized/List_of_Current_SEHK_EP.utf8.tsv": {
+      "role": "participant_lookup",
+      "query_join_allowed": true,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "reference_lookup",
+      "allowed_uses": [
+        "participant_metadata_enrichment",
+        "trading_status_lookup",
+        "broker_crosscheck",
+        "descriptive_join_outputs"
+      ],
+      "forbidden_claims": [
+        "raw_field_semantics_proved",
+        "verified_truth_by_default"
+      ]
+    },
+    "normalized/ReadMe.utf8.txt": {
+      "role": "vendor_export_contract",
+      "query_join_allowed": false,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "source_contract_reference",
+      "allowed_uses": [
+        "vendor_field_label_interpretation",
+        "directory_shape_interpretation",
+        "export_change_explanation",
+        "vendor_defined_writing_support"
+      ],
+      "forbidden_claims": [
+        "research_verified_semantics",
+        "official_hkex_field_identity"
+      ]
+    },
+    "raw_vendor_notice_2026-01-01.txt": {
+      "role": "vendor_export_drift_note",
+      "query_join_allowed": false,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "source_contract_reference",
+      "allowed_uses": [
+        "export_drift_record",
+        "pipeline_version_boundary",
+        "source_contract_note"
+      ],
+      "forbidden_claims": [
+        "field_semantic_upgrade",
+        "historical_schema_identity_proof"
+      ]
+    },
+    "vendor/CFBC_File_Specification_wef_20250630.pdf": {
+      "role": "provenance_reference",
+      "query_join_allowed": false,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "provenance_reference",
+      "allowed_uses": [
+        "omdc_family_provenance",
+        "historical_full_book_product_boundary",
+        "candidate_official_family_mapping_context"
+      ],
+      "forbidden_claims": [
+        "current_csv_direct_equivalence_to_mc30_38",
+        "official_native_field_mapping_confirmed"
+      ]
+    }
+  },
+  "global_rules": {
+    "prefer_labels": [
+      "reference_lookup",
+      "lookup_enrichment",
+      "source_contract_reference",
+      "provenance_reference"
+    ],
+    "avoid_labels": [
+      "officially_confirmed_by_reference",
+      "verified_by_lookup_table",
+      "semantics_proven_by_vendor_readme"
+    ]
+  }
+}

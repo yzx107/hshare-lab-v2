@@ -1,0 +1,52 @@
+{
+  "version": "2026-03-15",
+  "purpose": "Template for freezing golden sample dates and their intended uses.",
+  "samples": [
+    {
+      "sample_tier": "smoke_sample",
+      "year": "2026",
+      "trade_date": "YYYY-MM-DD",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "example: fast real-data smoke test with both tables present",
+      "known_caveats": [],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "pipeline_smoke_test",
+        "schema_sanity_check"
+      ],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "representative_sample",
+      "year": "2026",
+      "trade_date": "YYYY-MM-DD",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "example: representative semantic boundary rerun date",
+      "known_caveats": [],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "semantic_boundary_recheck",
+        "dqa_representative_check"
+      ],
+      "source_group_specific": false
+    },
+    {
+      "sample_tier": "golden_sample",
+      "year": "2026",
+      "trade_date": "YYYY-MM-DD",
+      "table_scope": ["orders", "trades"],
+      "source_group_scope": "main_only",
+      "selection_reason": "example: fixed regression anchor for reports and semantic notes",
+      "known_caveats": [],
+      "excluded_source_groups": ["HKDarkPool"],
+      "allowed_uses": [
+        "regression_anchor",
+        "report_example",
+        "query_example"
+      ],
+      "source_group_specific": false
+    }
+  ]
+}

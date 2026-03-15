@@ -126,7 +126,7 @@ Hshare_Lab_v2/
 ## 当前下一步
 
 1. 对 `2025/2026` 的 full-year stage 产物跑 `coverage / schema / linkage` DQA
-2. 固定 `golden sample` 日期与语义验真入口
-3. 对 raw layer 建立真实全年 inventory 与 manifest
+2. 固定 `golden sample` policy、日期清单与语义验真入口
+3. 对 raw layer 建立真实全年 inventory，并按完成标准补齐 manifest
 4. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
 5. 再决定 verified layer 的字段边界

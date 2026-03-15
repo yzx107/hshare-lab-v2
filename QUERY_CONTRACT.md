@@ -57,6 +57,13 @@ But query outputs must not silently collapse:
 
 into one undifferentiated truth layer.
 
+Recommended output labeling for reference-derived columns:
+
+- `reference_lookup`
+- `lookup_enriched`
+- `source_contract_reference`
+- `provenance_reference`
+
 ## Write Boundary
 
 This product is strictly read-only with respect to Lab-managed data.
