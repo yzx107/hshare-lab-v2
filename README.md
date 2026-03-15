@@ -43,6 +43,13 @@
 - 旧仓库 `/Users/yxin/AI_Workstation/Hshare_Lab` 只作为 `legacy evidence`，不再继续开发
 - 旧目录 `scripts/`、旧 `src/features/`、旧 DQA 报告均视为 `legacy evidence`
 
+## Upstream Provenance
+
+- 当前 `2025/2026` 港股数据的上游采购来源已确认属于 HKEX `OMD-C` family
+- 当前仓库中的 CSV / `candidate_cleaned` 列形态，不默认视为官方 binary message 的 `1:1` 原样展开
+- 含 `OrderId` 的逐笔新增 / 修改 / 删除内容，与 `Securities FullTick (SF)` 能力相符
+- 字段级语义仍必须逐项通过 semantic verification，不能仅凭 OMD-C provenance 直接放行 `BrokerNo`、`TradeDir`、`Level` 等解释
+
 ## Stage Layer 定义
 
 - `candidate_cleaned` 就是当前的 `stage parquet` 层

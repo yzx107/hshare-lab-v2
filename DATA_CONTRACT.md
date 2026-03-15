@@ -14,6 +14,8 @@
   - 不覆盖
   - 不改写业务内容
   - 只补 manifest / metadata
+  - 上游采购来源已确认属于 HKEX `OMD-C` family
+  - 当前 raw / stage 文件形态不默认等同于官方 binary message 的 `1:1` 原样落地
 
 ### Layer 1: Stage / Candidate Cleaned
 - **路径**: `/Volumes/Data/港股Tick数据/candidate_cleaned`
@@ -47,6 +49,12 @@
 - 新脚本统一放在 `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Scripts`
 - 研究输出统一放在 `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research`
 - 旧 `scripts/` 目录视为 legacy
+
+## Provenance Guardrail
+
+- `OMD-C` provenance 可以作为上游来源事实
+- `OMD-C` provenance 不能替代字段级 semantic verification
+- 若官方文档中的 message 编号或字段定义与当前 CSV 列名不一致，应先记录为 numbering / export mismatch，再进入验证，不直接强映射
 
 ## Stage Layer 最小技术列
 
