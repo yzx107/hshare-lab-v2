@@ -72,7 +72,7 @@ def read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
 def write_parquet(rows: list[dict[str, Any]], path: Path) -> None:
     ensure_dir(path.parent)
     if rows:
-        pl.DataFrame(rows).write_parquet(path)
+        pl.DataFrame(rows, infer_schema_length=len(rows)).write_parquet(path)
     else:
         pl.DataFrame().write_parquet(path)
 

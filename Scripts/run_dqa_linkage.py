@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,6 +25,7 @@ DEFAULT_STAGE_ROOT = DEFAULT_DATA_ROOT / "candidate_cleaned"
 DEFAULT_DQA_ROOT = DEFAULT_DATA_ROOT / "dqa"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESEARCH_AUDITS_ROOT = REPO_ROOT / "Research" / "Audits"
+PROGRESS_EMIT_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,11 @@ class LinkageTask:
     @property
     def task_key(self) -> str:
         return self.date
+
+
+def default_workers() -> int:
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(8, cpu_count - 1))
 
 
 def parse_args() -> argparse.Namespace:
@@ -86,6 +94,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Resume from checkpoint and skip completed dates.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=default_workers(),
+        help="Number of trade-date linkage tasks to process in parallel.",
+    )
     parser.add_argument("--print-plan", action="store_true", help="Print the intended pipeline plan.")
     return parser.parse_args()
 
@@ -100,7 +114,7 @@ def canonical_date(value: str) -> str:
 def write_parquet(rows: list[dict[str, Any]], path: Path) -> None:
     ensure_dir(path.parent)
     if rows:
-        pl.DataFrame(rows).write_parquet(path)
+        pl.DataFrame(rows, infer_schema_length=len(rows)).write_parquet(path)
     else:
         pl.DataFrame().write_parquet(path)
 
@@ -568,6 +582,9 @@ def write_checkpoint(checkpoint_path: Path, heartbeat_path: Path, state: dict[st
             "failed_count": state["failed_count"],
             "pending_count": state["pending_count"],
             "active_task_key": state.get("active_task_key"),
+            "active_task_keys": state.get("active_task_keys", []),
+            "workers": state.get("workers"),
+            "executor_mode": state.get("executor_mode"),
         },
     )
 
@@ -654,12 +671,15 @@ def main() -> int:
             "year": args.year,
             "started_at": iso_utc_now(),
             "updated_at": iso_utc_now(),
+            "workers": args.workers,
             "completed_task_keys": [],
             "failed_tasks": {},
             "completed_count": 0,
             "failed_count": 0,
             "pending_count": len(tasks),
             "active_task_key": None,
+            "active_task_keys": [],
+            "executor_mode": "process",
         }
     else:
         if not checkpoint_path.exists():
@@ -668,45 +688,83 @@ def main() -> int:
         state = json.loads(checkpoint_path.read_text(encoding="utf-8"))
         state["status"] = "running"
         state["active_task_key"] = None
+        state["active_task_keys"] = []
+        state["workers"] = args.workers
 
     completed_task_keys = set(state.get("completed_task_keys", []))
     write_checkpoint(checkpoint_path, heartbeat_path, state)
 
-    for task in tasks:
-        if task.task_key in completed_task_keys:
-            continue
-
-        state["active_task_key"] = task.task_key
-        state["pending_count"] = max(0, len(tasks) - len(completed_task_keys) - state["failed_count"])
+    pending_tasks = [task for task in tasks if task.task_key not in completed_task_keys]
+    future_to_task: dict[Any, LinkageTask] = {}
+    try:
+        executor: Any = ProcessPoolExecutor(max_workers=args.workers)
+        state["executor_mode"] = "process"
+    except (OSError, PermissionError) as exc:
+        logger.warning(
+            "ProcessPoolExecutor unavailable (%s); falling back to ThreadPoolExecutor.",
+            exc,
+        )
+        executor = ThreadPoolExecutor(max_workers=args.workers)
+        state["executor_mode"] = "thread"
         write_checkpoint(checkpoint_path, heartbeat_path, state)
 
-        try:
-            row = process_task(task)
-            append_jsonl(linkage_jsonl_path, row)
-            completed_task_keys.add(task.task_key)
-            logger.info(
-                "DQA linkage task %s complete: bid_id_equal_rate=%s bid_time_usable_rate=%s status=%s",
-                task.task_key,
-                row["bid_orderid_id_equal_match_rate"],
-                row["bid_match_with_usable_order_time_rate"],
-                row["status"],
+    with executor:
+        for task in pending_tasks:
+            future_to_task[executor.submit(process_task, task)] = task
+
+        pending_futures = set(future_to_task)
+        while pending_futures:
+            done_futures, pending_futures = wait(
+                pending_futures,
+                timeout=PROGRESS_EMIT_SECONDS,
+                return_when=FIRST_COMPLETED,
             )
-        except Exception as exc:
-            state["failed_tasks"][task.task_key] = str(exc)
-            logger.error("DQA linkage task %s failed: %s", task.task_key, exc)
+            active_task_keys = [future_to_task[future].task_key for future in pending_futures]
+            state["active_task_keys"] = sorted(active_task_keys)
+            state["active_task_key"] = state["active_task_keys"][0] if state["active_task_keys"] else None
+            state["pending_count"] = max(
+                0,
+                len(tasks) - len(completed_task_keys) - len(state["failed_tasks"]),
+            )
+            write_checkpoint(checkpoint_path, heartbeat_path, state)
 
-        state["completed_task_keys"] = sorted(completed_task_keys)
-        state["completed_count"] = len(completed_task_keys)
-        state["failed_count"] = len(state["failed_tasks"])
-        state["pending_count"] = max(0, len(tasks) - state["completed_count"] - state["failed_count"])
-        state["active_task_key"] = None
-        write_checkpoint(checkpoint_path, heartbeat_path, state)
+            for future in done_futures:
+                task = future_to_task[future]
+                try:
+                    row = future.result()
+                    append_jsonl(linkage_jsonl_path, row)
+                    completed_task_keys.add(task.task_key)
+                    state["failed_tasks"].pop(task.task_key, None)
+                    logger.info(
+                        "DQA linkage task %s complete: bid_id_equal_rate=%s bid_time_usable_rate=%s status=%s",
+                        task.task_key,
+                        row["bid_orderid_id_equal_match_rate"],
+                        row["bid_match_with_usable_order_time_rate"],
+                        row["status"],
+                    )
+                except Exception as exc:
+                    state["failed_tasks"][task.task_key] = str(exc)
+                    logger.error("DQA linkage task %s failed: %s", task.task_key, exc)
+
+                state["completed_task_keys"] = sorted(completed_task_keys)
+                state["completed_count"] = len(completed_task_keys)
+                state["failed_count"] = len(state["failed_tasks"])
+                active_task_keys = [future_to_task[pending].task_key for pending in pending_futures]
+                state["active_task_keys"] = sorted(active_task_keys)
+                state["active_task_key"] = state["active_task_keys"][0] if state["active_task_keys"] else None
+                state["pending_count"] = max(
+                    0,
+                    len(tasks) - state["completed_count"] - state["failed_count"],
+                )
+                write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     linkage_rows = read_jsonl_rows(linkage_jsonl_path)
     write_parquet(linkage_rows, output_dir / "audit_linkage_feasibility_daily.parquet")
     report_markdown(research_report_path, year=str(args.year), rows=linkage_rows, state=state)
 
     state["status"] = "completed" if not state["failed_tasks"] else "completed_with_failures"
+    state["active_task_keys"] = []
+    state["active_task_key"] = None
     write_checkpoint(checkpoint_path, heartbeat_path, state)
     write_json(summary_path, build_summary(state, output_dir))
     logger.info(
