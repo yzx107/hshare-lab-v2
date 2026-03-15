@@ -1,0 +1,5 @@
+本站点提供的数据将在2026年1月1日之后调整, 
+新数据将提供全部完整的委托和成交记录（旧数据不包含因成交产生的改撤单记录）
+具体调整如下: 
+1: OrderAdd和OrderModifyDelete合并为一个order目录
+2: TradeResumes改为trade目录
