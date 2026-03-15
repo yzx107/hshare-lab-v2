@@ -4,6 +4,18 @@
 
 ---
 
+## [Docs-Full-Stage-Completion-v1] 2026-03-15 — 拉齐到 2025/2026 全量 staging 已完成（Codex）
+
+### 变更概述
+- 更新 `README.md`、`PROGRESS.md`、`TASKS.md`，将执行状态从“`2026` 全量 staging 进行中”改为“`2025/2026` 全量 staging 已完成”
+- 明确 `2026` 全量 `staging` 于 `2026-03-15 02:03 CST` 完成，`2025` 全量 `staging` 于 `2026-03-15 06:31 CST` 完成
+- 将当前最关心的下一步统一切到 `full-year DQA + semantic boundary`
+
+### 影响
+- 四个入口文件不再滞后于实际执行状态
+- 当前主线从 `T-R03 staging` 正式切换到 `T-R04/T-R05`
+- 后续如果开新 session，不会再误以为 `2026` 仍在后台长跑
+
 ## [Docs-Status-Alignment-v1] 2026-03-15 — 拉齐前置任务与当前执行主线的文档口径（Codex）
 
 ### 变更概述

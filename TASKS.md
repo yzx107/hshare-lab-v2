@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：继续推进 `T-R03` 的 `2026` 全量 staging，并把 `T-R05` 的研究可用性矩阵变成后续研究入口
+- 当前最关心的下一步：启动 `T-R04` 的 `2025/2026` full-year DQA，并把 `T-R05` 的研究可用性矩阵变成后续研究入口
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -47,7 +47,7 @@
 
 ## T-R03: 定义 Stage Parquet / Candidate Cleaned Contract
 - **阶段**: Stage 0 需求/规格 + Stage 1 数据清洗
-- **状态**: 🔄 sample 已验收，`2026` 全量进行中
+- **状态**: 🔄 full-year staging 已完成，contract 收口待补
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
 - **验收门禁**:
   - `STAGE_SCHEMA.md` 固定 Trades / Orders 的 raw source mapping 与 stage schema
@@ -79,6 +79,7 @@
   - `run_dqa_linkage.py` 已 materialize `audit_linkage_feasibility_daily`
   - `run_source_group_inventory.py` 已 materialize `audit_source_member_inventory / audit_source_daily_summary / audit_source_schema_fingerprints`
   - 四条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
+  - `2025/2026` full-year `staging` 已完成，`2026` 完成 `96` task、`2025` 完成 `492` task，均为 `0 failed`
   - representative sample 结论：`2026` 的 ID-level + time-usable linkage 三天全 `pass`
   - representative sample 结论：`2025` 的 ID-level linkage 三天均成立，但因 orders 侧 `SendTime` 全空而处于 `time_anchor_unavailable`
   - `2025 HKDarkPool inventory` 结论：`246` 个交易日中 `44` 天命中、`142` 个 member、`935,527` 行、单一 `7` 列 trade-like schema

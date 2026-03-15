@@ -10,7 +10,7 @@
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
 - 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
-- 当前最关心的下一步：继续推进 `2026` 全量 staging，并把 `2025/2026` 的研究可用性边界按矩阵固化
+- 当前最关心的下一步：启动 `2025/2026` full-year DQA，并把研究可用性边界固化到后续研究入口
 
 ## 当前主线
 
@@ -29,7 +29,7 @@
 
 ## 当前执行主线
 
-- `2026`：全量 `staging` 后台长跑进行中
+- `2025/2026`：全量 `staging` 已完成，当前主线切到 `full-year DQA`
 - `2025`：`HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
 - `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
 - `raw inventory`：CLI 已就位，但真实全年 manifest 仍待回补
@@ -118,8 +118,8 @@ Hshare_Lab_v2/
 
 ## 当前下一步
 
-1. 对 raw layer 建立 inventory 与 manifest
-2. 定义 `stage parquet / candidate_cleaned_2025_v1` contract
-3. 选取 `golden sample` 做语义验真
-4. 按模块实现 DQA
+1. 对 `2025/2026` 的 full-year stage 产物跑 `coverage / schema / linkage` DQA
+2. 固定 `golden sample` 日期与语义验真入口
+3. 对 raw layer 建立真实全年 inventory 与 manifest
+4. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
 5. 再决定 verified layer 的字段边界

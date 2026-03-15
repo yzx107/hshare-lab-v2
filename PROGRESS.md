@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：继续推进 `2026` 全量 staging，并把 `2025/2026` 的研究可用性边界固化到后续研究入口
+- 当前最关心的下一步：启动 `2025/2026` full-year DQA，并把研究可用性边界固化到后续研究入口
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -37,6 +37,8 @@
 - `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract
 - linkage 相关研究从现在开始拆年推进；`2026` 表内排序默认 `SeqNum` 优先
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
+- `2026` 全量 `staging` 已完成：`96` 个 task、`0` failed，完成于 `2026-03-15 02:03 CST`
+- `2025` 全量 `staging` 已完成：`492` 个 task、`0` failed，完成于 `2026-03-15 06:31 CST`
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## 当前执行说明
@@ -44,8 +46,8 @@
 - 当前不是严格 waterfall 执行；`raw inventory` 尚未对真实全年落盘，但 `stage / DQA / semantic sample` 已并行推进
 - 因此文档中的 `R1 / R2` 仍显示未完成，不表示后续结论失效，而是表示这些基础项仍待回补
 - 当前真正的执行主线是：
-  - `2026` 全量 staging
-  - `2025/2026` sample-year semantic boundary 固化
+  - `2025/2026` full-year DQA
+  - `2025/2026` semantic boundary 固化
   - `research admissibility matrix` 收口
 
 ## Reboot Milestones
@@ -89,7 +91,7 @@
 - [ ] 固定 partition spec
 - [ ] 固定 candidate key spec
 - [ ] 选定 golden sample 日期与股票池
-- **状态**: 🔄 sample 已验收，`2026` 全量进行中
+- **状态**: 🔄 full-year staging 已完成，contract 收口待补
 
 ### R4: DQA Framework
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
@@ -123,7 +125,7 @@
 ## 当前阻塞 / 待补基础项
 
 - raw inventory CLI 已建立，但尚未对真实 `2025/2026` raw layer 执行
-- `stage parquet / candidate_cleaned_2025_v1` 已完成 representative sample 验收，但 full-year 仍只推进到 `2026`
+- `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key / golden sample 仍待正式收口
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `run_source_group_inventory.py` 已落地为正式 CLI，并已完成 `2025 HKDarkPool` inventory
@@ -131,9 +133,9 @@
 - `run_semantic_idspace.py` 已落地为语义探针，确认 `2025` representative sample 的 ID-level linkage 成立，但 order-side 时间锚仍缺失
 - `run_semantic_time_anchor.py` 已确认 `2025` 的 `Time` 可支持保守的 coarse temporal validation，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
 - `2025` 的下一步从“证明 ID 不直连”进一步收缩为：界定 `Time` 可支撑的粗粒度验证边界，以及哪些研究仍必须排除
-- `2026` 全量 staging 后台长跑仍在健康推进，当前 `completed_count=12 / failed_count=0 / pending_count=84`
+- `2025/2026` 全量 staging 已完成，下一步应切到 full-year `coverage / schema / linkage` DQA
 - `golden sample` 还没正式冻结
 
 ## 当前状态
 
-**状态**: reboot 已启动；旧世界冻结；新主线已进入 `stage + DQA + semantic boundary` 并行推进，`raw inventory` 仍是待补基础项而非已完成前置
+**状态**: reboot 已启动；旧世界冻结；`2025/2026` full-year staging 已完成；新主线切到 `full-year DQA + semantic boundary`，`raw inventory` 仍是待补基础项而非已完成前置
