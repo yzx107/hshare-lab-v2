@@ -4,6 +4,30 @@
 
 ---
 
+## [Semantic-Framework-v1] 2026-03-15 — 搭建 2026 semantic verification framework 骨架（Codex）
+
+### 变更概述
+- 新增 `run_semantic_framework.py`，把 `OrderId lifecycle`、`TradeDir`、`OrderType`、`Session` 的 probe 骨架收口到统一 CLI
+- 新增 `test_run_semantic_framework.py`，覆盖 lifecycle summary、field matrix、admissibility hooks 的最小样本输出
+- 补充 `Scripts/README.md` 与 `Research/Audits/README.md`，把新的 semantic framework 入口和产物接到现有文档中
+
+### 影响
+- `2026` semantic verification 现在有了一个统一的轻量框架出口，不需要先改 stage contract 或跑重 I/O
+- `OrderId lifecycle` 可先以事件数、`SeqNum`、`OrderType` 迁移候选做事实层审阅
+- `TradeDir / OrderType / Session` 的语义验证可以在统一 report / admissibility 产物上继续加深，而不是散落在临时笔记里
+
+## [Semantic-Framework-v2] 2026-03-15 — 拆分为 contract / probes / report 三层结构（Codex）
+
+### 变更概述
+- 新增 `semantic_contract.py`，统一 semantic area、status、confidence、blocking level、admissibility impact 与输出 schema
+- 新增 `run_semantic_lifecycle.py`、`run_semantic_tradedir.py`、`run_semantic_ordertype.py`、`run_semantic_session.py`
+- 新增 `semantic_report.py` 与 `SEMANTIC_2026_FRAMEWORK.md`
+- 新增对应测试，覆盖 contract、4 个 runner 和 report 聚合
+
+### 影响
+- semantic verification 的骨架从单一 runner 细化为可扩展的 contract + probe + report 结构
+- 后续每个 semantic area 都能独立迭代，同时保持输出 contract 和 admissibility 接口稳定
+
 ## [Docs-Full-Stage-Completion-v1] 2026-03-15 — 拉齐到 2025/2026 全量 staging 已完成（Codex）
 
 ### 变更概述

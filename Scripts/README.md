@@ -36,6 +36,13 @@
 - `run_source_group_inventory.py`：指定 raw source group 专项 inventory，例如 `2025 HKDarkPool`
 - `run_semantic_idspace.py`：在 representative sample 上探测 old-format ID equality 与时间锚可用性
 - `run_semantic_time_anchor.py`：在 `SendTime` 缺失时，评估 `Time` 是否仍能支撑 coarse temporal validation
+- `semantic_contract.py`：semantic verification 的统一状态、输出 contract 与 admissibility 映射
+- `run_semantic_lifecycle.py`：`OrderId lifecycle` probe
+- `run_semantic_tradedir.py`：`TradeDir` probe
+- `run_semantic_ordertype.py`：`OrderType` probe
+- `run_semantic_session.py`：`Session` probe
+- `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
+- `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
 - `build_verified_layer.py`：verified tables materialization
 
 ## 当前研究边界
@@ -60,6 +67,12 @@
 - `python -m Scripts.run_source_group_inventory --print-plan`
 - `python -m Scripts.run_semantic_idspace --print-plan`
 - `python -m Scripts.run_semantic_time_anchor --print-plan`
+- `python -m Scripts.run_semantic_lifecycle --print-plan`
+- `python -m Scripts.run_semantic_tradedir --print-plan`
+- `python -m Scripts.run_semantic_ordertype --print-plan`
+- `python -m Scripts.run_semantic_session --print-plan`
+- `python -m Scripts.semantic_report --print-plan`
+- `python -m Scripts.run_semantic_framework --print-plan`
 - `python -m Scripts.run_source_group_inventory --year 2025 --group HKDarkPool`
 - `python -m Scripts.build_verified_layer --print-plan`
 
@@ -121,5 +134,23 @@
 - `dqa/source_inventory/year=<year>/group=<group>/heartbeat.json`
 - `dqa/source_inventory/year=<year>/group=<group>/summary.json`
 - `Research/Audits/source_inventory_<group>_<year>.md`
+
+## run_semantic_framework 输出
+
+- compatibility wrapper only
+- delegates to `run_semantic_lifecycle.py`, `run_semantic_tradedir.py`, `run_semantic_ordertype.py`, `run_semantic_session.py`
+- final outputs land in `dqa/semantic/year=<year>/...`
+- final markdown lands in `Research/Audits/semantic_<year>_summary.md`
+
+## semantic 2026 framework 输出
+
+- `dqa/semantic/year=<year>/semantic_orderid_lifecycle_daily.parquet`
+- `dqa/semantic/year=<year>/semantic_tradedir_daily.parquet`
+- `dqa/semantic/year=<year>/semantic_ordertype_daily.parquet`
+- `dqa/semantic/year=<year>/semantic_session_daily.parquet`
+- `dqa/semantic/year=<year>/semantic_daily_summary.parquet`
+- `dqa/semantic/year=<year>/semantic_yearly_summary.parquet`
+- `dqa/semantic/year=<year>/semantic_admissibility_bridge.parquet`
+- `Research/Audits/semantic_<year>_summary.md`
 
 旧的 lowercase `scripts/` 目录视为 legacy，不再作为新主线入口。
