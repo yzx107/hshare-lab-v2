@@ -10,7 +10,7 @@
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
 - 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
-- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并继续推进 `2025/2026` full-year DQA 与 verified layer 实装
+- 当前最关心的下一步：继续推进 `2025/2026` full-year DQA、`OrderId lifecycle` semantic verification 与 verified layer 实装
 
 ## 当前主线
 
@@ -126,7 +126,7 @@ Hshare_Lab_v2/
 ## 当前下一步
 
 1. 对 `2025/2026` 的 full-year stage 产物跑 `coverage / schema / linkage` DQA
-2. 固定 `golden sample` 具体日期清单与语义验真入口
-3. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
-4. 按已定义准入 policy 实装 verified layer
-5. 让 Query / report / verified 实现逐步接入新的 field/reference policy
+2. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
+3. 按已定义准入 policy 实装 verified layer
+4. 让 Query / report / verified 实现逐步接入新的 field/reference policy
+5. 对 `coverage / schema / linkage` 的 full-year DQA 结果做正式收口

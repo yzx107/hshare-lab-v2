@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并回到 `OrderId lifecycle` semantic verification
+- 当前最关心的下一步：回到 `OrderId lifecycle` semantic verification，并继续收口 full-year DQA 与 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -47,7 +47,7 @@
 
 ## T-R03: 定义 Stage Parquet / Candidate Cleaned Contract
 - **阶段**: Stage 0 需求/规格 + Stage 1 数据清洗
-- **状态**: 🔄 full-year staging 已完成，contract 收口待补
+- **状态**: 🔄 full-year staging 已完成，golden sample 已冻结，contract 收口待补
 - **目标**: 定义 `stage parquet / candidate_cleaned_2025_v1`
 - **验收门禁**:
   - `STAGE_SCHEMA.md` 固定 Trades / Orders 的 raw source mapping 与 stage schema

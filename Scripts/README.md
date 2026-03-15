@@ -33,7 +33,7 @@
 - `run_dqa_coverage.py`：raw vs candidate_cleaned 覆盖校验
 - `run_dqa_schema.py`：schema drift / type stability / nullability 校验
 - `run_dqa_linkage.py`：将 `BidOrderID / AskOrderID -> OrderId` 的 ID-level equality 与 time-usable linkage 分开审计
-- `run_source_group_inventory.py`：指定 raw source group 专项 inventory，例如 `2025 HKDarkPool`
+- `run_source_group_inventory.py`：指定 raw source group label 专项 inventory，例如仓库中观测到的 `2025 HKDarkPool`
 - `run_semantic_idspace.py`：在 representative sample 上探测 old-format ID equality 与时间锚可用性
 - `run_semantic_time_anchor.py`：在 `SendTime` 缺失时，评估 `Time` 是否仍能支撑 coarse temporal validation
 - `semantic_contract.py`：semantic verification 的统一状态、输出 contract 与 admissibility 映射
@@ -49,7 +49,7 @@
 ## 当前研究边界
 
 - `2026`：可进入 `linkage semantic verification`
-- `2025`：`HKDarkPool inventory` 已完成，确认其为独立 trade-like source group；ID-level linkage 已成立
+- `2025`：针对 `HKDarkPool` raw source group label 的 inventory 已完成；当前只确认其为仓库观测到的独立 trade-like source group label，非官方术语已验证口径；ID-level linkage 已成立
 - `2025`：`SendTime` 仍缺失，但 `Time` 在 `7` 个样本日、`50,521,238` 条 matched edges 上均呈现 `coarse_time_anchor_status = weak_pass`
 - `2025`：`research_time_grade = coarse_only`
 - `2026`：`research_time_grade = fine_ok`

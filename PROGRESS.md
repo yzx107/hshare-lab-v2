@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：冻结 `golden sample` 具体日期清单，并继续推进 `OrderId lifecycle` semantic verification
+- 当前最关心的下一步：推进 `OrderId lifecycle` semantic verification，并继续收口 full-year DQA 与 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -50,12 +50,13 @@
 - `2026` full-year raw inventory 已完成：`52` files、`89,509,988,059` bytes、`49` distinct trade dates
 - `raw inventory` 当前可记为：`2025 = year_scanned`、`2026 = year_scanned`、combined status = `inventory_closed`
 - `golden sample` policy、reference usage boundary、verified admission policy 已形成 repo 内正式文档
+- `golden sample` 日期清单已正式冻结，并已落盘为 repo manifest
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## 当前执行说明
 
 - 当前不是严格 waterfall 执行；在 `stage / DQA / semantic sample` 并行推进的同时，`raw inventory` 已补齐到真实全年落盘
-- 因此后续主线不再受 `raw inventory` 阻塞，当前真正未收口的是 `golden sample` 日期清单、verified 实装与剩余 semantic boundary
+- 因此后续主线不再受 `raw inventory` 或 `golden sample` 阻塞，当前真正未收口的是 verified 实装、remaining semantic boundary 与 full-year DQA 总结
 - 当前真正的执行主线是：
   - `2025/2026` semantic boundary 固化
   - `OrderId lifecycle` semantic verification
@@ -102,7 +103,7 @@
 - [ ] 固定 schema spec
 - [ ] 固定 partition spec
 - [ ] 固定 candidate key spec
-- [ ] 选定 golden sample 日期与股票池
+- [x] 选定 golden sample 日期与股票池
 - **状态**: 🔄 full-year staging 已完成，contract 收口待补
 
 ### R4: DQA Framework
@@ -136,7 +137,7 @@
 
 ## 当前阻塞 / 待补基础项
 
-- `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key / golden sample 仍待正式收口
+- `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key 仍待正式收口
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `run_source_group_inventory.py` 已落地为正式 CLI，并已完成针对 `2025` 中 `HKDarkPool` raw source group label 的 inventory
@@ -147,8 +148,6 @@
 - `TradeDir` 的下一步不再是扩 full-year，而是把当前 `candidate_directional_signal + requires_manual_review` 结论固化到研究入口
 - `OrderType` 的下一步不再是扩 full-year，而是把当前 `weak_pass + allow_with_caveat` 结论固化到研究入口
 - `2025/2026` 全量 staging 已完成，后续应优先回到 `OrderId lifecycle` 对 admissibility matrix 的直接影响项
-- `golden sample` 还没正式冻结
-
 ## 当前状态
 
 **状态**: reboot 已启动；旧世界冻结；`2025/2026` full-year staging 已完成；`2025/2026` raw inventory 已闭合；新主线切到 `full-year DQA + semantic boundary + verified admission implementation`
