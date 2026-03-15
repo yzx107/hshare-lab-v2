@@ -50,8 +50,29 @@ DQA 要回答两件事：
 - unique mapping
 - matched pair consistency
 
+## Reference Inputs
+
+DQA may use the following read-only reference inputs:
+
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/brokerno.utf8.csv`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/List_of_Current_SEHK_EP.utf8.tsv`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/ReadMe.utf8.txt`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/raw_vendor_notice_2026-01-01.txt`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/vendor/CFBC_File_Specification_wef_20250630.pdf`
+
+These references support:
+
+- broker / participant lookup coverage
+- securities reference / file-layout interpretation
+- source-contract drift interpretation
+- vendor-definition awareness
+
+They do **not** automatically upgrade a field into semantic truth.
+
 ## 执行要求
 
 - 长任务必须 `visible + resumable`
 - 至少输出：阶段日志、heartbeat、progress count、blockage hint、checkpoint
 - 所有报告要可复现、可回溯
+- 使用 broker / vendor reference 时，报告中应显式标注 reference source
+- 对 vendor-documented fields，DQA 允许输出 `vendor-defined` 结论，但不得直接输出 `research-verified`

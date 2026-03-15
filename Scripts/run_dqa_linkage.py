@@ -45,6 +45,11 @@ def default_workers() -> int:
     return max(1, min(8, cpu_count - 1))
 
 
+def default_executor_mode() -> str:
+    # On macOS, large Polars/PyArrow scans have been more stable with threads.
+    return "thread" if os.uname().sysname == "Darwin" else "auto"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build first-pass trade-order linkage feasibility audit from stage parquet."
@@ -99,6 +104,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=default_workers(),
         help="Number of trade-date linkage tasks to process in parallel.",
+    )
+    parser.add_argument(
+        "--executor",
+        choices=["auto", "process", "thread"],
+        default=default_executor_mode(),
+        help="Executor mode for parallel task dispatch.",
     )
     parser.add_argument("--print-plan", action="store_true", help="Print the intended pipeline plan.")
     return parser.parse_args()
@@ -624,6 +635,21 @@ def report_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], state:
     path.write_text("\n".join(top_lines) + "\n", encoding="utf-8")
 
 
+def build_executor(mode: str, max_workers: int, logger: Any) -> tuple[Any, str]:
+    if mode == "thread":
+        return ThreadPoolExecutor(max_workers=max_workers), "thread"
+    if mode == "process":
+        return ProcessPoolExecutor(max_workers=max_workers), "process"
+    try:
+        return ProcessPoolExecutor(max_workers=max_workers), "process"
+    except (OSError, PermissionError) as exc:
+        logger.warning(
+            "ProcessPoolExecutor unavailable (%s); falling back to ThreadPoolExecutor.",
+            exc,
+        )
+        return ThreadPoolExecutor(max_workers=max_workers), "thread"
+
+
 def main() -> int:
     args = parse_args()
     if args.print_plan:
@@ -679,7 +705,7 @@ def main() -> int:
             "pending_count": len(tasks),
             "active_task_key": None,
             "active_task_keys": [],
-            "executor_mode": "process",
+            "executor_mode": args.executor,
         }
     else:
         if not checkpoint_path.exists():
@@ -690,23 +716,16 @@ def main() -> int:
         state["active_task_key"] = None
         state["active_task_keys"] = []
         state["workers"] = args.workers
+        state["executor_mode"] = args.executor
 
     completed_task_keys = set(state.get("completed_task_keys", []))
     write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     pending_tasks = [task for task in tasks if task.task_key not in completed_task_keys]
     future_to_task: dict[Any, LinkageTask] = {}
-    try:
-        executor: Any = ProcessPoolExecutor(max_workers=args.workers)
-        state["executor_mode"] = "process"
-    except (OSError, PermissionError) as exc:
-        logger.warning(
-            "ProcessPoolExecutor unavailable (%s); falling back to ThreadPoolExecutor.",
-            exc,
-        )
-        executor = ThreadPoolExecutor(max_workers=args.workers)
-        state["executor_mode"] = "thread"
-        write_checkpoint(checkpoint_path, heartbeat_path, state)
+    executor, resolved_mode = build_executor(args.executor, args.workers, logger)
+    state["executor_mode"] = resolved_mode
+    write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     with executor:
         task_iter = iter(pending_tasks)

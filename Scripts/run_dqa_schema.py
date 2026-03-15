@@ -49,6 +49,11 @@ def default_workers() -> int:
     return max(1, min(8, cpu_count - 1))
 
 
+def default_executor_mode() -> str:
+    # On macOS, large Polars/PyArrow scans have been more stable with threads.
+    return "thread" if os.uname().sysname == "Darwin" else "auto"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build DQA schema/value/time audit tables from stage parquet partitions."
@@ -109,6 +114,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=default_workers(),
         help="Number of date-table schema tasks to process in parallel.",
+    )
+    parser.add_argument(
+        "--executor",
+        choices=["auto", "process", "thread"],
+        default=default_executor_mode(),
+        help="Executor mode for parallel task dispatch.",
     )
     parser.add_argument("--print-plan", action="store_true", help="Print the intended pipeline plan.")
     return parser.parse_args()
@@ -197,6 +208,14 @@ def business_field_names(table_name: str) -> list[str]:
     ]
 
 
+def blank_profile_field_names(table_name: str) -> list[str]:
+    return [
+        column.name
+        for column in CONTRACTS[table_name].business_columns
+        if column.name != "SendTimeRaw" and column.polars_dtype == pl.String
+    ]
+
+
 def schema_signature(task: SchemaTask) -> tuple[list[str], dict[str, str], list[dict[str, Any]]]:
     file_signatures: list[dict[str, Any]] = []
     first_columns: list[str] = []
@@ -274,12 +293,13 @@ def build_schema_fingerprint_row(task: SchemaTask) -> dict[str, Any]:
 
 def collect_field_null_rows(task: SchemaTask) -> list[dict[str, Any]]:
     fields = business_field_names(task.table_name)
+    blank_fields = set(blank_profile_field_names(task.table_name))
     scan = pl.scan_parquet(list(task.parquet_paths))
     expressions: list[pl.Expr] = [pl.len().alias("__row_count")]
     for field in fields:
-        expressions.extend(
-            [
-                pl.col(field).is_null().sum().alias(f"{field}__null_count"),
+        expressions.append(pl.col(field).is_null().sum().alias(f"{field}__null_count"))
+        if field in blank_fields:
+            expressions.append(
                 (
                     pl.col(field)
                     .cast(pl.String)
@@ -287,7 +307,12 @@ def collect_field_null_rows(task: SchemaTask) -> list[dict[str, Any]]:
                     .eq("")
                     .fill_null(False)
                     .sum()
-                ).alias(f"{field}__blank_count"),
+                ).alias(f"{field}__blank_count")
+            )
+        else:
+            expressions.append(pl.lit(0).alias(f"{field}__blank_count"))
+        expressions.extend(
+            [
                 pl.col(field).min().cast(pl.String).alias(f"{field}__min_value"),
                 pl.col(field).max().cast(pl.String).alias(f"{field}__max_value"),
             ]
@@ -717,6 +742,21 @@ def report_markdown(path: Path, *, year: str, state: dict[str, Any]) -> None:
     )
 
 
+def build_executor(mode: str, max_workers: int, logger: Any) -> tuple[Any, str]:
+    if mode == "thread":
+        return ThreadPoolExecutor(max_workers=max_workers), "thread"
+    if mode == "process":
+        return ProcessPoolExecutor(max_workers=max_workers), "process"
+    try:
+        return ProcessPoolExecutor(max_workers=max_workers), "process"
+    except (OSError, PermissionError) as exc:
+        logger.warning(
+            "ProcessPoolExecutor unavailable (%s); falling back to ThreadPoolExecutor.",
+            exc,
+        )
+        return ThreadPoolExecutor(max_workers=max_workers), "thread"
+
+
 def main() -> int:
     args = parse_args()
     if args.print_plan:
@@ -783,7 +823,7 @@ def main() -> int:
             "pending_count": len(tasks),
             "active_task_key": None,
             "active_task_keys": [],
-            "executor_mode": "process",
+            "executor_mode": args.executor,
         }
     else:
         if not checkpoint_path.exists():
@@ -794,23 +834,16 @@ def main() -> int:
         state["active_task_key"] = None
         state["active_task_keys"] = []
         state["workers"] = args.workers
+        state["executor_mode"] = args.executor
 
     completed_task_keys = set(state.get("completed_task_keys", []))
     write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     pending_tasks = [task for task in tasks if task.task_key not in completed_task_keys]
     future_to_task: dict[Any, SchemaTask] = {}
-    try:
-        executor: Any = ProcessPoolExecutor(max_workers=args.workers)
-        state["executor_mode"] = "process"
-    except (OSError, PermissionError) as exc:
-        logger.warning(
-            "ProcessPoolExecutor unavailable (%s); falling back to ThreadPoolExecutor.",
-            exc,
-        )
-        executor = ThreadPoolExecutor(max_workers=args.workers)
-        state["executor_mode"] = "thread"
-        write_checkpoint(checkpoint_path, heartbeat_path, state)
+    executor, resolved_mode = build_executor(args.executor, args.workers, logger)
+    state["executor_mode"] = resolved_mode
+    write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     with executor:
         task_iter = iter(pending_tasks)
