@@ -74,6 +74,10 @@ def has_column(frame: pl.LazyFrame, column_name: str) -> bool:
     return column_name in frame.collect_schema().names()
 
 
+def input_bytes(paths: list[str]) -> int:
+    return sum(Path(path).stat().st_size for path in paths)
+
+
 def classify_status(*, distinct_orderids: int, linked_orderids: int, multi_event_orderids: int) -> str:
     if distinct_orderids == 0:
         return STATUS_NOT_APPLICABLE
@@ -85,11 +89,40 @@ def classify_status(*, distinct_orderids: int, linked_orderids: int, multi_event
     return STATUS_UNKNOWN
 
 
-def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows: int) -> dict[str, Any]:
+def investigate_date(
+    trade_date: str,
+    *,
+    stage_root: Path,
+    year: str,
+    limit_rows: int,
+    logger: Any | None = None,
+) -> dict[str, Any]:
     order_paths = [str(path) for path in sorted((stage_root / "orders" / f"date={trade_date}").glob("*.parquet"))]
     trade_paths = [str(path) for path in sorted((stage_root / "trades" / f"date={trade_date}").glob("*.parquet"))]
-    orders = order_scan(order_paths, limit_rows)
-    trades = trade_scan(trade_paths, limit_rows)
+    if logger is not None:
+        logger.info(
+            "Lifecycle %s: discovered %s order files (%s bytes) and %s trade files (%s bytes)",
+            trade_date,
+            len(order_paths),
+            input_bytes(order_paths),
+            len(trade_paths),
+            input_bytes(trade_paths),
+        )
+
+    orders_raw = order_scan(order_paths, limit_rows)
+    trades_raw = trade_scan(trade_paths, limit_rows)
+    orders_schema = orders_raw.collect_schema().names()
+    trades_schema = trades_raw.collect_schema().names()
+    if logger is not None:
+        logger.info(
+            "Lifecycle %s: order columns=%s trade columns=%s",
+            trade_date,
+            ",".join(orders_schema),
+            ",".join(trades_schema),
+        )
+
+    orders = orders_raw.select([column for column in ("OrderId", "SeqNum", "OrderType", "Session") if column in orders_schema])
+    trades = trades_raw.select([column for column in ("BidOrderID", "AskOrderID", "SeqNum", "Session") if column in trades_schema])
     order_has_session = has_column(orders, "Session")
     trade_has_seqnum = has_column(trades, "SeqNum")
     trade_has_session = has_column(trades, "Session")
@@ -148,35 +181,61 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
                 pl.col("last_trade_seqnum_present").fill_null(0),
             ]
         )
-        .collect()
     )
-    order_rows = int(orders.select(pl.len().cast(pl.Int64).alias("rows")).collect().to_dicts()[0]["rows"] or 0)
-    distinct_orderids = lifecycle.height
-    linked_orderids = lifecycle.filter(pl.col("trade_match_count") > 0).height
-    multi_event_orderids = lifecycle.filter(pl.col("order_event_count") > 1).height
-    multiple_trades = lifecycle.filter(pl.col("trade_match_count") > 1).height
-    single_trade = lifecycle.filter(pl.col("trade_match_count") == 1).height
-    cross_session_candidate_count = (
-        lifecycle.filter(
+    if logger is not None:
+        logger.info("Lifecycle %s: built lazy order/trade aggregates; collecting scalar summary only", trade_date)
+
+    summary_stats = lifecycle.select(
+        [
+            pl.len().cast(pl.Int64).alias("distinct_orderids"),
+            (pl.col("trade_match_count") > 0).cast(pl.Int64).sum().alias("linked_orderids"),
+            (pl.col("order_event_count") > 1).cast(pl.Int64).sum().alias("multi_event_orderids"),
+            (pl.col("trade_match_count") > 1).cast(pl.Int64).sum().alias("multiple_trades"),
+            (pl.col("trade_match_count") == 1).cast(pl.Int64).sum().alias("single_trade"),
             (
-                (pl.col("order_session_count").fill_null(0) > 1)
-                | (pl.col("trade_session_count").fill_null(0) > 1)
+                (
+                    (pl.col("order_session_count").fill_null(0) > 1)
+                    | (pl.col("trade_session_count").fill_null(0) > 1)
+                    | (
+                        (pl.col("order_session_count").fill_null(0) > 0)
+                        & (pl.col("trade_session_count").fill_null(0) > 0)
+                        & (pl.col("order_session_count") != pl.col("trade_session_count"))
+                    )
+                )
+                if order_has_session or trade_has_session
+                else pl.lit(False)
             )
-            | (
-                (pl.col("order_session_count").fill_null(0) > 0)
-                & (pl.col("trade_session_count").fill_null(0) > 0)
-                & (pl.col("order_session_count") != pl.col("trade_session_count"))
-            )
-        ).height
-        if order_has_session or trade_has_session
-        else 0
-    )
+            .cast(pl.Int64)
+            .sum()
+            .alias("cross_session_candidate_count"),
+            (pl.col("first_order_seqnum_present") > 0).cast(pl.Int64).sum().alias("first_order_seqnum_present"),
+            (pl.col("last_order_seqnum_present") > 0).cast(pl.Int64).sum().alias("last_order_seqnum_present"),
+            (pl.col("first_trade_seqnum_present") > 0).cast(pl.Int64).sum().alias("first_trade_seqnum_present"),
+            (pl.col("last_trade_seqnum_present") > 0).cast(pl.Int64).sum().alias("last_trade_seqnum_present"),
+        ]
+    ).collect().to_dicts()[0]
+    order_rows = int(orders.select(pl.len().cast(pl.Int64).alias("rows")).collect().to_dicts()[0]["rows"] or 0)
+    distinct_orderids = int(summary_stats["distinct_orderids"] or 0)
+    linked_orderids = int(summary_stats["linked_orderids"] or 0)
+    multi_event_orderids = int(summary_stats["multi_event_orderids"] or 0)
+    multiple_trades = int(summary_stats["multiple_trades"] or 0)
+    single_trade = int(summary_stats["single_trade"] or 0)
+    cross_session_candidate_count = int(summary_stats["cross_session_candidate_count"] or 0)
     status = classify_status(distinct_orderids=distinct_orderids, linked_orderids=linked_orderids, multi_event_orderids=multi_event_orderids)
     impact = map_semantic_result_to_admissibility(semantic_area=SEMANTIC_AREA_LIFECYCLE, status=status, blocking_level=BLOCKING_LEVEL_BLOCKING)
-    first_order_seqnum_present = lifecycle.filter(pl.col("first_order_seqnum_present") > 0).height
-    last_order_seqnum_present = lifecycle.filter(pl.col("last_order_seqnum_present") > 0).height
-    first_trade_seqnum_present = lifecycle.filter(pl.col("first_trade_seqnum_present") > 0).height
-    last_trade_seqnum_present = lifecycle.filter(pl.col("last_trade_seqnum_present") > 0).height
+    first_order_seqnum_present = int(summary_stats["first_order_seqnum_present"] or 0)
+    last_order_seqnum_present = int(summary_stats["last_order_seqnum_present"] or 0)
+    first_trade_seqnum_present = int(summary_stats["first_trade_seqnum_present"] or 0)
+    last_trade_seqnum_present = int(summary_stats["last_trade_seqnum_present"] or 0)
+    if logger is not None:
+        logger.info(
+            "Lifecycle %s summary: distinct_orderids=%s linked_orderids=%s multi_event=%s multiple_trades=%s",
+            trade_date,
+            distinct_orderids,
+            linked_orderids,
+            multi_event_orderids,
+            multiple_trades,
+        )
     return build_daily_result(
         SEMANTIC_AREA_LIFECYCLE,
         date=trade_date,
@@ -271,7 +330,16 @@ def main() -> int:
     report_path = args.research_root / f"semantic_lifecycle_{args.year}.md"
     logger = configure_logger("semantic_lifecycle", args.log_root / f"semantic_lifecycle_{args.year}.log")
     ensure_dir(output_dir)
-    rows = [investigate_date(date, stage_root=args.input_root, year=str(args.year), limit_rows=args.limit_rows) for date in selected_dates]
+    rows = [
+        investigate_date(
+            date,
+            stage_root=args.input_root,
+            year=str(args.year),
+            limit_rows=args.limit_rows,
+            logger=logger,
+        )
+        for date in selected_dates
+    ]
     summary_row = build_yearly_summary(str(args.year), rows)
     write_parquet(rows, daily_path)
     write_parquet([summary_row], yearly_path)

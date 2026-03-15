@@ -4,6 +4,17 @@
 
 ---
 
+## [Semantic-Lifecycle-Hardening-v1] 2026-03-15 — 加固 lifecycle probe 的真实数据路径与可观测性（Codex）
+
+### 变更概述
+- 更新 `run_semantic_lifecycle.py`，在真实数据路径上补齐输入体量日志、字段日志与 compact scalar summary
+- 将 lifecycle probe 的主统计从高物化中间结果收口为更轻的 scalar summary 聚合，降低 representative / real-data smoke 的运行压力
+- 更新 `test_run_semantic_lifecycle.py`，把测试工作目录切到当前 workspace 根目录
+
+### 影响
+- lifecycle probe 在真实数据上更稳、更可看，也更适合后续 semantic deepening
+- 当前提交不新增 lifecycle 的强语义结论，只做运行时稳定性与可观测性收口
+
 ## [Semantic-OrderType-v1] 2026-03-15 — 固化 OrderType representative evidence 与研究边界（Codex）
 
 ### 变更概述
