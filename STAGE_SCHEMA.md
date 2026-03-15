@@ -52,6 +52,75 @@ research-verified semantics.
   - `candidate_cleaned/orders/date=2025-02-18/20250218_orders.parquet`
   - `candidate_cleaned/trades/date=2026-01-05/20260105_trades.parquet`
 
+## Schema Spec v1
+
+`stage parquet / candidate_cleaned_v1` 的 schema spec 现阶段固定为：
+
+- 逻辑表仅保留 `orders` 与 `trades`
+- 列集合以 [Scripts/stage_contract.py](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Scripts/stage_contract.py) 为唯一代码级 contract
+- 同一年份内，同一逻辑表的 stage 列集合必须稳定
+- 年份差异通过允许为空列处理，不通过拆出不同逻辑表处理
+- stage 层允许保留 vendor-defined 但未验证语义的字段，只要不在清洗阶段改名或增强解释
+
+因此，当前 repo 口径是：
+
+- `schema spec = fixed at table-level across 2025/2026`
+- `year-specific source differences = handled by nullable columns`
+
+## Partition Spec v1
+
+当前 partition spec 正式固定为：
+
+- 分区键：`table_name + date`
+- 路径形态：
+  - `candidate_cleaned/orders/date=YYYY-MM-DD/*.parquet`
+  - `candidate_cleaned/trades/date=YYYY-MM-DD/*.parquet`
+- 当前不按 `symbol`、`source_group`、`session` 进一步下钻分区
+
+原因：
+
+- `date + table` 已足够支撑当前 DQA、semantic sample、Query 抽样和可恢复重跑
+- 过早引入更细分区会把 source-group / semantic 不确定性提前固化进物理布局
+- `symbol` 或其它更细分 shard 只有在明确证明扫描模式需要时才应追加
+
+## Candidate Key Spec v1
+
+当前只固定 conservative candidate key，不把它们升级成 verified business key。
+
+### Orders
+
+- project-level candidate key: `date + source_file + row_num_in_file`
+- structural identity candidate: `date + SeqNum + OrderId`
+
+说明：
+
+- 前者用于追溯与工程级唯一性
+- 后者仅用于结构分析与弱一致性检查
+- 不能直接宣称 `date + SeqNum + OrderId` 是官方业务主键
+
+### Trades
+
+- project-level candidate key: `date + source_file + row_num_in_file`
+- structural identity candidate: `date + TickID`
+
+说明：
+
+- `date + TickID` 可作为高价值结构标识候选
+- 但当前仍不写成官方 `TradeID` 主键映射已确认
+
+## Key Boundary
+
+stage candidate key 的用途是：
+
+- partition-level dedup / sanity check
+- structural linkage / DQA 辅助
+- project-level reproducibility
+
+不允许把 stage candidate key 直接升级成：
+
+- verified business identity
+- official native primary key confirmation
+
 ## 执行规则
 
 - 任务粒度固定为 `date + logical table`

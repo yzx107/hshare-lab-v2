@@ -44,7 +44,7 @@
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
-- `build_verified_layer.py`：verified tables materialization
+- `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；当前仍以 design / plan 为主，不默认放行高风险语义字段
 
 ## 当前研究边界
 

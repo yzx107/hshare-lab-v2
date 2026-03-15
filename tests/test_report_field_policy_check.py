@@ -20,8 +20,9 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
                     [
                         "# Test Report",
                         "",
+                        "The upstream source is HKEX OMD-C family data.",
                         "We study `OrderId`, `Dir`, `BrokerNo`, and `BidOrderID`.",
-                        "This draft should avoid saying confirmed official mapping.",
+                        "This draft should avoid saying confirmed official mapping and verified by lookup table.",
                     ]
                 )
                 + "\n",
@@ -49,7 +50,11 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
             self.assertIn("BrokerNo", mentioned)
             self.assertIn("BidOrderID", mentioned)
             self.assertIn("Dir", payload["mentioned_unverified_fields"])
+            self.assertIn("Dir", payload["mentioned_keep_out_fields"])
             self.assertIn("confirmed_official_mapping", payload["avoid_phrase_hits"])
+            self.assertIn("verified_by_lookup_table", payload["reference_avoid_label_hits"])
+            self.assertTrue(payload["has_provenance_phrase"])
+
 
 
 if __name__ == "__main__":

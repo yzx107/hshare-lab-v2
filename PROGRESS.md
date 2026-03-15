@@ -50,6 +50,7 @@
 - `2026` full-year raw inventory 已完成：`52` files、`89,509,988,059` bytes、`49` distinct trade dates
 - `raw inventory` 当前可记为：`2025 = year_scanned`、`2026 = year_scanned`、combined status = `inventory_closed`
 - `golden sample` policy、reference usage boundary、verified admission policy 已形成 repo 内正式文档
+- `stage schema / partition / candidate key` 已完成文档级定稿，当前 `stage contract` 已不再缺这三项基础定义
 - `golden sample` 日期清单已正式冻结，并已落盘为 repo manifest
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
@@ -100,11 +101,11 @@
 - [x] 完成真实单日 sample run：`2025-02-18` 与 `2026-03-13`
 - [x] 核对 raw source mapping、实际 parquet schema、`SendTimeRaw -> SendTime` 样本对照
 - [x] 完成 representative sample run：`2025 x 3`、`2026 x 3`
-- [ ] 固定 schema spec
-- [ ] 固定 partition spec
-- [ ] 固定 candidate key spec
+- [x] 固定 schema spec
+- [x] 固定 partition spec
+- [x] 固定 candidate key spec
 - [x] 选定 golden sample 日期与股票池
-- **状态**: 🔄 full-year staging 已完成，contract 收口待补
+- **状态**: ✅ contract baseline 已完成；后续主要进入 DQA / semantic / verified 实装
 
 ### R4: DQA Framework
 - **目标**: 建立研究导向 DQA，而不是传统 BI QA
@@ -137,7 +138,6 @@
 
 ## 当前阻塞 / 待补基础项
 
-- `stage parquet / candidate_cleaned_2025_v1` 已完成 `2025/2026` full-year staging，但 schema / partition / candidate key 仍待正式收口
 - `build_stage_parquet.py` 的 `heartbeat.json` 已聚合 `active_bundles`，可看到当前 member、已处理 member 数与两表中间行数
 - `run_dqa_coverage.py`、`run_dqa_schema.py`、`run_dqa_linkage.py` 已从 scaffold 进入可执行 CLI，并有 `checkpoint / heartbeat / summary / report` 留痕
 - `run_source_group_inventory.py` 已落地为正式 CLI，并已完成针对 `2025` 中 `HKDarkPool` raw source group label 的 inventory

@@ -4,6 +4,19 @@
 
 ---
 
+## [Docs-Contract-And-Policy-Tools-v1] 2026-03-16 — 收口 stage contract 定义并扩展轻量 policy checker（Codex）
+
+### 变更概述
+- 在 `STAGE_SCHEMA.md` 中正式固定 stage schema spec、partition spec 与 candidate key spec
+- 新增 `verified_layer_v1_design.md`，把 verified v1 的保守设计边界落成文档
+- 扩展 `report_field_policy_check.py`，使其可额外识别 verified keep-out fields、reference avoid labels 与基础 provenance phrase
+- 新增 `hkdarkpool_external_hypothesis.md`，把 `HKDarkPool` 的外部暗池假设明确降级为 hypothesis pool，而不是 repo verified truth
+
+### 影响
+- `stage contract` 不再缺 schema / partition / candidate key 三项基础定义
+- 轻量报告检查器对 policy 越界更敏感，后续更容易在文档层发现风险
+- `verified` 与 `HKDarkPool` 的边界都更容易被后续线程直接复用
+
 ## [Docs-Raw-Inventory-And-Policy-Closeout-v1] 2026-03-15 — 拉平 raw inventory、reference、golden sample 与 verified 准入状态（Codex）
 
 ### 变更概述

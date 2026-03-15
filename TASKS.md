@@ -60,6 +60,7 @@
   - partition spec 固定
   - candidate key spec 固定
   - golden sample 列表固定
+- **当前说明**: stage contract 所需的 schema / partition / candidate key / golden sample 文档级定义已完成；后续重点转向 DQA、semantic 与 verified 实装
 
 ## T-R04: Mechanical DQA v1
 - **阶段**: Stage 1 数据清洗
