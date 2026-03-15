@@ -59,15 +59,44 @@ def safe_rate(numerator: int | float | None, denominator: int | float | None) ->
     return numerator / denominator
 
 
+def input_bytes(paths: list[str]) -> int:
+    return sum(Path(path).stat().st_size for path in paths)
+
+
 def has_column(frame: pl.LazyFrame, column_name: str) -> bool:
     return column_name in frame.collect_schema().names()
 
 
-def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows: int) -> dict[str, Any]:
+def format_value_sample(frame: pl.DataFrame, *, value_column: str, limit: int = 10) -> str | None:
+    if frame.is_empty():
+        return None
+    rows = frame.head(limit).to_dicts()
+    return ",".join(str(row[value_column]) for row in rows)
+
+
+def investigate_date(
+    trade_date: str,
+    *,
+    stage_root: Path,
+    year: str,
+    limit_rows: int,
+    logger: Any | None = None,
+) -> dict[str, Any]:
     trade_paths = [str(path) for path in sorted((stage_root / "trades" / f"date={trade_date}").glob("*.parquet"))]
+    if logger is not None:
+        logger.info(
+            "TradeDir %s: discovered %s trade files (%s bytes)",
+            trade_date,
+            len(trade_paths),
+            input_bytes(trade_paths),
+        )
+
     trades = pl.scan_parquet(trade_paths)
     if limit_rows > 0:
         trades = trades.limit(limit_rows)
+    schema_names = trades.collect_schema().names()
+    if logger is not None:
+        logger.info("TradeDir %s: trade columns=%s", trade_date, ",".join(schema_names))
     has_bid = has_column(trades, "BidOrderID")
     has_ask = has_column(trades, "AskOrderID")
     linked_edge_expr = (
@@ -82,6 +111,14 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
             else pl.lit(False)
         )
     )
+    observed_values = (
+        trades.filter(pl.col("Dir").is_not_null())
+        .group_by("Dir")
+        .agg(pl.len().cast(pl.Int64).alias("row_count"))
+        .sort("Dir")
+        .collect()
+    )
+    observed_value_sample = format_value_sample(observed_values, value_column="Dir")
     stats = trades.select(
         [
             pl.len().cast(pl.Int64).alias("tested_rows"),
@@ -131,6 +168,22 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         if linked_side_consistency_tested is not None and linked_side_consistency_pass is not None
         else None
     )
+    summary = (
+        f"nonnull_rate={safe_rate(nonnull_count, tested_rows)}, "
+        f"distinct_values={distinct_values}, "
+        f"observed_dir_values={observed_value_sample or 'none'}"
+    )
+    if logger is not None:
+        logger.info(
+            "TradeDir %s summary: observed_dir_values=%s zero=%s pos=%s neg=%s other=%s linked_edge_count=%s",
+            trade_date,
+            observed_value_sample or "none",
+            int(stats["zero_count"] or 0),
+            int(stats["pos_count"] or 0),
+            int(stats["neg_count"] or 0),
+            int(stats["other_count"] or 0),
+            linked_edge_count,
+        )
     return build_daily_result(
         SEMANTIC_AREA_TRADEDIR,
         date=trade_date,
@@ -144,7 +197,7 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         pass_rows=nonnull_count if status == STATUS_WEAK_PASS else 0,
         fail_rows=0,
         unknown_rows=max(tested_rows - nonnull_count, 0),
-        summary=f"nonnull_rate={safe_rate(nonnull_count, tested_rows)}, distinct_values={distinct_values}",
+        summary=summary,
         admissibility_impact=impact,
         evidence_path=f"dqa/semantic/year={year}/semantic_tradedir_daily.parquet",
         tradedir_nonnull_count=nonnull_count,
@@ -200,7 +253,17 @@ def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary
     ensure_dir(path.parent)
     lines = [f"# Semantic TradeDir Probe {year}", "", f"- generated_at: {iso_utc_now()}", f"- status: {summary_row['status']}"]
     for row in rows:
-        lines.extend(["", f"## {row['date']}", f"- tradedir_nonnull_rate: {row['tradedir_nonnull_rate']}", f"- distinct_tradedir_values: {row['distinct_tradedir_values']}", f"- linked_edge_rate: {row['linked_edge_rate']}", f"- status: {row['status']}"])
+        lines.extend(
+            [
+                "",
+                f"## {row['date']}",
+                f"- tradedir_nonnull_rate: {row['tradedir_nonnull_rate']}",
+                f"- distinct_tradedir_values: {row['distinct_tradedir_values']}",
+                f"- linked_edge_rate: {row['linked_edge_rate']}",
+                f"- summary: {row['summary']}",
+                f"- status: {row['status']}",
+            ]
+        )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -220,7 +283,16 @@ def main() -> int:
     report_path = args.research_root / f"semantic_tradedir_{args.year}.md"
     logger = configure_logger("semantic_tradedir", args.log_root / f"semantic_tradedir_{args.year}.log")
     ensure_dir(output_dir)
-    rows = [investigate_date(date, stage_root=args.input_root, year=str(args.year), limit_rows=args.limit_rows) for date in selected_dates]
+    rows = [
+        investigate_date(
+            date,
+            stage_root=args.input_root,
+            year=str(args.year),
+            limit_rows=args.limit_rows,
+            logger=logger,
+        )
+        for date in selected_dates
+    ]
     summary_row = build_yearly_summary(str(args.year), rows)
     write_parquet(rows, daily_path)
     write_parquet([summary_row], yearly_path)

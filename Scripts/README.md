@@ -39,6 +39,7 @@
 - `semantic_contract.py`：semantic verification 的统一状态、输出 contract 与 admissibility 映射
 - `run_semantic_lifecycle.py`：`OrderId lifecycle` probe
 - `run_semantic_tradedir.py`：`TradeDir` probe
+- `run_semantic_tradedir_contrast.py`：`Dir=1/2` contrast probe，检验 linkage / tick-rule / time-bucket 差异
 - `run_semantic_ordertype.py`：`OrderType` probe
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
@@ -69,6 +70,7 @@
 - `python -m Scripts.run_semantic_time_anchor --print-plan`
 - `python -m Scripts.run_semantic_lifecycle --print-plan`
 - `python -m Scripts.run_semantic_tradedir --print-plan`
+- `python -m Scripts.run_semantic_tradedir_contrast --print-plan`
 - `python -m Scripts.run_semantic_ordertype --print-plan`
 - `python -m Scripts.run_semantic_session --print-plan`
 - `python -m Scripts.semantic_report --print-plan`

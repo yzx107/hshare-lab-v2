@@ -4,6 +4,21 @@
 
 ---
 
+## [Semantic-TradeDir-Contrast-v1] 2026-03-15 — 锁定 TradeDir 的 candidate directional signal 边界（Codex）
+
+### 变更概述
+- 新增 `run_semantic_tradedir_contrast.py`，对 `Dir=0/1/2` 的 linkage side 结构、`previous-trade price move`、`Time-derived bucket` mix 与 `Dir=0` 特殊性做轻量 contrast probe
+- 新增 `test_run_semantic_tradedir_contrast.py`，覆盖合成三日样本上的候选方向信号判定
+- 对 `2026-01-05 / 2026-02-24 / 2026-03-13` representative sample 跑通 contrast probe，并输出到 `/tmp/hshare_semantic_2026_tradedir_contrast_rep3_20260315_1700`
+- 明确 `TradeDir` 在 `2026` representative sample 上稳定为 `{0,1,2}`，`Dir=1 / 2` 的 linkage gap 近乎为 `0`，但 `previous-trade price move` 上存在稳定且方向一致的差异
+- 同步更新 `PROGRESS.md`、`TASKS.md`、`SEMANTIC_MATRIX.md`、`Research/Audits/research_admissibility_matrix.md` 与 repo 内审计结论
+
+### 影响
+- `TradeDir` 不再只是“值域稳定但未知”，而是进入 `candidate_directional_signal` 的正式项目口径
+- 当前结论仍然保守：`admissibility_impact = requires_manual_review`
+- `TradeDir` 仍不能直接映射为 confirmed aggressor side，也不能直接放行 signed-flow 研究模块
+- 当前最自然的下一步从“继续啃 TradeDir”切到 `OrderId lifecycle / OrderType` 对 admissibility matrix 的影响项
+
 ## [Semantic-Framework-v1] 2026-03-15 — 搭建 2026 semantic verification framework 骨架（Codex）
 
 ### 变更概述

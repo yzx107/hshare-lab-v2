@@ -4,7 +4,7 @@
 
 | Field | Candidate Meaning | Status | Blocking | Notes |
 |---|---|---|---|---|
-| `TradeDir` | aggressor side | `unknown` | `yes` | 未验证前不得用于 signed flow |
+| `TradeDir` | candidate directional code | `candidate_directional_signal` | `yes` | `2026` representative sample 上稳定为 `{0,1,2}`；`Dir=1/2` 在 `previous-trade price move` 上有稳定差异，但 signed-side mapping 仍未确认，保持 `requires_manual_review` |
 | `BrokerNo` | trade-side / reporting / one-side broker | `unknown` | `partial` | broker alpha 阻塞 |
 | `BidOrderID` | linked bid order id | `unknown` | `yes` | linkage research 阻塞 |
 | `AskOrderID` | linked ask order id | `unknown` | `yes` | linkage research 阻塞 |
@@ -21,3 +21,4 @@
 - `pass`: 可直接进入 verified layer
 - `fail`: 不得进入研究主线
 - `unknown`: 只能保留在 candidate cleaned，不得默认解释
+- `candidate_directional_signal`: 存在稳定的候选方向相关信号，但还不能直接映射为 confirmed signed side，默认仍需人工审查

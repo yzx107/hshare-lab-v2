@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：启动 `2025/2026` full-year DQA，并把研究可用性边界固化到后续研究入口
+- 当前最关心的下一步：固化 `2026` semantic boundary，并回到 `OrderId lifecycle / OrderType` semantic verification
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -36,6 +36,9 @@
 - `HKDarkPool` 当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
 - `HKDarkPool` 首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract
 - linkage 相关研究从现在开始拆年推进；`2026` 表内排序默认 `SeqNum` 优先
+- `2026` representative sample 上，`TradeDir` 已确认是稳定三值编码 `{0,1,2}`
+- `2026` representative sample 上，`TradeDir` 的 `Dir=1 / 2` 并非靠 linkage 结构区分，但在 `previous-trade price move` 上存在稳定且方向一致的差异
+- `2026 TradeDir` 当前可记为 `status = candidate_directional_signal`，但 `admissibility_impact` 仍应维持 `requires_manual_review`
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - `2026` 全量 `staging` 已完成：`96` 个 task、`0` failed，完成于 `2026-03-15 02:03 CST`
 - `2025` 全量 `staging` 已完成：`492` 个 task、`0` failed，完成于 `2026-03-15 06:31 CST`
@@ -46,8 +49,8 @@
 - 当前不是严格 waterfall 执行；`raw inventory` 尚未对真实全年落盘，但 `stage / DQA / semantic sample` 已并行推进
 - 因此文档中的 `R1 / R2` 仍显示未完成，不表示后续结论失效，而是表示这些基础项仍待回补
 - 当前真正的执行主线是：
-  - `2025/2026` full-year DQA
   - `2025/2026` semantic boundary 固化
+  - `OrderId lifecycle / OrderType` semantic verification
   - `research admissibility matrix` 收口
 
 ## Reboot Milestones
@@ -106,7 +109,7 @@
 
 ### R5: Semantic Verification
 - **目标**: 给关键字段打 `pass / fail / unknown`
-- [ ] `TradeDir`
+- [/] `TradeDir`（`2026` representative sample 已收口为 `candidate_directional_signal`，仍需 manual review）
 - [ ] `BrokerNo`
 - [ ] `BidOrderID / AskOrderID`
 - [ ] `OrderId`
@@ -133,7 +136,8 @@
 - `run_semantic_idspace.py` 已落地为语义探针，确认 `2025` representative sample 的 ID-level linkage 成立，但 order-side 时间锚仍缺失
 - `run_semantic_time_anchor.py` 已确认 `2025` 的 `Time` 可支持保守的 coarse temporal validation，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
 - `2025` 的下一步从“证明 ID 不直连”进一步收缩为：界定 `Time` 可支撑的粗粒度验证边界，以及哪些研究仍必须排除
-- `2025/2026` 全量 staging 已完成，下一步应切到 full-year `coverage / schema / linkage` DQA
+- `TradeDir` 的下一步不再是扩 full-year，而是把当前 `candidate_directional_signal + requires_manual_review` 结论固化到研究入口
+- `2025/2026` 全量 staging 已完成，后续应优先回到 `OrderId lifecycle / OrderType` 对 admissibility matrix 的直接影响项
 - `golden sample` 还没正式冻结
 
 ## 当前状态

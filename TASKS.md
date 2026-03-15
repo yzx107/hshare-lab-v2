@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：启动 `T-R04` 的 `2025/2026` full-year DQA，并把 `T-R05` 的研究可用性矩阵变成后续研究入口
+- 当前最关心的下一步：固化 `TradeDir` 候选方向信号结论，并回到 `OrderId lifecycle / OrderType` semantic verification
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -101,6 +101,9 @@
   - `OrderType`
 - **当前策略**:
   - `2026`：进入 linkage semantic verification
+  - `2026 TradeDir`：representative sample 已收口为稳定三值编码 `{0,1,2}`，`Dir=1 / 2` 在 linkage 结构上近乎无差，但在 `previous-trade price move` 上存在稳定、方向一致的差异
+  - `2026 TradeDir`：当前正式口径为 `status = candidate_directional_signal`，`admissibility_impact = requires_manual_review`
+  - `2026 TradeDir`：当前不继续做 full-year 扩量，先把保守研究边界固化到矩阵和研究入口
   - `2025`：`HKDarkPool inventory` 已完成；ID-level linkage 已确认成立；`Time` 在 representative sample 上为 `coarse_time_anchor_status = weak_pass`
   - `2025`：扩展到 `7` 个样本日后，`Time` 仍全部为 `coarse_time_anchor_status = weak_pass`
   - `2025`：下一步转“界定 `Time` 可支撑的粗粒度验证边界”，而不是继续假设 `SendTime` 级 lag 校验可行
