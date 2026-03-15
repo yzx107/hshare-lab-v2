@@ -60,7 +60,9 @@
 ## Provenance Guardrail
 
 - `OMD-C` provenance 可以作为上游来源事实
+- `Securities FullTick (SF)` compatible order-level coverage 可以作为产品能力层描述
 - `OMD-C` provenance 不能替代字段级 semantic verification
+- `/Research/References/vendor/CFBC_File_Specification_wef_20250630.pdf` 主要支撑 Historical Full Book / OMD family 产品边界，不默认等同当前 vendor `order/trade` CSV 的逐字段官方字典
 - 若官方文档中的 message 编号或字段定义与当前 CSV 列名不一致，应先记录为 numbering / export mismatch，再进入验证，不直接强映射
 
 ## Stage Layer 最小技术列
@@ -87,9 +89,86 @@ Current examples include:
 - `OrderType`
 - `Ext`
 - `Dir`
+- `Type`
 - `Level`
 - `VolumePre`
 - `BrokerNo`
+- `BidOrderID`
+- `AskOrderID`
+- `BidVolume`
+- `AskVolume`
 
 These fields may be retained in stage, referenced in DQA, and joined to external reference tables,
 but they still require semantic verification before being treated as research-safe truth.
+
+## Header Interpretation Rules
+
+Current headers should be interpreted in three buckets:
+
+- `official-family-compatible`
+- `vendor-defined`
+- `unverified-semantic`
+
+### Bucket A: Official-Family-Compatible
+
+These fields are compatible with HKEX `OMD-C` / `Securities FullTick` order-level content,
+but are still not treated as a `1:1` official field mapping in the current vendor CSV export.
+
+Current examples:
+
+- orders: `OrderId`, `Price`, `Volume`
+- trades: `Price`, `Volume`
+
+Safe usage:
+
+- linkage skeleton
+- lifecycle-shape analysis
+- null / range / validity checks
+- basic descriptive research
+
+Not safe to claim:
+
+- the current vendor header is already identical to the official HKEX binary/native field
+
+### Bucket B: Vendor-Defined
+
+These fields have explicit vendor-side labels or descriptions, but do not yet have sufficient
+official evidence for direct semantic promotion.
+
+Current examples:
+
+- orders: `SeqNum`, `OrderType`, `Ext`, `Time`, `Level`, `BrokerNo`, `VolumePre`
+- trades: `Time`, `Dir`, `Type`, `BrokerNo`, `TickID`, `BidOrderID`, `BidVolume`, `AskOrderID`, `AskVolume`
+
+Safe usage:
+
+- coverage checks
+- enum stability checks
+- reference joins
+- linkage feasibility checks
+- cross-field consistency checks
+
+Not safe to claim:
+
+- official semantic identity
+- official native schema confirmation
+- research-verified business meaning
+
+### Bucket C: Unverified-Semantic
+
+The following fields require explicit semantic verification before being used as business truth:
+
+- `OrderType`
+- `Ext`
+- `Dir`
+- `Type`
+- `Level`
+- `BrokerNo`
+- `VolumePre`
+- `BidOrderID`
+- `BidVolume`
+- `AskOrderID`
+- `AskVolume`
+
+These fields may appear stable or useful in DQA and exploratory analysis, but stability does not
+upgrade them into confirmed semantics.

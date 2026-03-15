@@ -1,0 +1,133 @@
+{
+  "version": "2026-03-15",
+  "purpose": "Machine-readable field policy for report writing, DQA wording, and research admissibility checks.",
+  "status_definitions": {
+    "official-family-compatible": "Compatible with HKEX OMD-C / Securities FullTick style order-level content, but not treated as a 1:1 official native field mapping.",
+    "vendor-defined": "Defined at the vendor export layer.",
+    "unverified-semantic": "Not safe to use as confirmed business truth without explicit semantic verification."
+  },
+  "orders": {
+    "SeqNum": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["sequence_checks", "gap_checks", "ordering_sanity"],
+      "forbidden_claims": ["official_native_sequence_mapping"]
+    },
+    "OrderId": {
+      "statuses": ["official-family-compatible"],
+      "allowed_uses": ["linkage", "lifecycle_shape", "same_order_consistency"],
+      "forbidden_claims": ["official_native_field_identity"]
+    },
+    "OrderType": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["enum_stability", "lifecycle_shape", "weak_consistency_checks"],
+      "forbidden_claims": ["official_event_semantics"]
+    },
+    "Ext": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["coverage", "enum_stats", "cross_field_consistency"],
+      "forbidden_claims": ["official_bitfield_mapping"]
+    },
+    "Time": {
+      "statuses": ["vendor-defined", "official-family-compatible"],
+      "allowed_uses": ["time_format_checks", "session_bucket_checks", "coarse_temporal_consistency"],
+      "forbidden_claims": ["official_native_time_identity"]
+    },
+    "Price": {
+      "statuses": ["official-family-compatible"],
+      "allowed_uses": ["range_checks", "distribution_checks", "basic_descriptive_research"],
+      "forbidden_claims": ["official_native_field_identity"]
+    },
+    "Volume": {
+      "statuses": ["official-family-compatible"],
+      "allowed_uses": ["range_checks", "distribution_checks", "basic_descriptive_research"],
+      "forbidden_claims": ["official_native_quantity_identity"]
+    },
+    "Level": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["enum_distribution", "null_pattern_checks", "stability_checks"],
+      "forbidden_claims": ["official_order_book_position_mapping", "verified_queue_semantics"]
+    },
+    "BrokerNo": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["reference_join_coverage", "ambiguity_checks", "descriptive_consistency"],
+      "forbidden_claims": ["official_brokerid_identity", "official_zero_code_semantics"]
+    },
+    "VolumePre": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["conditional_presence_checks", "modify_event_completeness"],
+      "forbidden_claims": ["official_native_field_identity", "verified_remaining_quantity_semantics"]
+    }
+  },
+  "trades": {
+    "Time": {
+      "statuses": ["vendor-defined", "official-family-compatible"],
+      "allowed_uses": ["time_format_checks", "session_bucket_checks", "coarse_temporal_consistency"],
+      "forbidden_claims": ["official_tradetime_identity"]
+    },
+    "Price": {
+      "statuses": ["official-family-compatible"],
+      "allowed_uses": ["range_checks", "distribution_checks", "basic_descriptive_research"],
+      "forbidden_claims": ["official_native_field_identity"]
+    },
+    "Volume": {
+      "statuses": ["official-family-compatible"],
+      "allowed_uses": ["range_checks", "distribution_checks", "basic_descriptive_research"],
+      "forbidden_claims": ["official_native_quantity_identity"]
+    },
+    "Dir": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["enum_stability", "descriptive_contrast", "candidate_directional_signal_analysis"],
+      "forbidden_claims": ["confirmed_aggressor_side", "signed_trade_truth"]
+    },
+    "Type": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["coverage", "enum_checks", "cooccurrence_checks"],
+      "forbidden_claims": ["official_trdtype_mapping"]
+    },
+    "BrokerNo": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["reference_join_coverage", "ambiguity_checks", "descriptive_consistency"],
+      "forbidden_claims": ["official_brokerid_identity"]
+    },
+    "TickID": {
+      "statuses": ["vendor-defined", "official-family-compatible"],
+      "allowed_uses": ["uniqueness_checks", "dedup_checks", "same_day_identifier_checks"],
+      "forbidden_claims": ["official_tradeid_identity"]
+    },
+    "BidOrderID": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks"],
+      "forbidden_claims": ["official_trade_native_field_identity"]
+    },
+    "BidVolume": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["linkage_consistency", "null_pattern_checks"],
+      "forbidden_claims": ["official_trade_native_field_identity"]
+    },
+    "AskOrderID": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks"],
+      "forbidden_claims": ["official_trade_native_field_identity"]
+    },
+    "AskVolume": {
+      "statuses": ["vendor-defined", "unverified-semantic"],
+      "allowed_uses": ["linkage_consistency", "null_pattern_checks"],
+      "forbidden_claims": ["official_trade_native_field_identity"]
+    }
+  },
+  "wording_preferences": {
+    "prefer": [
+      "compatible_with",
+      "vendor_defined",
+      "observed_stable_pattern",
+      "candidate_interpretation",
+      "linkage_feasibility"
+    ],
+    "avoid": [
+      "confirmed_official_mapping",
+      "verified_business_meaning",
+      "proven_aggressor_side",
+      "official_schema_identity"
+    ]
+  }
+}

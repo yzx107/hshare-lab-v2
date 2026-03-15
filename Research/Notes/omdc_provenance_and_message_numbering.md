@@ -13,6 +13,7 @@
 
 - 可以确认：当前数据上游来自 HKEX `OMD-C` 体系。
 - 可以保守推断：包含 `OrderId` 的逐笔新增 / 修改 / 删除内容，与 `Securities FullTick (SF)` 能力相符。
+- 可以确认：vendor `2026-01-01` notice 记录了导出目录从 `OrderAdd + OrderModifyDelete + TradeResumes` 调整为 `order + trade`。
 - 不能直接断言：当前 CSV / `candidate_cleaned` 文件就是官方 binary message 的 `1:1` 原样展开。
 - 不能直接断言：当前字段名已经等同于官方 message field 语义。
 
@@ -71,6 +72,23 @@
 - 当前 `BidOrderID` / `AskOrderID` 一定是官方 trade message 原生字段
 
 这些仍需通过 semantic verification 单独确认。
+
+## Vendor Export Boundary
+
+当前 vendor 文本材料可以支持：
+
+- vendor CSV 的目录结构变化
+- vendor CSV 的列名与 vendor 侧释义
+- vendor 对“完整委托和成交记录”的产品宣称
+
+但它们不能单独支持：
+
+- 当前 vendor CSV 已与 HKEX Historical Full Book `MC30-38` / `MC70-78` 文件同构
+- 当前 vendor 列名已与官方 binary field 一一对齐
+- vendor `Type` 已等于官方 `TrdType`
+- vendor `Level` 已等于官方 `OrderBookPosition`
+
+因此，vendor `ReadMe` / notice 应视为 export-layer contract，而不是官方字段语义终局依据。
 
 ## Practical Project Wording
 

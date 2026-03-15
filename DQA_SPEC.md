@@ -66,8 +66,10 @@ These references support:
 - securities reference / file-layout interpretation
 - source-contract drift interpretation
 - vendor-definition awareness
+- OMD-C family / FullTick-compatible provenance wording
 
 They do **not** automatically upgrade a field into semantic truth.
+In particular, they do **not** prove that the current vendor CSV is a `1:1` official HKEX message dump.
 
 ## 执行要求
 
@@ -76,3 +78,83 @@ They do **not** automatically upgrade a field into semantic truth.
 - 所有报告要可复现、可回溯
 - 使用 broker / vendor reference 时，报告中应显式标注 reference source
 - 对 vendor-documented fields，DQA 允许输出 `vendor-defined` 结论，但不得直接输出 `research-verified`
+- 对 `BidOrderID / AskOrderID -> OrderId`，DQA 允许输出 linkage feasibility / consistency，不得直接输出 official native field confirmation
+- 对 `BrokerNo` 与 broker reference 的映射，DQA 允许输出 mapping coverage / ambiguity，不得直接输出 official identity proof
+- 对 `Dir`、`Type`、`Level`、`VolumePre`、`Ext`、`OrderType`，DQA 允许输出枚举稳定性与 cross-field consistency，不得直接输出官方语义放行
+
+## Field-Level DQA Boundary
+
+### A. Official-Family-Compatible Fields
+
+Current examples:
+
+- orders: `OrderId`, `Price`, `Volume`
+- trades: `Price`, `Volume`
+
+DQA may report:
+
+- non-null rate
+- value range / invalid value rate
+- distribution drift
+- same-key consistency
+- cross-table compatibility
+
+DQA must not report:
+
+- current vendor header has been confirmed as a `1:1` official HKEX native field mapping
+
+### B. Vendor-Defined Fields
+
+Current examples:
+
+- orders: `SeqNum`, `OrderType`, `Ext`, `Time`, `Level`, `BrokerNo`, `VolumePre`
+- trades: `Time`, `Dir`, `Type`, `BrokerNo`, `TickID`, `BidOrderID`, `BidVolume`, `AskOrderID`, `AskVolume`
+
+DQA may report:
+
+- coverage
+- null pattern
+- enum stability
+- conditional presence
+- reference join coverage
+- linkage feasibility
+- cross-field consistency
+
+DQA must not report:
+
+- official field identity confirmed
+- business semantics confirmed
+- verified research-safe truth
+
+### C. Sensitive Unverified Semantics
+
+The following fields require extra caution in DQA wording:
+
+- `OrderType`
+- `Ext`
+- `Dir`
+- `Type`
+- `Level`
+- `BrokerNo`
+- `VolumePre`
+- `BidOrderID`
+- `BidVolume`
+- `AskOrderID`
+- `AskVolume`
+
+For these fields, DQA wording should prefer:
+
+- `stable`
+- `observed`
+- `vendor-defined`
+- `consistent with`
+- `compatible with`
+- `candidate`
+
+For these fields, DQA wording should avoid:
+
+- `confirmed`
+- `officially mapped`
+- `proven semantic`
+- `verified business meaning`
+- `safe for direct alpha use`
