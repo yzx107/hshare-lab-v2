@@ -27,6 +27,8 @@ Allowed read sources:
 
 - `candidate_cleaned`
 - `verified` (when available)
+- read-only reference tables and normalized vendor files under
+  `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References`
 
 This product is allowed to query rough stage parquet explicitly.
 It does not need to hide `candidate_cleaned` or pretend that only `verified` exists.
@@ -40,6 +42,20 @@ The source layer must remain explicit in every serious query workflow:
 `raw` is not a normal query source for this product.
 If queried at all, it should be treated as exceptional and clearly marked as raw evidence access rather than normal product behavior.
 
+Reference files are allowed read inputs for joins and lookup enrichment, for example:
+
+- broker / participant lookup
+- vendor field-definition lookup
+- source-contract notes
+
+But query outputs must not silently collapse:
+
+- `candidate_cleaned`
+- `verified`
+- `reference lookup`
+
+into one undifferentiated truth layer.
+
 ## Write Boundary
 
 This product is strictly read-only with respect to Lab-managed data.
@@ -50,6 +66,8 @@ Forbidden write targets:
 - `candidate_cleaned`
 - `dqa`
 - `verified`
+- `Research/References/vendor`
+- `Research/References/normalized`
 
 Allowed write targets:
 
@@ -73,6 +91,30 @@ Allowed write targets:
 - ID-linkage can be used
 - usable order-side time anchors are available
 - finer temporal and linkage studies are allowed, subject to semantic verification status
+
+## Vendor-Defined vs Research-Verified
+
+This product may expose fields that are:
+
+- present in stage parquet
+- documented in vendor references
+
+Examples include:
+
+- `BrokerNo`
+- `OrderType`
+- `Ext`
+- `Dir`
+- `Level`
+- `VolumePre`
+
+Those fields should be treated as:
+
+- `vendor-defined`
+
+unless and until Lab semantic verification promotes them further.
+
+The query layer must not present vendor-documented fields as already research-verified by default.
 
 ## Output Metadata
 

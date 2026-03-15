@@ -15,6 +15,22 @@
 
 `Stage layer = loss-minimizing typed projection of raw CSV into partitioned parquet, without semantic enrichment.`
 
+## Vendor References
+
+The following upstream reference files support source-contract interpretation only:
+
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/raw_vendor_notice_2026-01-01.txt`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/vendor/ReadMe.txt`
+- `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/ReadMe.utf8.txt`
+
+These files justify the raw layout split between:
+
+- `2025 -> OrderAdd / OrderModifyDelete / TradeResumes`
+- `2026 -> order / trade`
+
+They also document vendor-side field definitions, but they do **not** by themselves upgrade any field into
+research-verified semantics.
+
 ## 原始表映射
 
 ### 2025
@@ -68,7 +84,7 @@
 | `Volume` | `int64` | yes | 只做类型标准化 |
 | `Dir` | `int8` | no | 保留原始字段名，不重命名为解释性字段 |
 | `Type` | `string` | no | 保留原始字面值 |
-| `BrokerNo` | `string` | no | 保留前导零，不做角色解释 |
+| `BrokerNo` | `string` | no | 保留前导零；可与 broker reference join，但不默认放行研究语义 |
 | `BidOrderID` | `int64` | no | 不提前做 linkage |
 | `BidVolume` | `int64` | no | 保留原始字段 |
 | `AskOrderID` | `int64` | no | 不提前做 linkage |
@@ -83,14 +99,14 @@
 | `SendTime` | `timestamp[ns, UTC]` | no | 仅 2026 原始存在；2025 允许为空 |
 | `SeqNum` | `int64` | yes | 订单事件原始序号 |
 | `OrderId` | `int64` | yes | 保留原始字段名 |
-| `OrderType` | `int16` | yes | 保留原始枚举，不做语义解释 |
-| `Ext` | `string` | no | 保留前导零 |
+| `OrderType` | `int16` | yes | 保留原始枚举；vendor 定义已知，但未完成研究验证 |
+| `Ext` | `string` | no | 保留原始字面值；vendor 定义已知，但未完成研究验证 |
 | `Time` | `string` | yes | 标准化为零填充 `HHMMSS` 字符串 |
 | `Price` | `float64` | yes | 只做类型标准化 |
 | `Volume` | `int64` | yes | 只做类型标准化 |
-| `Level` | `int32` | no | 不解释为真实盘口深度 |
-| `BrokerNo` | `string` | no | 保留前导零，不做角色解释 |
-| `VolumePre` | `int64` | no | 不解释为 queue ahead |
+| `Level` | `int32` | no | vendor 定义已知，但不解释为已验证盘口深度 |
+| `BrokerNo` | `string` | no | 保留前导零；可与 broker reference join，但不默认放行研究语义 |
+| `VolumePre` | `int64` | no | vendor 定义已知，但不解释为已验证 queue ahead |
 
 ## 显式允许的标准化
 
@@ -99,14 +115,16 @@
 - 若原始存在 `SendTime`，则同时保留 `SendTimeRaw`
 - `SendTime` 目前按 vendor 提供的 epoch nanoseconds 解析为 `timestamp[ns, UTC]`，sample run 必须做 sanity check
 - 空值统一处理：`""`、`" "`、`"NULL"`、`"null"`、`"nan"`、`"NaN"` -> `null`
+- `BrokerNo` 可在 query / DQA 层 join broker reference，但 stage 本身不内嵌名称映射
 - 极明确坏行隔离：stage admission 必需列无法解析时，行不写入 stage parquet，并在 manifest 记录
 
 ## 明确禁止
 
 - 把 `Dir` 改名成 `aggressor_side`
-- 把 `OrderType` 解释成新增/撤单/改单
+- 把 `OrderType` 当成已验证研究语义，即使 vendor 文档给了原始枚举说明
+- 把 `Dir` 当成已验证 aggressor-side，即使 vendor 文档给了方向说明
 - 把 `Level` 解释成已验证盘口深度
-- 把 `VolumePre` 解释成 queue ahead
+- 把 `VolumePre` 解释成已验证 queue ahead
 - 回填 `BidOrderID/AskOrderID -> OrderId` linkage 结果
 - 生成任何研究因子或 alpha 特征
 

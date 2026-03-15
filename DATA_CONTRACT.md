@@ -14,6 +14,7 @@
   - 不覆盖
   - 不改写业务内容
   - 只补 manifest / metadata
+  - vendor 说明文件属于 supporting reference，不属于可改写业务数据
 
 ### Layer 1: Stage / Candidate Cleaned
 - **路径**: `/Volumes/Data/港股Tick数据/candidate_cleaned`
@@ -25,6 +26,7 @@
   - 只允许技术列与工程标准化
   - 不提前注入业务语义
   - 不直接作为研究事实源
+  - 可重建、可删除重跑、可版本化，但不得冒充 verified truth
 
 ### Layer 2: DQA
 - **路径**: `/Volumes/Data/港股Tick数据/dqa`
@@ -41,6 +43,10 @@
 ### Supporting Layers
 - **manifests**: `/Volumes/Data/港股Tick数据/manifests`
 - **logs**: `/Volumes/Data/港股Tick数据/logs`
+- **references**: `/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References`
+  - 保存 vendor notice、vendor readme、broker / participant reference
+  - 这些 reference 可支持 contract、query join 和 DQA 对照
+  - 但它们本身不自动放行字段为 research-verified semantics
 
 ## Repo Conventions
 
@@ -56,3 +62,25 @@
 - `row_num_in_file`（可选）
 
 这些列用于追溯、审计、分区和重跑，不代表字段语义已验证。
+
+## Vendor Definition Boundary
+
+If a field appears in vendor reference documents, its status becomes:
+
+- `vendor-defined`
+
+not:
+
+- `research-verified`
+
+Current examples include:
+
+- `OrderType`
+- `Ext`
+- `Dir`
+- `Level`
+- `VolumePre`
+- `BrokerNo`
+
+These fields may be retained in stage, referenced in DQA, and joined to external reference tables,
+but they still require semantic verification before being treated as research-safe truth.
