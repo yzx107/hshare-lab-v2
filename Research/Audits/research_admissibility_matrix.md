@@ -4,7 +4,7 @@
 - scope: `2025` vs `2026` linkage-related research admissibility
 - sources:
   - `2025`: `ID-linkage = pass`, `SendTime-level anchor = unavailable`, `Time-level coarse temporal validation = weak_pass`
-  - `2026`: `ID-linkage = pass`, `SendTime-level anchor = pass`, `Time-level grade = fine_ok`, `TradeDir contrast = candidate_directional_signal (manual review)`
+  - `2026`: `ID-linkage = pass`, `SendTime-level anchor = pass`, `Time-level grade = fine_ok`, `TradeDir contrast = candidate_directional_signal (manual review)`, `OrderType = weak_pass (allow_with_caveat)`
 
 ## Working Rule
 
@@ -26,15 +26,15 @@
 | `trade_dir_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` may use ID linkage + coarse temporal sanity only. |
 | `trade_dir_candidate_signal_profile` | yes | no | yes | `blocked` | `allowed_with_caveat` | `2026` may study `Dir=1/2` contrast as candidate directional signal, but not as confirmed signed side. |
 | `broker_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed` | Descriptive / weak semantic checks only on `2025`. |
-| `ordertype_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` should avoid fine path interpretations. |
+| `ordertype_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed_with_caveat` | `2026` representative sample supports weak consistency checks, but event semantics are still not confirmed. |
 | `coarse_lag_bucket` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` can use same-second / few-second buckets only. |
 | `post_trade_drift_coarse_window` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` may use coarse post-trade windows, not precise waiting times. |
 | `waiting_time_distribution` | yes | yes | no | `blocked` | `allowed` | Needs `SendTime`-level anchor. |
 | `precise_order_to_trade_lag` | yes | yes | no | `blocked` | `allowed` | `2025` cannot support precise lag measurement. |
 | `strict_ordering_sensitive_causality` | yes | yes | no | `blocked` | `allowed_with_caveat` | `2026` still depends on semantic verification of specific event logic. |
 | `queue_position_or_depletion` | yes | yes | no | `blocked` | `blocked` | Neither year has verified queue semantics yet. |
-| `execution_realism_or_fill_simulation` | yes | yes | no | `blocked` | `allowed_with_caveat` | `2026` still needs `OrderType` / lifecycle verification before use. |
-| `latency_like_metrics` | yes | yes | no | `blocked` | `allowed_with_caveat` | `2026` may proceed only after second-stage semantic verification. |
+| `execution_realism_or_fill_simulation` | yes | yes | no | `blocked` | `allowed_with_caveat` | `2026` now has `OrderType = weak_pass`, but still needs lifecycle verification and must avoid direct event-type inference. |
+| `latency_like_metrics` | yes | yes | no | `blocked` | `allowed_with_caveat` | `2026` now has `OrderType = weak_pass`, but lifecycle / event semantics still gate strict interpretation. |
 | `signed_flow_directional_factor` | yes | no | yes | `blocked` | `blocked` | `TradeDir` remains under manual review; signed-side mapping is not confirmed for either year. |
 
 ## Grade Mapping
@@ -57,4 +57,5 @@
   - `ID-linkage`: pass
   - `research_time_grade`: fine_ok
   - `TradeDir`: stable 3-value code `{0,1,2}` with `candidate_directional_signal`, but still `requires_manual_review`
+  - `OrderType`: stable 3-value code with `weak_pass`, but still `allow_with_caveat`
   - admissible for second-stage semantic verification and fine-grained timing studies, provided field-level semantics continue to pass validation

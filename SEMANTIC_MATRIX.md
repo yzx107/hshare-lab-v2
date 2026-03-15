@@ -9,7 +9,7 @@
 | `BidOrderID` | linked bid order id | `unknown` | `yes` | linkage research 阻塞 |
 | `AskOrderID` | linked ask order id | `unknown` | `yes` | linkage research 阻塞 |
 | `OrderId` | order identity key | `unknown` | `yes` | lifecycle / linkage 阻塞 |
-| `OrderType` | order event type | `unknown` | `partial` | state model 阻塞 |
+| `OrderType` | order event code | `weak_pass` | `partial` | `2026` representative sample 上稳定为 `3` 值编码，且同一 `OrderId` 多值轨迹占绝大多数；支持弱一致性检查，但 `event_semantics_inference` 仍阻塞 |
 | `Session` | session tag | `unknown` | `partial` | 研究切分依赖 |
 | `TickID` | trade identity / event key | `unknown` | `partial` | 候选唯一键待验证 |
 | `Level` | depth / level indicator | `unknown` | `yes` | 禁止直接用于 book depth |
@@ -20,5 +20,6 @@
 
 - `pass`: 可直接进入 verified layer
 - `fail`: 不得进入研究主线
+- `weak_pass`: 可支持弱一致性 / 轮廓研究，但不能直接放行强语义解释
 - `unknown`: 只能保留在 candidate cleaned，不得默认解释
 - `candidate_directional_signal`: 存在稳定的候选方向相关信号，但还不能直接映射为 confirmed signed side，默认仍需人工审查

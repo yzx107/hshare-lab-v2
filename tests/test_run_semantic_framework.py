@@ -12,6 +12,8 @@ import pyarrow.parquet as pq
 
 from Scripts.stage_contract import CONTRACTS
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def write_stage_parquet(path: Path, table_name: str, columns: dict[str, list[object]]) -> None:
     schema = CONTRACTS[table_name].arrow_schema
@@ -114,7 +116,7 @@ class SemanticFrameworkTests(unittest.TestCase):
                     "--log-root",
                     str(log_root),
                 ],
-                cwd="/private/tmp/hshare_semantic_2026_runner",
+                cwd=str(REPO_ROOT),
                 check=True,
             )
 

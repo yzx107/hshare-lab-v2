@@ -7,6 +7,8 @@ from pathlib import Path
 
 import polars as pl
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def write_parquet(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -50,7 +52,7 @@ class SemanticReportTests(unittest.TestCase):
                     "--research-root",
                     str(research_root),
                 ],
-                cwd="/private/tmp/hshare_semantic_2026_runner",
+                cwd=str(REPO_ROOT),
                 check=True,
             )
 

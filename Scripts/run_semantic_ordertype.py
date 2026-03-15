@@ -59,6 +59,14 @@ def safe_rate(numerator: int | float | None, denominator: int | float | None) ->
     return numerator / denominator
 
 
+def input_bytes(paths: list[str]) -> int:
+    return sum(Path(path).stat().st_size for path in paths)
+
+
+def has_column(frame: pl.LazyFrame, column_name: str) -> bool:
+    return column_name in frame.collect_schema().names()
+
+
 def format_top_values(frame: pl.DataFrame, *, value_column: str, count_column: str, limit: int = 5) -> str | None:
     if frame.is_empty():
         return None
@@ -76,25 +84,76 @@ def serialize_pattern_values(values: Any) -> str:
     return ",".join(str(value) for value in normalized) if normalized else ""
 
 
-def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows: int) -> dict[str, Any]:
+def investigate_date(
+    trade_date: str,
+    *,
+    stage_root: Path,
+    year: str,
+    limit_rows: int,
+    logger: Any | None = None,
+) -> dict[str, Any]:
     order_paths = [str(path) for path in sorted((stage_root / "orders" / f"date={trade_date}").glob("*.parquet"))]
-    orders = pl.scan_parquet(order_paths)
+    if logger is not None:
+        logger.info(
+            "OrderType %s: discovered %s order files (%s bytes)",
+            trade_date,
+            len(order_paths),
+            input_bytes(order_paths),
+        )
+
+    orders_raw = pl.scan_parquet(order_paths)
     if limit_rows > 0:
-        orders = orders.limit(limit_rows)
-    row_stats = orders.select([pl.len().cast(pl.Int64).alias("tested_rows"), pl.col("OrderType").is_not_null().sum().cast(pl.Int64).alias("nonnull_count"), pl.col("OrderType").drop_nulls().n_unique().alias("distinct_values")]).collect().to_dicts()[0]
+        orders_raw = orders_raw.limit(limit_rows)
+    schema_names = orders_raw.collect_schema().names()
+    if logger is not None:
+        logger.info("OrderType %s: order columns=%s", trade_date, ",".join(schema_names))
+    orders = orders_raw.select([column for column in ("OrderId", "OrderType") if column in schema_names])
+
+    row_stats = (
+        orders.select(
+            [
+                pl.len().cast(pl.Int64).alias("tested_rows"),
+                pl.col("OrderType").is_not_null().sum().cast(pl.Int64).alias("nonnull_count"),
+                pl.col("OrderType").drop_nulls().n_unique().alias("distinct_values"),
+            ]
+        )
+        .collect()
+        .to_dicts()[0]
+    )
     top_values = (
         orders.filter(pl.col("OrderType").is_not_null())
         .group_by("OrderType")
         .agg(pl.len().cast(pl.Int64).alias("row_count"))
         .sort(["row_count", "OrderType"], descending=[True, False])
+        .limit(5)
         .collect()
     )
     orderid_frame = (
         orders.filter(pl.col("OrderId").is_not_null() & (pl.col("OrderId") != 0))
         .group_by("OrderId")
-        .agg(pl.col("OrderType").drop_nulls().alias("ordertype_values"), pl.col("OrderType").drop_nulls().n_unique().alias("ordertype_count"))
-        .collect()
+        .agg(
+            [
+                pl.col("OrderType").drop_nulls().alias("ordertype_values"),
+                pl.col("OrderType").drop_nulls().n_unique().alias("ordertype_count"),
+            ]
+        )
     )
+    orderid_stats = (
+        orderid_frame.select(
+            [
+                pl.len().cast(pl.Int64).alias("distinct_orderids"),
+                (pl.col("ordertype_count") > 1).cast(pl.Int64).sum().alias("multi_count"),
+                (pl.col("ordertype_count") == 1).cast(pl.Int64).sum().alias("single_count"),
+            ]
+        )
+        .collect()
+        .to_dicts()[0]
+    )
+    if logger is not None:
+        logger.info(
+            "OrderType %s: built lazy per-OrderId aggregates; collecting compact pattern summary",
+            trade_date,
+        )
     pattern_rows = (
         orderid_frame.with_columns(
             pl.col("ordertype_values").map_elements(
@@ -105,15 +164,27 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         .group_by("transition_pattern")
         .agg(pl.len().cast(pl.Int64).alias("pattern_count"))
         .sort(["pattern_count", "transition_pattern"], descending=[True, False])
+        .limit(3)
+        .collect()
     )
-    multi_count = orderid_frame.filter(pl.col("ordertype_count") > 1).height
-    single_count = orderid_frame.filter(pl.col("ordertype_count") == 1).height
+    multi_count = int(orderid_stats["multi_count"] or 0)
+    single_count = int(orderid_stats["single_count"] or 0)
+    distinct_orderids = int(orderid_stats["distinct_orderids"] or 0)
     pattern_sample = format_top_values(pattern_rows, value_column="transition_pattern", count_column="pattern_count", limit=3)
     tested_rows = int(row_stats["tested_rows"] or 0)
     distinct_values = int(row_stats["distinct_values"] or 0)
     nonnull_count = int(row_stats["nonnull_count"] or 0)
     status = STATUS_NOT_APPLICABLE if tested_rows == 0 else STATUS_WEAK_PASS if distinct_values > 0 and multi_count > 0 else STATUS_UNKNOWN
     impact = map_semantic_result_to_admissibility(semantic_area=SEMANTIC_AREA_ORDERTYPE, status=status, blocking_level=BLOCKING_LEVEL_BLOCKING)
+    if logger is not None:
+        logger.info(
+            "OrderType %s summary: distinct_values=%s distinct_orderids=%s multi_count=%s pattern_count=%s",
+            trade_date,
+            distinct_values,
+            distinct_orderids,
+            multi_count,
+            pattern_rows.height,
+        )
     return build_daily_result(
         SEMANTIC_AREA_ORDERTYPE,
         date=trade_date,
@@ -135,8 +206,8 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         distinct_ordertype_values=distinct_values,
         single_ordertype_orderid_count=single_count,
         multi_ordertype_orderid_count=multi_count,
-        single_ordertype_orderid_rate=safe_rate(single_count, orderid_frame.height),
-        multi_ordertype_orderid_rate=safe_rate(multi_count, orderid_frame.height),
+        single_ordertype_orderid_rate=safe_rate(single_count, distinct_orderids),
+        multi_ordertype_orderid_rate=safe_rate(multi_count, distinct_orderids),
         top_ordertype_values=format_top_values(top_values, value_column="OrderType", count_column="row_count"),
         ordertype_transition_pattern_count=pattern_rows.height,
         ordertype_transition_pattern_sample=pattern_sample,
@@ -197,7 +268,16 @@ def main() -> int:
     report_path = args.research_root / f"semantic_ordertype_{args.year}.md"
     logger = configure_logger("semantic_ordertype", args.log_root / f"semantic_ordertype_{args.year}.log")
     ensure_dir(output_dir)
-    rows = [investigate_date(date, stage_root=args.input_root, year=str(args.year), limit_rows=args.limit_rows) for date in selected_dates]
+    rows = [
+        investigate_date(
+            date,
+            stage_root=args.input_root,
+            year=str(args.year),
+            limit_rows=args.limit_rows,
+            logger=logger,
+        )
+        for date in selected_dates
+    ]
     summary_row = build_yearly_summary(str(args.year), rows)
     write_parquet(rows, daily_path)
     write_parquet([summary_row], yearly_path)

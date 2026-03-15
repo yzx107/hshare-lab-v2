@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：固化 `2026` semantic boundary，并回到 `OrderId lifecycle / OrderType` semantic verification
+- 当前最关心的下一步：回到 `OrderId lifecycle` semantic verification，并继续收口 `2026` admissibility matrix
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -39,6 +39,10 @@
 - `2026` representative sample 上，`TradeDir` 已确认是稳定三值编码 `{0,1,2}`
 - `2026` representative sample 上，`TradeDir` 的 `Dir=1 / 2` 并非靠 linkage 结构区分，但在 `previous-trade price move` 上存在稳定且方向一致的差异
 - `2026 TradeDir` 当前可记为 `status = candidate_directional_signal`，但 `admissibility_impact` 仍应维持 `requires_manual_review`
+- `2026` representative sample 上，`OrderType` 已确认是稳定三值编码，`distinct_ordertype_values_union = 3`
+- `2026` representative sample 上，`OrderType` 的同一 `OrderId` 多值轨迹占绝大多数，`multi_ordertype_orderid_rate_avg = 0.9912119616165596`
+- `2026 OrderType` 当前可记为 `status = weak_pass`，`admissibility_impact = allow_with_caveat`
+- `2026 OrderType` 当前支持 `ordertype_weak_consistency_check / order_lifecycle_shape_by_event_count`，但仍不支持 `event_semantics_inference`
 - `build_stage_parquet.py` 已优化为 direct zip streaming + same-day single-pass bundle，减少整块 member 读入和重复 zip 扫描
 - `2026` 全量 `staging` 已完成：`96` 个 task、`0` failed，完成于 `2026-03-15 02:03 CST`
 - `2025` 全量 `staging` 已完成：`492` 个 task、`0` failed，完成于 `2026-03-15 06:31 CST`
@@ -50,7 +54,7 @@
 - 因此文档中的 `R1 / R2` 仍显示未完成，不表示后续结论失效，而是表示这些基础项仍待回补
 - 当前真正的执行主线是：
   - `2025/2026` semantic boundary 固化
-  - `OrderId lifecycle / OrderType` semantic verification
+  - `OrderId lifecycle` semantic verification
   - `research admissibility matrix` 收口
 
 ## Reboot Milestones
@@ -113,7 +117,7 @@
 - [ ] `BrokerNo`
 - [ ] `BidOrderID / AskOrderID`
 - [ ] `OrderId`
-- [ ] `OrderType`
+- [/] `OrderType`（`2026` representative sample 已收口为 `weak_pass + allow_with_caveat`）
 - [ ] `Level / VolumePre / Type`
 - **状态**: 🔄 sample-year 边界已建立（按年份拆开）
 
@@ -137,7 +141,8 @@
 - `run_semantic_time_anchor.py` 已确认 `2025` 的 `Time` 可支持保守的 coarse temporal validation，但仍不能替代 `SendTime` 做精细 lag / queue / latency 研究
 - `2025` 的下一步从“证明 ID 不直连”进一步收缩为：界定 `Time` 可支撑的粗粒度验证边界，以及哪些研究仍必须排除
 - `TradeDir` 的下一步不再是扩 full-year，而是把当前 `candidate_directional_signal + requires_manual_review` 结论固化到研究入口
-- `2025/2026` 全量 staging 已完成，后续应优先回到 `OrderId lifecycle / OrderType` 对 admissibility matrix 的直接影响项
+- `OrderType` 的下一步不再是扩 full-year，而是把当前 `weak_pass + allow_with_caveat` 结论固化到研究入口
+- `2025/2026` 全量 staging 已完成，后续应优先回到 `OrderId lifecycle` 对 admissibility matrix 的直接影响项
 - `golden sample` 还没正式冻结
 
 ## 当前状态

@@ -4,6 +4,20 @@
 
 ---
 
+## [Semantic-OrderType-v1] 2026-03-15 — 固化 OrderType representative evidence 与研究边界（Codex）
+
+### 变更概述
+- 更新 `run_semantic_ordertype.py`，补齐真实数据路径上的 compact summary、日志可见性与更稳妥的 `OrderId` 统计口径
+- 更新 `test_run_semantic_ordertype.py`，并同步 `test_run_semantic_framework.py`、`test_semantic_report.py` 的 workspace-root 调用路径
+- 对 `2026-01-05 / 2026-02-24 / 2026-03-13` representative sample 跑通 OrderType probe，并输出到 `/tmp/hshare_semantic_2026_ordertype_rep3_20260315_1633`
+- 明确 `OrderType` 在 `2026` representative sample 上稳定为 `3` 个值，且同一 `OrderId` 多值轨迹占绝大多数
+- 同步更新 `PROGRESS.md`、`TASKS.md`、`SEMANTIC_MATRIX.md`、`Research/Audits/research_admissibility_matrix.md` 与 repo 内审计结论
+
+### 影响
+- `OrderType` 不再只是“未知字段”，而是进入 `weak_pass + allow_with_caveat` 的正式项目口径
+- 当前结论支持 `ordertype_weak_consistency_check / order_lifecycle_shape_by_event_count`
+- 当前结论仍然保守：`event_semantics_inference` 继续阻塞，`execution_realism_or_fill_simulation` 仍需看 `Lifecycle`
+
 ## [Semantic-TradeDir-Contrast-v1] 2026-03-15 — 锁定 TradeDir 的 candidate directional signal 边界（Codex）
 
 ### 变更概述
