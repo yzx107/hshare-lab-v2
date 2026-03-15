@@ -64,6 +64,14 @@ class SemanticOrderTypeRunnerTests(unittest.TestCase):
             self.assertEqual(row["single_ordertype_orderid_count"], 1)
             self.assertIn("ordertype_transition_pattern_sample", frame.columns)
             self.assertIn(row["status"], SEMANTIC_STATUS_VALUES)
+            self.assertEqual(row["ordertype_nonnull_count"], 3)
+            self.assertEqual(row["ordertype_nonnull_rate"], 1.0)
+            self.assertEqual(row["distinct_ordertype_values"], 2)
+            self.assertEqual(row["single_ordertype_orderid_rate"], 0.5)
+            self.assertEqual(row["multi_ordertype_orderid_rate"], 0.5)
+            self.assertEqual(row["top_ordertype_values"], "1:2,2:1")
+            self.assertEqual(row["ordertype_transition_pattern_count"], 2)
+            self.assertEqual(row["ordertype_transition_pattern_sample"], "1:1,1,2:1")
 
 
 if __name__ == "__main__":

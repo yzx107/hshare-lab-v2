@@ -90,7 +90,9 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
     trade_paths = [str(path) for path in sorted((stage_root / "trades" / f"date={trade_date}").glob("*.parquet"))]
     orders = order_scan(order_paths, limit_rows)
     trades = trade_scan(trade_paths, limit_rows)
+    order_has_session = has_column(orders, "Session")
     trade_has_seqnum = has_column(trades, "SeqNum")
+    trade_has_session = has_column(trades, "Session")
 
     order_group = (
         orders.filter(pl.col("OrderId").is_not_null() & (pl.col("OrderId") != 0))
@@ -98,8 +100,15 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         .agg(
             [
                 pl.len().cast(pl.Int64).alias("order_event_count"),
-                pl.col("SeqNum").drop_nulls().count().alias("seqnum_present_count"),
+                pl.col("SeqNum").drop_nulls().count().alias("order_seqnum_present_count"),
+                pl.col("SeqNum").drop_nulls().first().is_not_null().cast(pl.Int64).alias("first_order_seqnum_present"),
+                pl.col("SeqNum").drop_nulls().last().is_not_null().cast(pl.Int64).alias("last_order_seqnum_present"),
                 pl.col("OrderType").drop_nulls().n_unique().alias("distinct_ordertype_values"),
+                (
+                    pl.col("Session").drop_nulls().n_unique()
+                    if order_has_session
+                    else pl.lit(None, dtype=pl.Int64)
+                ).alias("order_session_count"),
             ]
         )
     )
@@ -119,6 +128,13 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         [
             pl.len().cast(pl.Int64).alias("trade_match_count"),
             pl.col("trade_seqnum_present").sum().alias("trade_seqnum_present_count"),
+            pl.col("trade_seqnum_present").first().alias("first_trade_seqnum_present"),
+            pl.col("trade_seqnum_present").last().alias("last_trade_seqnum_present"),
+            (
+                pl.col("Session").drop_nulls().n_unique()
+                if trade_has_session
+                else pl.lit(None, dtype=pl.Int64)
+            ).alias("trade_session_count"),
         ]
     )
 
@@ -128,6 +144,8 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
             [
                 pl.col("trade_match_count").fill_null(0),
                 pl.col("trade_seqnum_present_count").fill_null(0),
+                pl.col("first_trade_seqnum_present").fill_null(0),
+                pl.col("last_trade_seqnum_present").fill_null(0),
             ]
         )
         .collect()
@@ -138,10 +156,27 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
     multi_event_orderids = lifecycle.filter(pl.col("order_event_count") > 1).height
     multiple_trades = lifecycle.filter(pl.col("trade_match_count") > 1).height
     single_trade = lifecycle.filter(pl.col("trade_match_count") == 1).height
+    cross_session_candidate_count = (
+        lifecycle.filter(
+            (
+                (pl.col("order_session_count").fill_null(0) > 1)
+                | (pl.col("trade_session_count").fill_null(0) > 1)
+            )
+            | (
+                (pl.col("order_session_count").fill_null(0) > 0)
+                & (pl.col("trade_session_count").fill_null(0) > 0)
+                & (pl.col("order_session_count") != pl.col("trade_session_count"))
+            )
+        ).height
+        if order_has_session or trade_has_session
+        else 0
+    )
     status = classify_status(distinct_orderids=distinct_orderids, linked_orderids=linked_orderids, multi_event_orderids=multi_event_orderids)
     impact = map_semantic_result_to_admissibility(semantic_area=SEMANTIC_AREA_LIFECYCLE, status=status, blocking_level=BLOCKING_LEVEL_BLOCKING)
-    seqnum_order_present = lifecycle.filter(pl.col("seqnum_present_count") > 0).height
-    seqnum_trade_present = lifecycle.filter(pl.col("trade_seqnum_present_count") > 0).height
+    first_order_seqnum_present = lifecycle.filter(pl.col("first_order_seqnum_present") > 0).height
+    last_order_seqnum_present = lifecycle.filter(pl.col("last_order_seqnum_present") > 0).height
+    first_trade_seqnum_present = lifecycle.filter(pl.col("first_trade_seqnum_present") > 0).height
+    last_trade_seqnum_present = lifecycle.filter(pl.col("last_trade_seqnum_present") > 0).height
     return build_daily_result(
         SEMANTIC_AREA_LIFECYCLE,
         date=trade_date,
@@ -167,12 +202,12 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         orders_with_multiple_trades_rate=safe_rate(multiple_trades, distinct_orderids),
         orders_with_single_trade=single_trade,
         orders_with_single_trade_rate=safe_rate(single_trade, distinct_orderids),
-        cross_session_candidate_count=0,
-        cross_session_candidate_rate=safe_rate(0, distinct_orderids),
-        first_order_seqnum_present_rate=safe_rate(seqnum_order_present, distinct_orderids),
-        last_order_seqnum_present_rate=safe_rate(seqnum_order_present, distinct_orderids),
-        first_trade_seqnum_present_rate=safe_rate(seqnum_trade_present, distinct_orderids),
-        last_trade_seqnum_present_rate=safe_rate(seqnum_trade_present, distinct_orderids),
+        cross_session_candidate_count=cross_session_candidate_count,
+        cross_session_candidate_rate=safe_rate(cross_session_candidate_count, distinct_orderids),
+        first_order_seqnum_present_rate=safe_rate(first_order_seqnum_present, distinct_orderids),
+        last_order_seqnum_present_rate=safe_rate(last_order_seqnum_present, distinct_orderids),
+        first_trade_seqnum_present_rate=safe_rate(first_trade_seqnum_present, distinct_orderids),
+        last_trade_seqnum_present_rate=safe_rate(last_trade_seqnum_present, distinct_orderids),
         lifecycle_status=status,
     )
 

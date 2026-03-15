@@ -59,24 +59,56 @@ def safe_rate(numerator: int | float | None, denominator: int | float | None) ->
     return numerator / denominator
 
 
+def format_top_values(frame: pl.DataFrame, *, value_column: str, count_column: str, limit: int = 5) -> str | None:
+    if frame.is_empty():
+        return None
+    rows = frame.head(limit).to_dicts()
+    return ",".join(f"{row[value_column]}:{row[count_column]}" for row in rows)
+
+
+def serialize_pattern_values(values: Any) -> str:
+    if values is None:
+        return ""
+    if hasattr(values, "to_list"):
+        normalized = values.to_list()
+    else:
+        normalized = list(values)
+    return ",".join(str(value) for value in normalized) if normalized else ""
+
+
 def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows: int) -> dict[str, Any]:
     order_paths = [str(path) for path in sorted((stage_root / "orders" / f"date={trade_date}").glob("*.parquet"))]
     orders = pl.scan_parquet(order_paths)
     if limit_rows > 0:
         orders = orders.limit(limit_rows)
     row_stats = orders.select([pl.len().cast(pl.Int64).alias("tested_rows"), pl.col("OrderType").is_not_null().sum().cast(pl.Int64).alias("nonnull_count"), pl.col("OrderType").drop_nulls().n_unique().alias("distinct_values")]).collect().to_dicts()[0]
+    top_values = (
+        orders.filter(pl.col("OrderType").is_not_null())
+        .group_by("OrderType")
+        .agg(pl.len().cast(pl.Int64).alias("row_count"))
+        .sort(["row_count", "OrderType"], descending=[True, False])
+        .collect()
+    )
     orderid_frame = (
         orders.filter(pl.col("OrderId").is_not_null() & (pl.col("OrderId") != 0))
         .group_by("OrderId")
         .agg(pl.col("OrderType").drop_nulls().alias("ordertype_values"), pl.col("OrderType").drop_nulls().n_unique().alias("ordertype_count"))
         .collect()
     )
+    pattern_rows = (
+        orderid_frame.with_columns(
+            pl.col("ordertype_values").map_elements(
+                serialize_pattern_values,
+                return_dtype=pl.String,
+            ).alias("transition_pattern")
+        )
+        .group_by("transition_pattern")
+        .agg(pl.len().cast(pl.Int64).alias("pattern_count"))
+        .sort(["pattern_count", "transition_pattern"], descending=[True, False])
+    )
     multi_count = orderid_frame.filter(pl.col("ordertype_count") > 1).height
     single_count = orderid_frame.filter(pl.col("ordertype_count") == 1).height
-    pattern_sample = None
-    if orderid_frame.height:
-        first = orderid_frame.to_dicts()[0]
-        pattern_sample = ",".join(str(value) for value in first["ordertype_values"]) if first["ordertype_values"] else None
+    pattern_sample = format_top_values(pattern_rows, value_column="transition_pattern", count_column="pattern_count", limit=3)
     tested_rows = int(row_stats["tested_rows"] or 0)
     distinct_values = int(row_stats["distinct_values"] or 0)
     nonnull_count = int(row_stats["nonnull_count"] or 0)
@@ -105,8 +137,8 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         multi_ordertype_orderid_count=multi_count,
         single_ordertype_orderid_rate=safe_rate(single_count, orderid_frame.height),
         multi_ordertype_orderid_rate=safe_rate(multi_count, orderid_frame.height),
-        top_ordertype_values=None,
-        ordertype_transition_pattern_count=multi_count,
+        top_ordertype_values=format_top_values(top_values, value_column="OrderType", count_column="row_count"),
+        ordertype_transition_pattern_count=pattern_rows.height,
         ordertype_transition_pattern_sample=pattern_sample,
         ordertype_status=status,
     )

@@ -86,6 +86,19 @@ class SemanticLifecycleRunnerTests(unittest.TestCase):
             self.assertIn("linked_orderid_rate", frame.columns)
             self.assertIn("lifecycle_status", frame.columns)
             self.assertIn(row["status"], SEMANTIC_STATUS_VALUES)
+            self.assertEqual(row["distinct_orderids"], 2)
+            self.assertEqual(row["linked_orderids"], 2)
+            self.assertEqual(row["linked_orderid_rate"], 1.0)
+            self.assertEqual(row["orders_with_multiple_events"], 1)
+            self.assertEqual(row["orders_with_multiple_events_rate"], 0.5)
+            self.assertEqual(row["orders_with_multiple_trades"], 0)
+            self.assertEqual(row["orders_with_single_trade"], 2)
+            self.assertEqual(row["orders_with_single_trade_rate"], 1.0)
+            self.assertEqual(row["cross_session_candidate_count"], 0)
+            self.assertEqual(row["first_order_seqnum_present_rate"], 1.0)
+            self.assertEqual(row["last_order_seqnum_present_rate"], 1.0)
+            self.assertEqual(row["first_trade_seqnum_present_rate"], 0.0)
+            self.assertEqual(row["last_trade_seqnum_present_rate"], 0.0)
 
 
 if __name__ == "__main__":

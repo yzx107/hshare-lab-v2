@@ -70,6 +70,18 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         trades = trades.limit(limit_rows)
     has_bid = has_column(trades, "BidOrderID")
     has_ask = has_column(trades, "AskOrderID")
+    linked_edge_expr = (
+        (
+            (pl.col("BidOrderID").is_not_null() & (pl.col("BidOrderID") != 0))
+            if has_bid
+            else pl.lit(False)
+        )
+        | (
+            (pl.col("AskOrderID").is_not_null() & (pl.col("AskOrderID") != 0))
+            if has_ask
+            else pl.lit(False)
+        )
+    )
     stats = trades.select(
         [
             pl.len().cast(pl.Int64).alias("tested_rows"),
@@ -79,21 +91,7 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
             (pl.col("Dir") < 0).sum().cast(pl.Int64).alias("neg_count"),
             (~pl.col("Dir").is_in([-1, 0, 1]) & pl.col("Dir").is_not_null()).sum().cast(pl.Int64).alias("other_count"),
             pl.col("Dir").drop_nulls().n_unique().alias("distinct_values"),
-            (
-                (
-                    (pl.col("BidOrderID").is_not_null() & (pl.col("BidOrderID") != 0))
-                    if has_bid
-                    else pl.lit(False)
-                )
-                | (
-                    (pl.col("AskOrderID").is_not_null() & (pl.col("AskOrderID") != 0))
-                    if has_ask
-                    else pl.lit(False)
-                )
-            )
-            .sum()
-            .cast(pl.Int64)
-            .alias("linked_edge_count"),
+            linked_edge_expr.sum().cast(pl.Int64).alias("linked_edge_count"),
         ]
     ).collect().to_dicts()[0]
     tested_rows = int(stats["tested_rows"] or 0)
@@ -102,6 +100,37 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
     status = STATUS_NOT_APPLICABLE if tested_rows == 0 else STATUS_WEAK_PASS if nonnull_count == tested_rows and 1 <= distinct_values <= 3 else STATUS_UNKNOWN
     impact = map_semantic_result_to_admissibility(semantic_area=SEMANTIC_AREA_TRADEDIR, status=status, blocking_level=BLOCKING_LEVEL_BLOCKING)
     linked_edge_count = int(stats["linked_edge_count"] or 0)
+    linked_consistency = (
+        trades.with_columns(
+            [
+                linked_edge_expr.alias("linked_edge"),
+                (
+                    ((pl.col("Dir") > 0) & (pl.col("AskOrderID").is_not_null()) & (pl.col("AskOrderID") != 0))
+                    | ((pl.col("Dir") < 0) & (pl.col("BidOrderID").is_not_null()) & (pl.col("BidOrderID") != 0))
+                ).alias("candidate_consistent")
+                if has_bid and has_ask
+                else pl.lit(None, dtype=pl.Boolean).alias("candidate_consistent"),
+            ]
+        )
+        .filter(pl.col("linked_edge"))
+        .select(
+            [
+                pl.len().cast(pl.Int64).alias("tested"),
+                pl.col("candidate_consistent").fill_null(False).cast(pl.Int64).sum().alias("passed"),
+            ]
+        )
+        .collect()
+        .to_dicts()[0]
+        if linked_edge_count > 0 and has_bid and has_ask
+        else {"tested": None, "passed": None}
+    )
+    linked_side_consistency_tested = linked_consistency["tested"]
+    linked_side_consistency_pass = linked_consistency["passed"]
+    linked_side_consistency_fail = (
+        int(linked_side_consistency_tested) - int(linked_side_consistency_pass)
+        if linked_side_consistency_tested is not None and linked_side_consistency_pass is not None
+        else None
+    )
     return build_daily_result(
         SEMANTIC_AREA_TRADEDIR,
         date=trade_date,
@@ -130,10 +159,10 @@ def investigate_date(trade_date: str, *, stage_root: Path, year: str, limit_rows
         tradedir_neg_rate=safe_rate(int(stats["neg_count"] or 0), tested_rows),
         linked_edge_count=linked_edge_count,
         linked_edge_rate=safe_rate(linked_edge_count, tested_rows),
-        linked_side_consistency_tested=None,
-        linked_side_consistency_pass=None,
-        linked_side_consistency_fail=None,
-        linked_side_consistency_rate=None,
+        linked_side_consistency_tested=linked_side_consistency_tested,
+        linked_side_consistency_pass=linked_side_consistency_pass,
+        linked_side_consistency_fail=linked_side_consistency_fail,
+        linked_side_consistency_rate=safe_rate(linked_side_consistency_pass, linked_side_consistency_tested),
         tradedir_status=status,
     )
 

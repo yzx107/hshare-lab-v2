@@ -34,6 +34,8 @@ class SemanticTradeDirRunnerTests(unittest.TestCase):
                 trades_dir / "trades.parquet",
                 {
                     "Dir": [1, -1, 0],
+                    "BidOrderID": [0, 2001, 0],
+                    "AskOrderID": [1001, 0, 0],
                     "TickID": [1, 2, 3],
                     "Time": ["093000", "093001", "093002"],
                 },
@@ -63,6 +65,17 @@ class SemanticTradeDirRunnerTests(unittest.TestCase):
             self.assertEqual(row["distinct_tradedir_values"], 3)
             self.assertIn("linked_side_consistency_rate", frame.columns)
             self.assertIn(row["status"], SEMANTIC_STATUS_VALUES)
+            self.assertEqual(row["tradedir_nonnull_count"], 3)
+            self.assertEqual(row["tradedir_nonnull_rate"], 1.0)
+            self.assertEqual(row["tradedir_zero_count"], 1)
+            self.assertEqual(row["tradedir_pos_count"], 1)
+            self.assertEqual(row["tradedir_neg_count"], 1)
+            self.assertEqual(row["linked_edge_count"], 2)
+            self.assertEqual(row["linked_edge_rate"], 2 / 3)
+            self.assertEqual(row["linked_side_consistency_tested"], 2)
+            self.assertEqual(row["linked_side_consistency_pass"], 2)
+            self.assertEqual(row["linked_side_consistency_fail"], 0)
+            self.assertEqual(row["linked_side_consistency_rate"], 1.0)
 
 
 if __name__ == "__main__":
