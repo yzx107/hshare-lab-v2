@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：推进 `OrderId lifecycle` semantic verification，并继续收口 full-year DQA 与 verified 实装
+- 当前最关心的下一步：从 `2026 OrderId lifecycle` light smoke 开始，推进 semantic verification 与 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -63,10 +63,10 @@
 - 当前不是严格 waterfall 执行；在 `stage / DQA / semantic sample` 并行推进的同时，`raw inventory` 已补齐到真实全年落盘
 - 因此后续主线不再受 `raw inventory` 或 `golden sample` 阻塞，当前真正未收口的是 verified 实装、remaining semantic boundary 与 full-year DQA 总结
 - 当前真正的执行主线是：
-  - 收口 `2025/2026` full-year linkage DQA 的年度总结
+  - `2026 OrderId lifecycle` light semantic verification
   - `2025/2026` semantic boundary 固化
-  - `OrderId lifecycle` semantic verification
   - `research admissibility matrix` 收口
+  - verified admission / implementation
 
 ## Reboot Milestones
 

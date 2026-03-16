@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：回到 `OrderId lifecycle` semantic verification，并继续收口 yearly summary 与 verified 实装
+- 当前最关心的下一步：从 `2026 OrderId lifecycle` light smoke 开始，再逐步扩到 sample-level semantic verification 与 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -106,6 +106,7 @@
   - `OrderType`
 - **当前策略**:
   - `2026`：进入 linkage semantic verification
+  - `2026 lifecycle`：下一步按 light 路线推进，先 `single-day smoke -> 1 sample -> 3 sample`
   - `2026 TradeDir`：representative sample 已收口为稳定三值编码 `{0,1,2}`，`Dir=1 / 2` 在 linkage 结构上近乎无差，但在 `previous-trade price move` 上存在稳定、方向一致的差异
   - `2026 TradeDir`：当前正式口径为 `status = candidate_directional_signal`，`admissibility_impact = requires_manual_review`
   - `2026 TradeDir`：当前不继续做 full-year 扩量，先把保守研究边界固化到矩阵和研究入口
