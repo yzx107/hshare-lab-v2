@@ -194,23 +194,39 @@ def present_id_expr(column_name: str) -> pl.Expr:
     return pl.col(column_name).is_not_null() & (pl.col(column_name) != 0)
 
 
+def needs_precise_time_path(task: LinkageTask) -> bool:
+    return task.year != "2025"
+
+
 def order_lookup_lazy(task: LinkageTask) -> pl.LazyFrame:
-    return (
-        pl.scan_parquet(list(task.order_paths))
-        .filter(present_id_expr("OrderId"))
-        .group_by("OrderId")
-        .agg(
+    orders = pl.scan_parquet(list(task.order_paths)).filter(present_id_expr("OrderId"))
+    if needs_precise_time_path(task):
+        return orders.group_by("OrderId").agg(
             [
                 pl.len().alias("order_event_count"),
                 pl.col("SendTime").is_not_null().any().alias("order_has_sendtime"),
                 pl.col("SendTime").min().alias("order_first_sendtime"),
             ]
         )
+    return (
+        orders.select(["OrderId"])
+        .group_by("OrderId")
+        .agg([pl.len().alias("order_event_count")])
+        .with_columns(
+            [
+                pl.lit(False).alias("order_has_sendtime"),
+                pl.lit(None, dtype=pl.Datetime("ns", "UTC")).alias("order_first_sendtime"),
+            ]
+        )
     )
 
 
 def compute_edge_metrics(task: LinkageTask) -> dict[str, Any]:
-    trades_scan = pl.scan_parquet(list(task.trade_paths))
+    precise_time_path = needs_precise_time_path(task)
+    trade_select = ["SendTime"] if precise_time_path else []
+    trades_scan = pl.scan_parquet(list(task.trade_paths)).select(
+        ["BidOrderID", "AskOrderID", *trade_select]
+    )
     order_lookup = order_lookup_lazy(task).select(
         [
             pl.col("OrderId").alias("trade_order_id"),
@@ -219,22 +235,18 @@ def compute_edge_metrics(task: LinkageTask) -> dict[str, Any]:
             pl.col("order_first_sendtime"),
         ]
     )
+    bid_cols = [pl.lit("bid").alias("side"), pl.col("BidOrderID").alias("trade_order_id")]
+    ask_cols = [pl.lit("ask").alias("side"), pl.col("AskOrderID").alias("trade_order_id")]
+    if precise_time_path:
+        bid_cols.append(pl.col("SendTime").alias("trade_sendtime"))
+        ask_cols.append(pl.col("SendTime").alias("trade_sendtime"))
+    else:
+        bid_cols.append(pl.lit(None, dtype=pl.Datetime("ns", "UTC")).alias("trade_sendtime"))
+        ask_cols.append(pl.lit(None, dtype=pl.Datetime("ns", "UTC")).alias("trade_sendtime"))
     edges = pl.concat(
         [
-            trades_scan.filter(present_id_expr("BidOrderID")).select(
-                [
-                    pl.lit("bid").alias("side"),
-                    pl.col("BidOrderID").alias("trade_order_id"),
-                    pl.col("SendTime").alias("trade_sendtime"),
-                ]
-            ),
-            trades_scan.filter(present_id_expr("AskOrderID")).select(
-                [
-                    pl.lit("ask").alias("side"),
-                    pl.col("AskOrderID").alias("trade_order_id"),
-                    pl.col("SendTime").alias("trade_sendtime"),
-                ]
-            ),
+            trades_scan.filter(present_id_expr("BidOrderID")).select(bid_cols),
+            trades_scan.filter(present_id_expr("AskOrderID")).select(ask_cols),
         ],
         how="vertical_relaxed",
     )
@@ -294,14 +306,13 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
         present_id_expr("BidOrderID") & present_id_expr("AskOrderID")
     )
     order_ids = order_lookup_lazy(task)
-    return (
+    joined = (
         trades_scan.join(
             order_ids.select(
                 [
                     pl.col("OrderId").alias("bid_lookup_order_id"),
                     pl.col("order_event_count").alias("bid_lookup_order_event_count"),
                     pl.col("order_has_sendtime").alias("bid_lookup_has_sendtime"),
-                    pl.col("order_first_sendtime").alias("bid_lookup_sendtime"),
                 ]
             ),
             left_on="BidOrderID",
@@ -314,14 +325,15 @@ def compute_both_sides_metrics(task: LinkageTask) -> dict[str, Any]:
                     pl.col("OrderId").alias("ask_lookup_order_id"),
                     pl.col("order_event_count").alias("ask_lookup_order_event_count"),
                     pl.col("order_has_sendtime").alias("ask_lookup_has_sendtime"),
-                    pl.col("order_first_sendtime").alias("ask_lookup_sendtime"),
                 ]
             ),
             left_on="AskOrderID",
             right_on="ask_lookup_order_id",
             how="left",
         )
-        .select(
+    )
+    return (
+        joined.select(
             [
                 pl.len().alias("both_sides_present_count"),
                 (

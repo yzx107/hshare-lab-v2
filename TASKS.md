@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：回到 `OrderId lifecycle` semantic verification，并继续收口 full-year DQA 与 verified 实装
+- 当前最关心的下一步：从 checkpoint 恢复并完成 `2025 full-year linkage DQA`，然后回到 `OrderId lifecycle` semantic verification 与 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -64,7 +64,7 @@
 
 ## T-R04: Mechanical DQA v1
 - **阶段**: Stage 1 数据清洗
-- **状态**: 🔄 sample-year 已完成，full-year 待跟进
+- **状态**: 🔄 `coverage/schema` 已完成，`2026 linkage` 已完成，`2025 linkage` 暂停于可恢复断点
 - **目标**: 建立研究导向 DQA 基线
 - **模块**:
   - Ingestion Completeness
@@ -81,6 +81,9 @@
   - `run_source_group_inventory.py` 已 materialize `audit_source_member_inventory / audit_source_daily_summary / audit_source_schema_fingerprints`
   - 四条 CLI 均具备 `checkpoint / heartbeat / summary / Research report`
   - `2025/2026` full-year `staging` 已完成，`2026` 完成 `96` task、`2025` 完成 `492` task，均为 `0 failed`
+  - `2025/2026` full-year `schema DQA` 已完成，均为 `0 failed`
+  - `2026` full-year `linkage DQA` 已完成：`48/48`、`0 failed`
+  - `2025` full-year `linkage DQA` 已推进到 `195 completed / 45 pending / 0 failed`，当前停在 checkpoint，可继续 `--resume`
   - representative sample 结论：`2026` 的 ID-level + time-usable linkage 三天全 `pass`
   - representative sample 结论：`2025` 的 ID-level linkage 三天均成立，但因 orders 侧 `SendTime` 全空而处于 `time_anchor_unavailable`
   - `2025` 中观测到的 `HKDarkPool` raw source group label 的 inventory 结论：`246` 个交易日中 `44` 天命中、`142` 个 member、`935,527` 行、单一 `7` 列 trade-like schema
@@ -88,6 +91,7 @@
   - 每个模块都有报告
   - 所有长任务都支持 checkpoint / resume
   - 所有长任务都有 heartbeat / progress / blockage hint
+  - 对新重任务遵守 `single-day smoke -> 1 sample -> 3 sample -> full-year` 阶梯加压
 
 ## T-R05: Semantic Verification Matrix
 - **阶段**: Stage 3 研究验证

@@ -17,6 +17,20 @@
 - 轻量报告检查器对 policy 越界更敏感，后续更容易在文档层发现风险
 - `verified` 与 `HKDarkPool` 的边界都更容易被后续线程直接复用
 
+## [DQA-Linkage-Full-Year-v1] 2026-03-16 — 收口 2026 全年 linkage 并优化 2025 轻路径（Codex）
+
+### 变更概述
+- 完成 `2026` full-year linkage DQA：`48/48` 个交易日、`0 failed`
+- 确认 `2026` 全年维持 `id_linkage=pass + time_anchor=pass + lag_linkage=pass`
+- 将 `run_dqa_linkage.py` 按年份特化：`2025` 不再硬跑 `2026` 那套精细 `SendTime / lag-aware` 重路径
+- 为 `2025` 新增轻路径测试，锁定 `ID-level pass + time-usable=0 + warn` 的预期行为
+- 启动 `2025` full-year linkage 后，在用户出门前按可恢复 checkpoint 暂停，当前停点为 `195 completed / 45 pending / 0 failed`
+
+### 影响
+- `2026 linkage` 已从 sample-year 结论推进到 full-year 结论，可作为后续 semantic / verified 的年度事实基线
+- `2025 linkage` 的全年运行成本下降到更符合其语义边界的水平，后续可直接 `--resume`
+- 长任务运行纪律进一步固定为：`visible + resumable + smoke -> 1 sample -> 3 sample -> full-year`
+
 ## [Docs-Raw-Inventory-And-Policy-Closeout-v1] 2026-03-15 — 拉平 raw inventory、reference、golden sample 与 verified 准入状态（Codex）
 
 ### 变更概述

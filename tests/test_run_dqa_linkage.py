@@ -20,6 +20,82 @@ def write_stage_parquet(path: Path, table_name: str, columns: dict[str, list[obj
 
 
 class DQALinkageTests(unittest.TestCase):
+    def test_order_lookup_shortcuts_precise_time_for_2025(self) -> None:
+        from Scripts.run_dqa_linkage import LinkageTask, compute_edge_metrics
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stage_root = root / "candidate_cleaned"
+            orders_dir = stage_root / "orders" / "date=2025-12-04"
+            trades_dir = stage_root / "trades" / "date=2025-12-04"
+            orders_dir.mkdir(parents=True)
+            trades_dir.mkdir(parents=True)
+
+            write_stage_parquet(
+                orders_dir / "20251204_orders.parquet",
+                "orders",
+                {
+                    "Channel": [None],
+                    "SendTimeRaw": [None],
+                    "SendTime": [None],
+                    "SeqNum": [1],
+                    "OrderId": [9001],
+                    "OrderType": [1],
+                    "Ext": [None],
+                    "Time": ["155959"],
+                    "Price": [10.0],
+                    "Volume": [100],
+                    "Level": [0],
+                    "BrokerNo": ["1"],
+                    "VolumePre": [0],
+                    "date": [date(2025, 12, 4)],
+                    "table_name": ["orders"],
+                    "source_file": ["OrderAdd/a.csv"],
+                    "ingest_ts": [datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc)],
+                    "row_num_in_file": [1],
+                },
+            )
+
+            write_stage_parquet(
+                trades_dir / "20251204_trades.parquet",
+                "trades",
+                {
+                    "SendTimeRaw": [None],
+                    "SendTime": [None],
+                    "SeqNum": [10],
+                    "TickID": [1],
+                    "Time": ["155959"],
+                    "Price": [10.0],
+                    "Volume": [100],
+                    "Dir": [1],
+                    "Type": ["X"],
+                    "BrokerNo": ["1"],
+                    "BidOrderID": [9001],
+                    "BidVolume": [100],
+                    "AskOrderID": [0],
+                    "AskVolume": [0],
+                    "date": [date(2025, 12, 4)],
+                    "table_name": ["trades"],
+                    "source_file": ["TradeResumes/a.csv"],
+                    "ingest_ts": [datetime(2026, 3, 14, 10, 0, tzinfo=timezone.utc)],
+                    "row_num_in_file": [1],
+                },
+            )
+
+            metrics = compute_edge_metrics(
+                LinkageTask(
+                    year="2025",
+                    date="2025-12-04",
+                    order_paths=(str(orders_dir / "20251204_orders.parquet"),),
+                    trade_paths=(str(trades_dir / "20251204_trades.parquet"),),
+                )
+            )
+            self.assertEqual(metrics["bid_present_count"], 1)
+            self.assertEqual(metrics["bid_id_equal_match_count"], 1)
+            self.assertEqual(metrics["bid_time_usable_match_count"], 0)
+            self.assertEqual(metrics["time_usable_match_count"], 0)
+            self.assertEqual(metrics["negative_time_lag_count"], 0)
+
     def test_run_dqa_linkage_materializes_daily_feasibility(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
