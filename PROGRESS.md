@@ -49,7 +49,7 @@
 - `2026` full-year `schema DQA` 已完成：`96/96`、`0 failed`
 - `2025` full-year `schema DQA` 已完成：`492/492`、`0 failed`
 - `2026` full-year `linkage DQA` 已完成：`48/48`、`0 failed`，全年均为 `id_linkage=pass + time_anchor=pass + lag_linkage=pass`
-- `2025` full-year `linkage DQA` 已按 `2025` 轻路径推进到断点：当前已完成 `195` 个交易日、`0 failed`，暂停于可恢复 checkpoint，待继续 `--resume`
+- `2025` full-year `linkage DQA` 已完成：`246/246`、`0 failed`，全年维持 `id_linkage=pass + time_anchor=unavailable + lag_not_verifiable`
 - `2025` full-year raw inventory 已完成：`250` files、`293,335,032,932` bytes、`247` distinct trade dates
 - `2026` full-year raw inventory 已完成：`52` files、`89,509,988,059` bytes、`49` distinct trade dates
 - `raw inventory` 当前可记为：`2025 = year_scanned`、`2026 = year_scanned`、combined status = `inventory_closed`
@@ -63,7 +63,7 @@
 - 当前不是严格 waterfall 执行；在 `stage / DQA / semantic sample` 并行推进的同时，`raw inventory` 已补齐到真实全年落盘
 - 因此后续主线不再受 `raw inventory` 或 `golden sample` 阻塞，当前真正未收口的是 verified 实装、remaining semantic boundary 与 full-year DQA 总结
 - 当前真正的执行主线是：
-  - 收口 `2025` full-year linkage DQA 与年度总结
+  - 收口 `2025/2026` full-year linkage DQA 的年度总结
   - `2025/2026` semantic boundary 固化
   - `OrderId lifecycle` semantic verification
   - `research admissibility matrix` 收口
@@ -121,7 +121,7 @@
 - [ ] Session Quality（sample 尚未单列固化）
 - [x] Cross-Table Feasibility
 - [ ] Broker Map Quality（尚未系统展开）
-- **状态**: 🔄 `coverage/schema` 已完成，`2026 linkage` 已完成，`2025 linkage` 进行到可恢复断点
+- **状态**: 🔄 `coverage/schema/linkage` 已完成，后续转向 yearly summary、semantic verification 与 verified 实装
 
 ### R5: Semantic Verification
 - **目标**: 给关键字段打 `pass / fail / unknown`
