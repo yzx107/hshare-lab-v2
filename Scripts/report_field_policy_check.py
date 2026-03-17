@@ -99,6 +99,8 @@ def build_summary(
     caveat_only_hits = detect_verified_bucket_mentions(text, verified_policy, "admit_with_explicit_caveat_only")
     reference_avoid_hits = detect_reference_avoid_labels(text, reference_policy)
     normalized = re.sub(r"\s+", " ", text).lower()
+    has_source_layer_phrase = "source_layer" in normalized or "candidate_cleaned" in normalized or "verified" in normalized
+    has_reference_label = any(label.replace("_", " ") in normalized for label in reference_policy["global_rules"]["prefer_labels"])
     summary = {
         "generated_at": iso_utc_now(),
         "report_path": str(report_path),
@@ -121,6 +123,8 @@ def build_summary(
         "mentioned_keep_out_fields": keep_out_hits,
         "mentioned_caveat_only_fields": caveat_only_hits,
         "has_provenance_phrase": "omd-c family" in normalized,
+        "has_source_layer_phrase": has_source_layer_phrase,
+        "has_reference_label": has_reference_label,
     }
     return summary
 
@@ -139,6 +143,8 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"- avoid_phrase_hits: {len(summary['avoid_phrase_hits'])}")
     print(f"- reference_avoid_label_hits: {len(summary['reference_avoid_label_hits'])}")
     print(f"- has_provenance_phrase: {summary['has_provenance_phrase']}")
+    print(f"- has_source_layer_phrase: {summary['has_source_layer_phrase']}")
+    print(f"- has_reference_label: {summary['has_reference_label']}")
     if summary["field_mentions"]:
         print("")
         print("## Mentioned Fields")

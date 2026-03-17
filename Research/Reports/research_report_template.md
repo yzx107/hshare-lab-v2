@@ -15,11 +15,18 @@ State the exact question being studied.
 
 - provenance_note:
   - Use the short or medium form from [provenance_note_template.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/provenance_note_template.md)
+- source_layer:
+  - `candidate_cleaned`
+  - `verified`
 - required_fields:
 - field_policy_check:
   - `official-family-compatible` fields:
   - `vendor-defined` fields:
   - `unverified-semantic` fields:
+- reference_policy_check:
+  - reference files used:
+  - output labels used:
+  - whether_any_reference_join_is_treated_as_semantic_proof:
 - admissibility_decision:
   - `allowed`
   - `allowed_with_caveat`
@@ -30,6 +37,7 @@ State the exact question being studied.
 
 - official_sources:
 - vendor_sources:
+- reference_sources:
 - local_notes:
 
 ## Method Boundary
@@ -45,6 +53,8 @@ State the exact question being studied.
 - symbols:
 - session_scope:
 - row_selection_rule:
+- reference_join_applied:
+- reference_join_type:
 
 ## Findings
 
@@ -94,3 +104,4 @@ Summarize the result without overstating field semantics.
 - [field_status_matrix_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/field_status_matrix_2026-03-15.md)
 - [vendor_hkex_doc_analysis_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/vendor_hkex_doc_analysis_2026-03-15.md)
 - [provenance_note_template.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/provenance_note_template.md)
+- [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)

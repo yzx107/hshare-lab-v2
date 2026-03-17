@@ -17,6 +17,7 @@ verified v1 的目标是：
 - `candidate_cleaned` stage partitions
 - [verified_field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_field_policy_2026-03-15.json)
 - [field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_policy_2026-03-15.json)
+- [reference_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/reference_policy_2026-03-15.json)
 - relevant semantic / DQA outcomes when available
 
 ## v1 Output Tables
@@ -79,9 +80,12 @@ Expected core columns:
 verified v1 rows or table-level manifests should carry:
 
 - `verified_policy_version`
+- `field_policy_version`
+- `reference_policy_version`
 - `source_layer = candidate_cleaned`
 - `admission_rule = admit_now_only`
 - `contains_caveat_fields = false`
+- `reference_join_applied = false`
 
 ## What v1 Explicitly Does Not Mean
 
@@ -95,6 +99,7 @@ In particular:
 
 - `SeqNum` and `Time` may appear in verified v1 as project-level structural fields
 - they still must not be described as confirmed official native fields
+- verified v1 should not silently embed broker / participant lookup labels as fact columns
 
 ## Recommended Build Sequence
 

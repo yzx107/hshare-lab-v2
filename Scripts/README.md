@@ -45,6 +45,7 @@
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
 - `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；当前仍以 design / plan 为主，不默认放行高风险语义字段
+- `report_field_policy_check.py`：检查研究 markdown 是否触碰 field / reference / verified admission policy 的敏感边界
 
 ## 当前研究边界
 
@@ -77,6 +78,7 @@
 - `python -m Scripts.run_semantic_framework --print-plan`
 - `python -m Scripts.run_source_group_inventory --year 2025 --group HKDarkPool`
 - `python -m Scripts.build_verified_layer --print-plan`
+- `python -m Scripts.report_field_policy_check --print-plan`
 
 ## build_raw_inventory 输出
 

@@ -130,3 +130,9 @@ Hshare_Lab_v2/
 3. 按已定义准入 policy 实装 verified layer
 4. 让 Query / report / verified 实现逐步接入新的 field/reference policy
 5. 对 `coverage / schema / linkage` 的 full-year DQA 结果做正式收口
+
+## Policy Navigation
+
+- [policy_navigation_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/policy_navigation_2026-03-17.md)
+- [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
+- [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)

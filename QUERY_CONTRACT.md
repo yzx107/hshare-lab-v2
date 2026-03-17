@@ -64,6 +64,14 @@ Recommended output labeling for reference-derived columns:
 - `source_contract_reference`
 - `provenance_reference`
 
+Recommended query result metadata for policy-sensitive outputs:
+
+- `field_policy_applied = true/false`
+- `reference_policy_applied = true/false`
+- `provenance_note_attached = true/false`
+- `contains_vendor_defined_fields = true/false`
+- `contains_unverified_semantic_fields = true/false`
+
 ## Write Boundary
 
 This product is strictly read-only with respect to Lab-managed data.
@@ -139,6 +147,13 @@ Query must not silently upgrade:
 
 fields into default high-confidence product truth.
 
+If Query deliberately exposes one of those fields for exploratory use, it should:
+
+- keep the field in a clearly caveated result or view
+- attach `source_layer = candidate_cleaned`
+- attach a provenance note or explicit caveat block
+- avoid labeling the output as fully `verified`
+
 ## Lab Operational Rules In Query
 
 `Hshare Query Layer` does not maintain an independent semantic rulebook.
@@ -197,6 +212,30 @@ Query outputs should carry the following metadata whenever practical:
 - `research_time_grade`
 - `query_generated_at`
 - `readonly = true`
+
+For reports or saved slices that mention policy-sensitive fields, Query should additionally carry:
+
+- `field_policy_version`
+- `reference_policy_version`
+- `verified_policy_version` when relevant
+- `provenance_note_attached`
+- `reference_join_applied`
+- `contains_keep_out_fields`
+
+## Report Boundary
+
+When Query work is written up as a markdown research note or lightweight report, it should:
+
+- reuse the Lab provenance note template
+- state whether the slice reads `candidate_cleaned` or `verified`
+- distinguish `reference_lookup` enrichment from semantic proof
+- explicitly list any `vendor-defined` or `unverified-semantic` fields used
+
+Query-facing reports should not rely on implication or shorthand to suggest that:
+
+- vendor field labels are already semantically passed
+- reference joins prove field identity
+- `keep_out_for_now` fields became safe merely because they were useful in a query
 
 ## Directory Boundary
 
