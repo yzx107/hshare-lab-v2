@@ -17,6 +17,21 @@
 - 轻量报告检查器对 policy 越界更敏感，后续更容易在文档层发现风险
 - `verified` 与 `HKDarkPool` 的边界都更容易被后续线程直接复用
 
+## [Query-Report-Policy-Landing-v1] 2026-03-17 — 收口 Query / report 桥接口径与只读 broker reference 边界（Codex）
+
+### 变更概述
+- 新增 `query_report_policy_bridge_2026-03-17.md`，把 field/reference/verified admission policy 压成 Query / report 可执行口径
+- 新增 `broker_reference_readonly_boundary_2026-03-17.md`，明确 `brokerno / SEHK_EP` 只能用于 lookup enrichment，不能自动升级成 verified truth
+- 新增 `policy_navigation_2026-03-17.md`，作为当前轻量规则体系导航入口
+- 更新 `QUERY_CONTRACT.md`、`research_report_template.md`、`verified_layer_v1_design.md`、`README.md` 与 `SEMANTIC_MATRIX.md`
+- 扩展 `report_field_policy_check.py`，补齐 `source_layer`、reference label 与 keep-out caveat 的基础检测
+- 新增 Query 最小使用示例，说明如何安全写 provenance note、`source_layer` 与 `reference_lookup`
+
+### 影响
+- Query / report 层现在更难把 `reference_lookup` 或 `keep_out_for_now` 字段误写成 truth claim
+- broker reference 的安全使用边界更明确，下游更容易复用而不污染 verified
+- 新线程现在可以从一页导航快速找到当前最 relevant 的 policy 文档
+
 ## [DQA-Linkage-Full-Year-v1] 2026-03-16 — 收口 2026 全年 linkage 并优化 2025 轻路径（Codex）
 
 ### 变更概述

@@ -56,6 +56,8 @@
 - `golden sample` policy、reference usage boundary、verified admission policy 已形成 repo 内正式文档
 - `stage schema / partition / candidate key` 已完成文档级定稿，当前 `stage contract` 已不再缺这三项基础定义
 - `golden sample` 日期清单已正式冻结，并已落盘为 repo manifest
+- `Query / report policy bridge`、`broker reference read-only boundary` 与统一 `policy navigation` 已形成 repo 内正式文档
+- `report_field_policy_check.py` 已进一步支持 `source_layer` / reference label / keep-out caveat 检查
 - 旧 `cleaned/temp` 数据层正在从新主线剥离
 
 ## 当前执行说明

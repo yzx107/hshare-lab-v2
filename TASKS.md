@@ -130,7 +130,16 @@
   - `verified_trades`
   - `verified_orders`
   - `verified_trade_order_linkage`
-  - `broker_reference`
+- `broker_reference`
+
+## T-R06A: Query / Report Policy Landing
+- **阶段**: Stage 4 工程加固
+- **状态**: ✅ 已完成
+- **目标**: 把 field/reference/verified admission policy 接到 Query、报告模板与轻量检查器
+- **验收门禁**:
+  - Query / report bridge 文档已落地
+  - broker reference read-only boundary 已落地
+  - report checker 已覆盖 provenance、reference label、keep-out caveat 基础检查
 
 ## T-R07: Legacy 风险隔离
 - **阶段**: Stage 4 工程加固

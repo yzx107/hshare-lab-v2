@@ -23,6 +23,7 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
                         "The upstream source is HKEX OMD-C family data.",
                         "source_layer: candidate_cleaned",
                         "This output uses reference lookup enrichment only.",
+                        "These are vendor-defined and not research-verified fields.",
                         "We study `OrderId`, `Dir`, `BrokerNo`, and `BidOrderID`.",
                         "This draft should avoid saying confirmed official mapping and verified by lookup table.",
                     ]
@@ -58,6 +59,8 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
             self.assertTrue(payload["has_provenance_phrase"])
             self.assertTrue(payload["has_source_layer_phrase"])
             self.assertTrue(payload["has_reference_label"])
+            self.assertTrue(payload["has_unverified_caveat"])
+            self.assertFalse(payload["missing_keep_out_caveat"])
 
 
 

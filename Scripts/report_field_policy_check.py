@@ -101,6 +101,12 @@ def build_summary(
     normalized = re.sub(r"\s+", " ", text).lower()
     has_source_layer_phrase = "source_layer" in normalized or "candidate_cleaned" in normalized or "verified" in normalized
     has_reference_label = any(label.replace("_", " ") in normalized for label in reference_policy["global_rules"]["prefer_labels"])
+    has_unverified_caveat = (
+        "vendor-defined" in normalized
+        or "vendor defined" in normalized
+        or "unverified" in normalized
+        or "not research-verified" in normalized
+    )
     summary = {
         "generated_at": iso_utc_now(),
         "report_path": str(report_path),
@@ -125,6 +131,8 @@ def build_summary(
         "has_provenance_phrase": "omd-c family" in normalized,
         "has_source_layer_phrase": has_source_layer_phrase,
         "has_reference_label": has_reference_label,
+        "has_unverified_caveat": has_unverified_caveat,
+        "missing_keep_out_caveat": bool(keep_out_hits) and not has_unverified_caveat,
     }
     return summary
 
@@ -145,6 +153,8 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"- has_provenance_phrase: {summary['has_provenance_phrase']}")
     print(f"- has_source_layer_phrase: {summary['has_source_layer_phrase']}")
     print(f"- has_reference_label: {summary['has_reference_label']}")
+    print(f"- has_unverified_caveat: {summary['has_unverified_caveat']}")
+    print(f"- missing_keep_out_caveat: {summary['missing_keep_out_caveat']}")
     if summary["field_mentions"]:
         print("")
         print("## Mentioned Fields")
@@ -171,6 +181,10 @@ def print_summary(summary: dict[str, Any]) -> None:
         print("## Reference Avoid Label Hits")
         for item in summary["reference_avoid_label_hits"]:
             print(f"- {item}")
+    if summary["missing_keep_out_caveat"]:
+        print("")
+        print("## Missing Keep-Out Caveat")
+        print("- keep-out fields are mentioned without an explicit vendor-defined / unverified caveat")
 
 
 def main() -> int:

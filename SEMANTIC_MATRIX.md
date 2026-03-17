@@ -2,6 +2,14 @@
 
 > 关键字段语义状态矩阵
 
+## Project-Level Boundary
+
+- `raw inventory = inventory_closed`
+- `golden sample = frozen`
+- `field / reference / verified admission policy` 已成文
+- `Query / report policy bridge` 已成文
+- 当前矩阵仍不得绕过 `semantic verification` 直接放行高风险字段
+
 | Field | Candidate Meaning | Status | Blocking | Notes |
 |---|---|---|---|---|
 | `TradeDir` | candidate directional code | `candidate_directional_signal` | `yes` | `2026` representative sample 上稳定为 `{0,1,2}`；`Dir=1/2` 在 `previous-trade price move` 上有稳定差异，但 signed-side mapping 仍未确认，保持 `requires_manual_review` |
@@ -23,3 +31,9 @@
 - `weak_pass`: 可支持弱一致性 / 轮廓研究，但不能直接放行强语义解释
 - `unknown`: 只能保留在 candidate cleaned，不得默认解释
 - `candidate_directional_signal`: 存在稳定的候选方向相关信号，但还不能直接映射为 confirmed signed side，默认仍需人工审查
+
+## Related Policy Docs
+
+- [verified_admission_boundary_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_boundary_2026-03-15.md)
+- [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
+- [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)
