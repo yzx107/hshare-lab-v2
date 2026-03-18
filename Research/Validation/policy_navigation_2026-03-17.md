@@ -26,6 +26,7 @@
 ## Verified / Admission
 
 - [verified_admission_boundary_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_boundary_2026-03-15.md)
+- [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
 - [verified_layer_v1_design.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_layer_v1_design.md)
 
 ## Inventory / Samples

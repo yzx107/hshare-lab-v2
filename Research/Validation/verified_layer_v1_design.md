@@ -18,7 +18,25 @@ verified v1 的目标是：
 - [verified_field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_field_policy_2026-03-15.json)
 - [field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_policy_2026-03-15.json)
 - [reference_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/reference_policy_2026-03-15.json)
+- [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
+- [semantic_lifecycle_2025.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/semantic_lifecycle_2025.md)
+- [semantic_lifecycle_2026.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/semantic_lifecycle_2026.md)
 - relevant semantic / DQA outcomes when available
+
+## Current Annual Basis
+
+- `2025`
+  - `linkage = pass`
+  - `research_time_grade = coarse_only`
+  - `full-year lifecycle = 246/246, 0 failed`
+- `2026`
+  - `linkage = pass`
+  - `time_anchor = pass`
+  - `research_time_grade = fine_ok`
+  - `full-year lifecycle = 48/48, 0 failed`
+
+这些结论足够支持 conservative verified v1 的 structural build，
+但还不足以自动放行 caveat fields 或 linkage-native semantics。
 
 ## v1 Output Tables
 
@@ -31,6 +49,19 @@ Not in v1 default scope:
 - `broker_reference`
 
 These need more semantic / reference handling and should not be forced into the first conservative release.
+
+## Immediate v1 Build Decision
+
+当前默认实现只应：
+
+- materialize `verified_orders`
+- materialize `verified_trades`
+
+当前默认不应：
+
+- materialize `verified_trade_order_linkage`
+- 把 `BidOrderID / AskOrderID` 直接提升到 verified 默认表
+- 把 `OrderType / Dir / BrokerNo / Level / VolumePre / Type / Ext` 混入 verified v1
 
 ## Field Selection Rule
 

@@ -18,22 +18,25 @@ def main() -> int:
             name="build_verified_layer",
             purpose="Materialize research-ready tables from mechanically safe and semantically verified fields.",
             responsibilities=[
-                "Read candidate_cleaned inputs and semantic verification decisions.",
-                "Build verified_trades, verified_orders, and linkage tables.",
-                "Keep manifest, DuckDB audit tables, and research reports in sync.",
+                "Read candidate_cleaned inputs and verified admission policy decisions.",
+                "Build verified_orders and verified_trades from admit-now fields only.",
+                "Keep manifest, policy versions, and excluded-field lists in sync.",
+                "Defer verified_trade_order_linkage and broker enrichment until a later phase.",
             ],
             inputs=[
                 "candidate_cleaned partitions.",
                 "Semantic verification matrix and DQA results.",
+                "Verified admission matrix and verified field policy.",
             ],
             outputs=[
                 "/Volumes/Data/港股Tick数据/verified",
                 "Research/Reports verified-layer summaries.",
+                "Verified manifest with year-level caveats and policy versions.",
             ],
         )
         return 0
 
-    print("Scaffold only. Use --print-plan until the verified-layer contract is finalized.")
+    print("Scaffold only. Use --print-plan until verified v1 admit-now implementation is started.")
     return 0
 
 
