@@ -11,6 +11,8 @@ __pycache__/
 logs/run/
 manifests/run/
 Research/tmp/
+Research/Notes/resume_full_2025_after_august_tail.json
+Research/Notes/stop_after_august_2025_lifecycle.json
 
 *.duckdb
 *.duckdb.wal
