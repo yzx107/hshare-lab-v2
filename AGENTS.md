@@ -19,6 +19,8 @@ Hshare Lab v2 是港股 tick / order / trade 研究基础设施重启版。
 - `raw` 不可变
 - cleaning 只做 mechanical transformation
 - 未验证字段不得默认解释
+- 性能优化只允许改进执行路径，不得降低 DQA / semantic 指标质量
+- 不得用抽样、弱代理或语义降配替代正式指标定义，除非 contract 明确放行
 - 长任务必须 `visible + resumable`
 - 长任务必须先通过 `single-day real-data smoke test`，再允许扩大到 representative sample 或 full run
 - 所有关键结论必须能追溯到 contract 和报告

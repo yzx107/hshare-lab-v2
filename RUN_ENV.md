@@ -44,6 +44,9 @@ This document records the operational environment for Hshare Lab v2 so collabora
   - resumable
   - traceable
   - observable
+- Performance work may optimize execution paths, task layout, and materialization strategy,
+  but may not reduce DQA / semantic metric quality or replace formal metrics with weaker proxies
+  unless the contract explicitly allows it.
 - New heavy pipelines should scale gradually:
   - single-day smoke
   - 1 sample

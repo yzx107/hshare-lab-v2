@@ -4,6 +4,23 @@
 
 ---
 
+## [Semantic-Lifecycle-Full-Year-v1] 2026-03-17 — 完成 2025/2026 full-year lifecycle 并工程化为可恢复任务器（Codex）
+
+### 变更概述
+- 将 `run_semantic_lifecycle.py` 从串行 sample probe 加固为日级 task runner，补齐 `workers / executor / checkpoint / heartbeat / resume`
+- 新增日级 grouped sidecar cache：`order_group.parquet` 与 `trade_links.parquet`
+- 补齐旧日志恢复与已完成日期承接逻辑，避免 tasker 改造后重跑已完成日期
+- 优化远程 SMB 场景下的小 I/O，减少 heartbeat / checkpoint / daily jsonl 的频繁写入
+- 更新 `test_run_semantic_lifecycle.py`，覆盖 cache 落盘与从旧日志/旧 daily 结果恢复
+- 完成 `2026` full-year lifecycle：`48/48`、`0 failed`
+- 完成 `2025` full-year lifecycle：`246/246`、`0 failed`
+
+### 影响
+- lifecycle 从“只能串行慢跑的 sample probe”升级为可见、可恢复、可并发扩展的 semantic runner
+- `2026 lifecycle` 已形成 `status=pass` 的全年结构基线，可直接服务后续 verified admission
+- `2025 lifecycle` 已形成 `pass / weak_pass` 为主的全年结构基线，并与 `coarse_only` 年度边界保持一致
+- 后续 lifecycle rerun 与 verified 接线将优先复用日级 cache，而不是回头重扫原始 grouped tables
+
 ## [Docs-Contract-And-Policy-Tools-v1] 2026-03-16 — 收口 stage contract 定义并扩展轻量 policy checker（Codex）
 
 ### 变更概述

@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：从 `2026 OrderId lifecycle` light smoke 开始，推进 semantic verification 与 verified 实装
+- 当前最关心的下一步：从 `verified admission / implementation` 开始，把 `2025/2026 lifecycle` 年度结论接入 verified layer
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前结论
@@ -50,6 +50,8 @@
 - `2025` full-year `schema DQA` 已完成：`492/492`、`0 failed`
 - `2026` full-year `linkage DQA` 已完成：`48/48`、`0 failed`，全年均为 `id_linkage=pass + time_anchor=pass + lag_linkage=pass`
 - `2025` full-year `linkage DQA` 已完成：`246/246`、`0 failed`，全年维持 `id_linkage=pass + time_anchor=unavailable + lag_not_verifiable`
+- `2026` full-year `semantic lifecycle` 已完成：`48/48`、`0 failed`，全年维持 `status=pass`，可作为 `fine_ok` 年度结构基线
+- `2025` full-year `semantic lifecycle` 已完成：`246/246`、`0 failed`，全年以 `pass / weak_pass` 为主，当前应视为 `coarse_only` 年度结构基线
 - `2025` full-year raw inventory 已完成：`250` files、`293,335,032,932` bytes、`247` distinct trade dates
 - `2026` full-year raw inventory 已完成：`52` files、`89,509,988,059` bytes、`49` distinct trade dates
 - `raw inventory` 当前可记为：`2025 = year_scanned`、`2026 = year_scanned`、combined status = `inventory_closed`
@@ -63,9 +65,9 @@
 ## 当前执行说明
 
 - 当前不是严格 waterfall 执行；在 `stage / DQA / semantic sample` 并行推进的同时，`raw inventory` 已补齐到真实全年落盘
-- 因此后续主线不再受 `raw inventory` 或 `golden sample` 阻塞，当前真正未收口的是 verified 实装、remaining semantic boundary 与 full-year DQA 总结
+- 因此后续主线不再受 `raw inventory`、`golden sample` 或 lifecycle full-year 阻塞，当前真正未收口的是 verified 实装、remaining semantic boundary 与年度结果接线
 - 当前真正的执行主线是：
-  - `2026 OrderId lifecycle` light semantic verification
+  - `2025/2026` lifecycle / linkage / OrderType 年度结论接入 admissibility matrix
   - `2025/2026` semantic boundary 固化
   - `research admissibility matrix` 收口
   - verified admission / implementation

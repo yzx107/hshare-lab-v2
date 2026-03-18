@@ -9,7 +9,7 @@
 - canonical repo: `/Users/yxin/AI_Workstation/Hshare_Lab_v2`
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
-- 当前最关心的下一步：从 `2026 OrderId lifecycle` light smoke 开始，再逐步扩到 sample-level semantic verification 与 verified 实装
+- 当前最关心的下一步：从 `verified admission / implementation` 开始，把 `2025/2026 lifecycle` 年度结论接入 verified 实装
 - 旧仓库不再修改，只保留为 `legacy evidence`
 
 ## 当前执行说明
@@ -105,8 +105,8 @@
   - `OrderId`
   - `OrderType`
 - **当前策略**:
-  - `2026`：进入 linkage semantic verification
-  - `2026 lifecycle`：下一步按 light 路线推进，先 `single-day smoke -> 1 sample -> 3 sample`
+  - `2026`：`linkage + lifecycle` full-year 已完成，进入 verified admission 接线
+  - `2026 lifecycle`：已完成 `48/48`、`0 failed`，当前年度口径为 `status=pass`
   - `2026 TradeDir`：representative sample 已收口为稳定三值编码 `{0,1,2}`，`Dir=1 / 2` 在 linkage 结构上近乎无差，但在 `previous-trade price move` 上存在稳定、方向一致的差异
   - `2026 TradeDir`：当前正式口径为 `status = candidate_directional_signal`，`admissibility_impact = requires_manual_review`
   - `2026 TradeDir`：当前不继续做 full-year 扩量，先把保守研究边界固化到矩阵和研究入口
@@ -117,6 +117,7 @@
   - `2025`：针对 `HKDarkPool` raw source group label 的 inventory 已完成；ID-level linkage 已确认成立；`Time` 在 representative sample 上为 `coarse_time_anchor_status = weak_pass`
   - `2025`：扩展到 `7` 个样本日后，`Time` 仍全部为 `coarse_time_anchor_status = weak_pass`
   - `2025`：下一步转“界定 `Time` 可支撑的粗粒度验证边界”，而不是继续假设 `SendTime` 级 lag 校验可行
+  - `2025 lifecycle`：已完成 `246/246`、`0 failed`，当前年度口径以 `pass / weak_pass` 为主，不上调为 fine-grained event semantics
   - `2025`：`research_time_grade = coarse_only`
   - `2026`：`research_time_grade = fine_ok`
   - linkage 相关研究从现在开始拆年，不混年推进
