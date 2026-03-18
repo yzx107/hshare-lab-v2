@@ -4,6 +4,22 @@
 
 ---
 
+## [Verified-Layer-Admit-Now-Builder-v1] 2026-03-18 — 落地 verified v1 的保守 admit-now materialization（Codex）
+
+### 变更概述
+- 将 `build_verified_layer.py` 从纯 scaffold 升级为可执行的 verified task runner
+- 当前只 materialize `verified_orders / verified_trades`
+- 读取 `verified_field_policy_2026-03-15.json`，只保留 `admit_now` 字段
+- 补齐 `workers / executor / checkpoint / heartbeat / resume`
+- 输出 verified partitions manifest、summary 和 research-facing markdown
+- 新增 `test_build_verified_layer.py`，覆盖 admit-now 列裁剪与 resume 跳过已完成分区
+- `build_verified_layer.py` 的热路径改为 lazy `sink_parquet` 直写，避免把整日 admit-now 结果先 collect 到内存
+
+### 影响
+- verified v1 已从“规则设计阶段”推进到“可保守 materialize”的实现阶段
+- 当前默认仍只放行 conservative structural fields，不把 linkage / broker / signed-side 语义混进 verified
+- 后续真正的 verified rollout 可先从单日 smoke 和小范围 year slice 开始，而不需要再从零搭入口
+
 ## [Semantic-Lifecycle-Full-Year-v1] 2026-03-17 — 完成 2025/2026 full-year lifecycle 并工程化为可恢复任务器（Codex）
 
 ### 变更概述
