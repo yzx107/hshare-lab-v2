@@ -5,6 +5,8 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import polars as pl
 
@@ -12,6 +14,8 @@ from Scripts.build_stage_parquet import (
     StageBundleTask,
     StageTask,
     inspect_source_inventory,
+    load_state,
+    main,
     process_stage_bundle,
     process_stage_task,
     read_active_bundle_progress,
@@ -318,6 +322,144 @@ class StageParquetTests(unittest.TestCase):
             self.assertEqual(mapped_groups["order"], ["orders"])
             self.assertEqual(mapped_groups["mystery"], [])
             self.assertEqual(unmapped_rows[0]["skip_reason"], "unmapped_source_group")
+
+    def test_load_state_rejects_new_dates_for_unfinished_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "checkpoint.json"
+            checkpoint_path.write_text(
+                json.dumps(
+                    {
+                        "year": "2026",
+                        "selected_table": "all",
+                        "selected_dates": ["2026-03-20"],
+                        "status": "running",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "unfinished run"):
+                load_state(
+                    checkpoint_path,
+                    SimpleNamespace(year="2026", table="all", workers=1, row_group_target=10),
+                    ["2026-03-21"],
+                )
+
+    def test_main_resume_appends_completed_stage_with_new_dates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            raw_root = root / "raw"
+            stage_root = root / "stage"
+            manifest_root = root / "manifests"
+            log_root = root / "logs"
+            year_dir = raw_root / "2026"
+            year_dir.mkdir(parents=True)
+
+            self.build_zip(
+                year_dir,
+                "20260320.zip",
+                {
+                    "order/00001.csv": (
+                        "Channel,SendTime,SeqNum,OrderId,OrderType,Ext,Time,Price,Volume,Level,BrokerNo,VolumePre\n"
+                        "30,1767576015546000000,35143,3027201,1,110,092015,54.000,1000,0,3436,0\n"
+                    ),
+                    "trade/00001.csv": (
+                        "SendTime,SeqNum,TickID,Time,Price,Volume,Dir,Type,BrokerNo,BidOrderID,BidVolume,AskOrderID,AskVolume\n"
+                        "1767576015543000000,35079,1,092015,53.900,500,0,U,0,0,0,0,0\n"
+                    ),
+                },
+            )
+
+            initial_argv = [
+                "build_stage_parquet.py",
+                "--year",
+                "2026",
+                "--raw-root",
+                str(raw_root),
+                "--output-root",
+                str(stage_root),
+                "--manifest-root",
+                str(manifest_root),
+                "--log-root",
+                str(log_root),
+                "--dates",
+                "2026-03-20",
+                "--workers",
+                "1",
+            ]
+            with patch("sys.argv", initial_argv):
+                self.assertEqual(main(), 0)
+
+            self.build_zip(
+                year_dir,
+                "20260321.zip",
+                {
+                    "order/00001.csv": (
+                        "Channel,SendTime,SeqNum,OrderId,OrderType,Ext,Time,Price,Volume,Level,BrokerNo,VolumePre\n"
+                        "30,1767577015546000000,35144,3027202,1,110,092115,54.100,1100,0,3437,0\n"
+                    ),
+                    "trade/00001.csv": (
+                        "SendTime,SeqNum,TickID,Time,Price,Volume,Dir,Type,BrokerNo,BidOrderID,BidVolume,AskOrderID,AskVolume\n"
+                        "1767577015543000000,35080,2,092115,54.000,600,0,U,0,0,0,0,0\n"
+                    ),
+                },
+            )
+
+            resume_argv = [
+                "build_stage_parquet.py",
+                "--year",
+                "2026",
+                "--raw-root",
+                str(raw_root),
+                "--output-root",
+                str(stage_root),
+                "--manifest-root",
+                str(manifest_root),
+                "--log-root",
+                str(log_root),
+                "--dates",
+                "2026-03-21",
+                "--workers",
+                "1",
+                "--resume",
+            ]
+            with patch("sys.argv", resume_argv):
+                self.assertEqual(main(), 0)
+
+            summary = json.loads(
+                (manifest_root / "stage_parquet_2026" / "summary.json").read_text(encoding="utf-8")
+            )
+            checkpoint = json.loads(
+                (manifest_root / "stage_parquet_2026" / "checkpoint.json").read_text(encoding="utf-8")
+            )
+            partitions_lines = (
+                manifest_root / "stage_parquet_2026" / "partitions.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            source_inventory_rows = [
+                json.loads(line)
+                for line in (manifest_root / "stage_parquet_2026" / "source_groups.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+                if line.strip()
+            ]
+
+            self.assertEqual(summary["status"], "completed")
+            self.assertEqual(summary["selected_dates"], ["2026-03-20", "2026-03-21"])
+            self.assertEqual(summary["completed_count"], 4)
+            self.assertEqual(summary["failed_count"], 0)
+            self.assertEqual(summary["pending_count"], 0)
+            self.assertEqual(checkpoint["source_inventory_dates"], ["2026-03-20", "2026-03-21"])
+            self.assertEqual(len(partitions_lines), 4)
+            self.assertEqual(
+                sorted({row["date"] for row in source_inventory_rows}),
+                ["2026-03-20", "2026-03-21"],
+            )
+            self.assertTrue(
+                (stage_root / "orders" / "date=2026-03-21" / "20260321_orders.parquet").exists()
+            )
+            self.assertTrue(
+                (stage_root / "trades" / "date=2026-03-21" / "20260321_trades.parquet").exists()
+            )
 
 
 if __name__ == "__main__":
