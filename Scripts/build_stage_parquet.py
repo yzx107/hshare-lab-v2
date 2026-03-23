@@ -32,6 +32,7 @@ from Scripts.stage_contract import CONTRACTS, NULL_TOKENS, StageColumn, StageTab
 DEFAULT_STAGE_ROOT = DEFAULT_DATA_ROOT / "candidate_cleaned"
 PROGRESS_EMIT_MEMBER_INTERVAL = 100
 PROGRESS_EMIT_SECONDS = 5.0
+APPENDABLE_CHECKPOINT_STATUSES = {"completed", "completed_with_failures"}
 
 
 @dataclass(frozen=True)
@@ -181,6 +182,10 @@ def canonical_date_key(value: str) -> str:
 
 def canonical_trade_date(date_key: str) -> str:
     return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
+
+
+def selected_table_names(table_arg: str) -> list[str]:
+    return ["orders", "trades"] if table_arg == "all" else [table_arg]
 
 
 def normalize_zip_member_name(name: str) -> str:
@@ -842,10 +847,11 @@ def process_stage_task(task: StageTask) -> dict[str, Any]:
 
 
 def initial_state(args: argparse.Namespace, selected_dates: list[str], tasks: list[StageTask]) -> dict[str, Any]:
+    normalized_selected_dates = sorted(set(selected_dates))
     return {
         "status": "running",
         "year": args.year,
-        "selected_dates": selected_dates,
+        "selected_dates": normalized_selected_dates,
         "selected_table": args.table,
         "started_at": iso_utc_now(),
         "updated_at": iso_utc_now(),
@@ -856,14 +862,20 @@ def initial_state(args: argparse.Namespace, selected_dates: list[str], tasks: li
         "completed_count": 0,
         "failed_count": 0,
         "pending_count": len(tasks),
+        "source_inventory_dates": [],
+        "total_task_count": len(normalized_selected_dates) * len(selected_table_names(args.table)),
         "executor_mode": "process",
         "active_bundle_progress": [],
     }
 
 
-def load_state(checkpoint_path: Path, args: argparse.Namespace, selected_dates: list[str]) -> dict[str, Any]:
+def load_state(
+    checkpoint_path: Path,
+    args: argparse.Namespace,
+    selected_dates: list[str],
+) -> tuple[dict[str, Any], list[str]]:
     if not checkpoint_path.exists():
-        return initial_state(args, selected_dates, [])
+        return initial_state(args, selected_dates, []), []
 
     state = json.loads(checkpoint_path.read_text(encoding="utf-8"))
     if state.get("year") != args.year:
@@ -872,11 +884,27 @@ def load_state(checkpoint_path: Path, args: argparse.Namespace, selected_dates: 
         raise ValueError(
             f"Checkpoint table mismatch: expected {args.table}, found {state.get('selected_table')}"
         )
-    if state.get("selected_dates") != selected_dates:
-        raise ValueError("Checkpoint selected dates mismatch; rerun without --resume or use same date set.")
+    previous_selected_dates = sorted(set(state.get("selected_dates", [])))
+    requested_selected_dates = sorted(set(selected_dates))
+    if previous_selected_dates != requested_selected_dates:
+        if state.get("status") not in APPENDABLE_CHECKPOINT_STATUSES:
+            raise ValueError(
+                "Checkpoint selected dates mismatch for an unfinished run; "
+                "rerun with the same date set or finish the existing selection first."
+            )
+        state["selected_dates"] = sorted(set(previous_selected_dates) | set(requested_selected_dates))
+    else:
+        state["selected_dates"] = requested_selected_dates
+
+    state["workers"] = args.workers
+    state["row_group_target"] = args.row_group_target
+    state["source_inventory_dates"] = sorted(
+        set(state.get("source_inventory_dates", previous_selected_dates))
+    )
+    state["total_task_count"] = len(state["selected_dates"]) * len(selected_table_names(args.table))
     state["status"] = "running"
     state["updated_at"] = iso_utc_now()
-    return state
+    return state, previous_selected_dates
 
 
 def write_checkpoint(checkpoint_path: Path, heartbeat_path: Path, state: dict[str, Any]) -> None:
@@ -893,12 +921,15 @@ def write_checkpoint(checkpoint_path: Path, heartbeat_path: Path, state: dict[st
     write_json(heartbeat_path, heartbeat)
 
 
-def parse_selected_dates(args: argparse.Namespace, year_dir: Path) -> list[tuple[str, Path]]:
+def discover_zip_paths(year_dir: Path) -> dict[str, Path]:
     zip_paths = sorted(year_dir.glob("*.zip"))
-    if not zip_paths:
-        return []
+    return {canonical_date_key(path.stem): path for path in zip_paths}
 
-    by_date = {canonical_date_key(path.stem): path for path in zip_paths}
+
+def parse_selected_dates(args: argparse.Namespace, year_dir: Path) -> list[tuple[str, Path]]:
+    by_date = discover_zip_paths(year_dir)
+    if not by_date:
+        return []
 
     if args.dates:
         selected_keys = [canonical_date_key(token) for token in args.dates.split(",") if token.strip()]
@@ -908,6 +939,29 @@ def parse_selected_dates(args: argparse.Namespace, year_dir: Path) -> list[tuple
             selected_keys = selected_keys[-args.max_days :] if args.latest_days else selected_keys[: args.max_days]
 
     return [(key, by_date[key]) for key in selected_keys if key in by_date]
+
+
+def selected_date_paths_from_trade_dates(
+    trade_dates: list[str],
+    *,
+    by_date_key: dict[str, Path],
+) -> list[tuple[str, Path]]:
+    selected_date_paths: list[tuple[str, Path]] = []
+    missing_trade_dates: list[str] = []
+    for trade_date in sorted(set(trade_dates)):
+        date_key = canonical_date_key(trade_date)
+        zip_path = by_date_key.get(date_key)
+        if zip_path is None:
+            missing_trade_dates.append(trade_date)
+            continue
+        selected_date_paths.append((date_key, zip_path))
+
+    if missing_trade_dates:
+        raise ValueError(
+            "Missing raw zip archives for checkpoint dates: " + ", ".join(sorted(missing_trade_dates))
+        )
+
+    return selected_date_paths
 
 
 def build_tasks(
@@ -994,6 +1048,14 @@ def build_summary(state: dict[str, Any], manifest_dir: Path) -> dict[str, Any]:
     }
 
 
+def refresh_state_counters(state: dict[str, Any], completed_task_keys: set[str]) -> None:
+    state["completed_task_keys"] = sorted(completed_task_keys)
+    state["completed_count"] = len(completed_task_keys)
+    state["failed_count"] = len(state["failed_tasks"])
+    total_task_count = int(state.get("total_task_count", 0))
+    state["pending_count"] = max(0, total_task_count - state["completed_count"] - state["failed_count"])
+
+
 def reset_manifest_files(paths: list[Path]) -> None:
     for path in paths:
         if path.exists():
@@ -1032,12 +1094,13 @@ def main() -> int:
         logger.error("Raw year directory does not exist: %s", year_dir)
         return 1
 
+    available_date_paths = discover_zip_paths(year_dir)
     selected_date_paths = parse_selected_dates(args, year_dir)
     if not selected_date_paths:
         logger.error("No zip archives matched the requested date selection.")
         return 1
 
-    selected_dates = [canonical_trade_date(key) for key, _ in selected_date_paths]
+    requested_selected_dates = [canonical_trade_date(key) for key, _ in selected_date_paths]
     checkpoint_path = manifest_dir / "checkpoint.json"
     heartbeat_path = manifest_dir / "heartbeat.json"
     partitions_manifest_path = manifest_dir / "partitions.jsonl"
@@ -1069,22 +1132,53 @@ def main() -> int:
         )
         return 1
 
-    state = (
-        load_state(checkpoint_path, args, selected_dates)
-        if args.resume
-        else initial_state(args, selected_dates, [])
-    )
-    completed_task_keys = set(state.get("completed_task_keys", []))
-    selected_tables = ["orders", "trades"] if args.table == "all" else [args.table]
+    previous_selected_dates: list[str] = []
+    try:
+        if args.resume:
+            state, previous_selected_dates = load_state(checkpoint_path, args, requested_selected_dates)
+            selected_date_paths = selected_date_paths_from_trade_dates(
+                state["selected_dates"],
+                by_date_key=available_date_paths,
+            )
+        else:
+            selected_date_paths = selected_date_paths_from_trade_dates(
+                requested_selected_dates,
+                by_date_key=available_date_paths,
+            )
+            state = initial_state(args, requested_selected_dates, [])
+    except ValueError as exc:
+        logger.error("%s", exc)
+        return 1
 
-    if not args.resume or not source_groups_path.exists():
-        for date_key, zip_path in selected_date_paths:
-            trade_date = canonical_trade_date(date_key)
-            group_rows, unmapped_rows = inspect_source_inventory(str(args.year), trade_date, zip_path)
-            for row in group_rows:
-                append_jsonl(source_groups_path, row)
-            for row in unmapped_rows:
-                append_jsonl(unmapped_members_path, row)
+    completed_task_keys = set(state.get("completed_task_keys", []))
+    selected_tables = selected_table_names(args.table)
+
+    if not args.resume:
+        inventory_date_paths = selected_date_paths
+        known_source_inventory_dates: set[str] = set()
+    else:
+        known_source_inventory_dates = set(state.get("source_inventory_dates", previous_selected_dates))
+        if not source_groups_path.exists() or not unmapped_members_path.exists():
+            reset_manifest_files([source_groups_path, unmapped_members_path])
+            inventory_date_paths = selected_date_paths
+            known_source_inventory_dates.clear()
+        else:
+            inventory_date_paths = [
+                (date_key, zip_path)
+                for date_key, zip_path in selected_date_paths
+                if canonical_trade_date(date_key) not in known_source_inventory_dates
+            ]
+
+    for date_key, zip_path in inventory_date_paths:
+        trade_date = canonical_trade_date(date_key)
+        group_rows, unmapped_rows = inspect_source_inventory(str(args.year), trade_date, zip_path)
+        for row in group_rows:
+            append_jsonl(source_groups_path, row)
+        for row in unmapped_rows:
+            append_jsonl(unmapped_members_path, row)
+        known_source_inventory_dates.add(trade_date)
+
+    state["source_inventory_dates"] = sorted(known_source_inventory_dates)
 
     tasks, conflicts = build_tasks(
         year=str(args.year),
@@ -1103,15 +1197,24 @@ def main() -> int:
         )
         return 1
 
-    state["pending_count"] = len(tasks)
+    scheduled_task_keys = {task.task_key for task in tasks}
+    if scheduled_task_keys:
+        state["failed_tasks"] = {
+            task_key: error
+            for task_key, error in state.get("failed_tasks", {}).items()
+            if task_key not in scheduled_task_keys
+        }
+
     state["active_bundle_progress"] = []
+    refresh_state_counters(state, completed_task_keys)
     write_checkpoint(checkpoint_path, heartbeat_path, state)
 
     if not tasks:
-        state["status"] = "completed"
+        state["status"] = "completed" if not state["failed_tasks"] else "completed_with_failures"
+        write_checkpoint(checkpoint_path, heartbeat_path, state)
         write_json(summary_path, build_summary(state, manifest_dir))
         logger.info("All selected stage tasks are already complete.")
-        return 0
+        return 0 if not state["failed_tasks"] else 1
 
     bundles = build_task_bundles(tasks, progress_dir=progress_dir)
     logger.info(
@@ -1153,6 +1256,7 @@ def main() -> int:
                     bundle_result = future.result()
                     for result in bundle_result["results"]:
                         completed_task_keys.add(result["task_key"])
+                        state["failed_tasks"].pop(result["task_key"], None)
                         append_jsonl(partitions_manifest_path, result)
                         logger.info(
                             "Stage task %s finished: status=%s raw_rows=%s rows=%s rejected=%s failed_members=%s",
@@ -1184,10 +1288,7 @@ def main() -> int:
                         )
                         logger.error("Stage task %s failed: %s", task.task_key, exc)
                 finally:
-                    state["completed_task_keys"] = sorted(completed_task_keys)
-                    state["completed_count"] = len(completed_task_keys)
-                    state["failed_count"] = len(state["failed_tasks"])
-                    state["pending_count"] = max(0, len(tasks) - state["completed_count"] - state["failed_count"])
+                    refresh_state_counters(state, completed_task_keys)
                     state["active_bundle_progress"] = read_active_bundle_progress(progress_dir)
                     write_checkpoint(checkpoint_path, heartbeat_path, state)
 

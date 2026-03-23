@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
+import time
+from collections import deque
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +42,8 @@ class VerifiedTask:
     output_path: str
     allowed_columns: tuple[str, ...]
     excluded_columns: tuple[str, ...]
+    scratch_root: str | None = None
+    input_read_mode: str = "direct_stage"
 
     @property
     def task_key(self) -> str:
@@ -47,6 +52,16 @@ class VerifiedTask:
     @property
     def verified_table_name(self) -> str:
         return f"verified_{self.table_name}"
+
+
+@dataclass(frozen=True)
+class PrefetchResult:
+    effective_input_paths: tuple[str, ...]
+    scratch_input_paths: tuple[str, ...]
+    prefetch_copied_files: int
+    prefetch_reused_files: int
+    prefetch_bytes_copied: int
+    prefetch_seconds: float
 
 
 def default_workers() -> int:
@@ -98,11 +113,25 @@ def parse_args() -> argparse.Namespace:
         help="Path to the verified field policy JSON.",
     )
     parser.add_argument("--dates", help="Comma-separated trade dates in YYYYMMDD or YYYY-MM-DD format.")
+    parser.add_argument("--start-date", help="Inclusive lower bound trade date in YYYYMMDD or YYYY-MM-DD format.")
+    parser.add_argument("--end-date", help="Inclusive upper bound trade date in YYYYMMDD or YYYY-MM-DD format.")
     parser.add_argument("--max-days", type=int, default=0, help="Optional limit on number of dates to process.")
     parser.add_argument(
         "--latest-days",
         action="store_true",
         help="When used with --max-days, select latest dates instead of earliest.",
+    )
+    parser.add_argument(
+        "--date-batch-size",
+        type=int,
+        default=0,
+        help="Optional number of dates per contiguous batch after filtering.",
+    )
+    parser.add_argument(
+        "--date-batch-index",
+        type=int,
+        default=1,
+        help="1-based batch index used with --date-batch-size.",
     )
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint and skip completed tasks.")
     parser.add_argument(
@@ -122,6 +151,17 @@ def parse_args() -> argparse.Namespace:
         default=default_executor_mode(),
         help="Executor mode for parallel task dispatch.",
     )
+    parser.add_argument(
+        "--scratch-root",
+        type=Path,
+        help="Optional local scratch root used to prefetch selected parquet inputs before materialization.",
+    )
+    parser.add_argument(
+        "--scratch-table",
+        choices=["orders", "trades", "all"],
+        default="orders",
+        help="Which logical table should use --scratch-root prefetching.",
+    )
     parser.add_argument("--print-plan", action="store_true", help="Print the intended pipeline plan.")
     return parser.parse_args()
 
@@ -131,6 +171,40 @@ def canonical_date(value: str) -> str:
     if len(digits) != 8 or not digits.isdigit():
         raise ValueError(f"Invalid date token: {value}")
     return f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
+
+
+def unique_preserving_order(values: list[str]) -> list[str]:
+    ordered_values: list[str] = []
+    seen_values: set[str] = set()
+    for value in values:
+        if value in seen_values:
+            continue
+        seen_values.add(value)
+        ordered_values.append(value)
+    return ordered_values
+
+
+def explicit_dates_from_args(args: argparse.Namespace) -> list[str]:
+    if not args.dates:
+        return []
+    return unique_preserving_order([canonical_date(token) for token in args.dates.split(",") if token.strip()])
+
+
+def validate_args(args: argparse.Namespace) -> None:
+    if args.start_date:
+        args.start_date = canonical_date(args.start_date)
+    if args.end_date:
+        args.end_date = canonical_date(args.end_date)
+    if args.start_date and args.end_date and args.start_date > args.end_date:
+        raise SystemExit("--start-date must be earlier than or equal to --end-date.")
+    if args.max_days < 0:
+        raise SystemExit("--max-days must be >= 0.")
+    if args.date_batch_size < 0:
+        raise SystemExit("--date-batch-size must be >= 0.")
+    if args.date_batch_index < 1:
+        raise SystemExit("--date-batch-index must be >= 1.")
+    if args.date_batch_size == 0 and args.date_batch_index != 1:
+        raise SystemExit("--date-batch-index requires --date-batch-size.")
 
 
 def read_policy(path: Path) -> dict[str, Any]:
@@ -155,14 +229,30 @@ def parse_selected_dates(args: argparse.Namespace, table_name: str) -> list[str]
         for path in table_root.glob("date=*")
         if path.name.split("=", 1)[1].startswith(f"{args.year}-")
     )
+    if args.start_date:
+        available_dates = [value for value in available_dates if value >= args.start_date]
+    if args.end_date:
+        available_dates = [value for value in available_dates if value <= args.end_date]
     if args.dates:
-        selected_dates = [canonical_date(token) for token in args.dates.split(",") if token.strip()]
-        return [value for value in selected_dates if value in available_dates]
+        selected_dates = [value for value in explicit_dates_from_args(args) if value in available_dates]
+    else:
+        selected_dates = available_dates
     if args.max_days and args.latest_days:
-        return available_dates[-args.max_days :]
-    if args.max_days:
-        return available_dates[: args.max_days]
-    return available_dates
+        selected_dates = selected_dates[-args.max_days :]
+    elif args.max_days:
+        selected_dates = selected_dates[: args.max_days]
+    if args.date_batch_size:
+        if not selected_dates:
+            return []
+        total_batches = (len(selected_dates) + args.date_batch_size - 1) // args.date_batch_size
+        if args.date_batch_index > total_batches:
+            raise ValueError(
+                f"--date-batch-index={args.date_batch_index} is out of range for "
+                f"{len(selected_dates)} selected dates and --date-batch-size={args.date_batch_size}."
+            )
+        batch_start = (args.date_batch_index - 1) * args.date_batch_size
+        selected_dates = selected_dates[batch_start : batch_start + args.date_batch_size]
+    return selected_dates
 
 
 def output_path_for_task(output_root: Path, year: str, table_name: str, trade_date: str) -> Path:
@@ -188,6 +278,16 @@ def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[Ver
                     output_path=str(output_path_for_task(args.output_root, str(args.year), table_name, trade_date)),
                     allowed_columns=allowed_columns,
                     excluded_columns=excluded_columns,
+                    scratch_root=(
+                        str(args.scratch_root)
+                        if args.scratch_root and (args.scratch_table == "all" or args.scratch_table == table_name)
+                        else None
+                    ),
+                    input_read_mode=(
+                        "scratch_prefetch"
+                        if args.scratch_root and (args.scratch_table == "all" or args.scratch_table == table_name)
+                        else "direct_stage"
+                    ),
                 )
             )
     return tasks
@@ -213,8 +313,85 @@ def summary_json_path(output_root: Path, year: str) -> Path:
     return manifest_root(output_root, year) / "summary.json"
 
 
+def is_partial_selection(args: argparse.Namespace) -> bool:
+    return bool(
+        args.table != "all"
+        or args.dates
+        or args.start_date
+        or args.end_date
+        or args.max_days
+        or args.date_batch_size
+    )
+
+
+def selection_label(args: argparse.Namespace) -> str:
+    if not is_partial_selection(args):
+        return "full"
+    parts: list[str] = []
+    if args.table != "all":
+        parts.append(args.table)
+    explicit_dates = explicit_dates_from_args(args)
+    if explicit_dates:
+        if len(explicit_dates) <= 3:
+            compact_dates = "_".join(value.replace("-", "") for value in explicit_dates)
+            parts.append(f"dates_{compact_dates}")
+        else:
+            parts.append(f"dates_{len(explicit_dates)}")
+            parts.append(f"first_{explicit_dates[0]}")
+            parts.append(f"last_{explicit_dates[-1]}")
+    if args.start_date:
+        parts.append(f"from_{args.start_date}")
+    if args.end_date:
+        parts.append(f"to_{args.end_date}")
+    if args.max_days:
+        edge = "latest" if args.latest_days else "first"
+        parts.append(f"{edge}_{args.max_days}d")
+    if args.date_batch_size:
+        parts.append(f"batch_{args.date_batch_index}_of_size_{args.date_batch_size}")
+    return "__".join(parts)
+
+
+def report_path_for_run(research_root: Path, args: argparse.Namespace) -> Path:
+    label = selection_label(args)
+    if label == "full":
+        return research_root / f"verified_layer_{args.year}.md"
+    return research_root / f"verified_layer_{args.year}__{label}.md"
+
+
+def build_selection_metadata(args: argparse.Namespace, tasks: list[VerifiedTask]) -> dict[str, Any]:
+    selected_dates = sorted({task.date for task in tasks})
+    explicit_dates = explicit_dates_from_args(args)
+    return {
+        "label": selection_label(args),
+        "is_partial": is_partial_selection(args),
+        "table": args.table,
+        "explicit_dates": explicit_dates,
+        "start_date": args.start_date,
+        "end_date": args.end_date,
+        "max_days": args.max_days or None,
+        "latest_days": bool(args.latest_days),
+        "date_batch_size": args.date_batch_size or None,
+        "date_batch_index": args.date_batch_index if args.date_batch_size else None,
+        "selected_date_count": len(selected_dates),
+        "selected_task_count": len(tasks),
+        "first_selected_date": selected_dates[0] if selected_dates else None,
+        "last_selected_date": selected_dates[-1] if selected_dates else None,
+    }
+
+
 def append_partition_row(path: Path, payload: dict[str, Any]) -> None:
     append_jsonl(path, payload)
+
+
+def write_jsonl_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+    ensure_dir(path.parent)
+    if not rows:
+        if path.exists():
+            path.unlink()
+        return
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
@@ -248,20 +425,195 @@ def input_rows(paths: tuple[str, ...]) -> int:
     return int(total_rows)
 
 
+def temp_output_path(output_path: Path) -> Path:
+    return output_path.with_name(f".{output_path.name}.tmp")
+
+
+def temp_prefetch_path(path: Path) -> Path:
+    return path.with_name(f".{path.name}.tmp")
+
+
+def scratch_input_path(task: VerifiedTask, source_path: Path) -> Path:
+    if task.scratch_root is None:
+        raise ValueError(f"Scratch root is not configured for {task.task_key}")
+    return (
+        Path(task.scratch_root)
+        / "verified_prefetch"
+        / f"year={task.year}"
+        / task.table_name
+        / f"date={task.date}"
+        / source_path.name
+    )
+
+
+def prefetch_input_file(source_path: Path, scratch_path: Path) -> tuple[bool, int]:
+    ensure_dir(scratch_path.parent)
+    source_bytes = source_path.stat().st_size
+    if scratch_path.exists() and scratch_path.stat().st_size == source_bytes:
+        return True, 0
+
+    tmp_path = temp_prefetch_path(scratch_path)
+    if tmp_path.exists():
+        tmp_path.unlink()
+    try:
+        shutil.copy2(source_path, tmp_path)
+        os.replace(tmp_path, scratch_path)
+    except Exception:
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+    return False, source_bytes
+
+
+def prepare_task_inputs(task: VerifiedTask) -> PrefetchResult:
+    if task.scratch_root is None:
+        return PrefetchResult(
+            effective_input_paths=task.input_paths,
+            scratch_input_paths=(),
+            prefetch_copied_files=0,
+            prefetch_reused_files=0,
+            prefetch_bytes_copied=0,
+            prefetch_seconds=0.0,
+        )
+
+    started_at = time.perf_counter()
+    scratch_input_paths: list[str] = []
+    copied_files = 0
+    reused_files = 0
+    copied_bytes = 0
+
+    for input_path in task.input_paths:
+        source_path = Path(input_path)
+        scratch_path = scratch_input_path(task, source_path)
+        reused_existing_copy, file_bytes_copied = prefetch_input_file(source_path, scratch_path)
+        scratch_input_paths.append(str(scratch_path))
+        if reused_existing_copy:
+            reused_files += 1
+        else:
+            copied_files += 1
+            copied_bytes += file_bytes_copied
+
+    return PrefetchResult(
+        effective_input_paths=tuple(scratch_input_paths),
+        scratch_input_paths=tuple(scratch_input_paths),
+        prefetch_copied_files=copied_files,
+        prefetch_reused_files=reused_files,
+        prefetch_bytes_copied=copied_bytes,
+        prefetch_seconds=time.perf_counter() - started_at,
+    )
+
+
+def interleave_tasks_by_table(tasks: list[VerifiedTask]) -> list[VerifiedTask]:
+    table_order = ("orders", "trades")
+    grouped_tasks: dict[str, list[VerifiedTask]] = {table_name: [] for table_name in table_order}
+    for task in tasks:
+        grouped_tasks.setdefault(task.table_name, []).append(task)
+    task_queues: dict[str, deque[VerifiedTask]] = {
+        table_name: deque(grouped_tasks[table_name]) for table_name in grouped_tasks
+    }
+
+    ordered_tasks: list[VerifiedTask] = []
+    active_tables = [table_name for table_name, queue in task_queues.items() if queue]
+    while active_tables:
+        next_active_tables: list[str] = []
+        for table_name in active_tables:
+            queue = task_queues[table_name]
+            if not queue:
+                continue
+            ordered_tasks.append(queue.popleft())
+            if queue:
+                next_active_tables.append(table_name)
+        active_tables = next_active_tables
+    return ordered_tasks
+
+
+def reconcile_partition_rows(
+    tasks: list[VerifiedTask],
+    rows: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], set[str], list[str]]:
+    task_map = {task.task_key: task for task in tasks}
+    seen_task_keys: set[str] = set()
+    duplicate_task_keys: set[str] = set()
+    stale_task_keys: list[str] = []
+    filtered_rows: list[dict[str, Any]] = []
+    completed_task_keys: set[str] = set()
+
+    for row in rows:
+        task_key = row.get("task_key")
+        task = task_map.get(task_key)
+        if task is None:
+            filtered_rows.append(row)
+            continue
+        if task_key in seen_task_keys:
+            duplicate_task_keys.add(task_key)
+            continue
+        seen_task_keys.add(task_key)
+        if Path(task.output_path).exists():
+            filtered_rows.append(row)
+            completed_task_keys.add(task_key)
+        else:
+            stale_task_keys.append(task_key)
+
+    if duplicate_task_keys:
+        duplicates = ", ".join(sorted(duplicate_task_keys))
+        raise SystemExit(
+            "Found duplicate partition manifest rows for selected verified tasks: "
+            f"{duplicates}. Clean the manifest or rerun with --overwrite-existing."
+        )
+    return filtered_rows, completed_task_keys, stale_task_keys
+
+
+def remove_selected_partition_rows(tasks: list[VerifiedTask], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    selected_task_keys = {task.task_key for task in tasks}
+    return [row for row in rows if row.get("task_key") not in selected_task_keys]
+
+
+def validate_existing_outputs(tasks: list[VerifiedTask], completed_task_keys: set[str], overwrite_existing: bool) -> None:
+    if overwrite_existing:
+        return
+    orphan_outputs: list[str] = []
+    for task in tasks:
+        output_path = Path(task.output_path)
+        if output_path.exists() and task.task_key not in completed_task_keys:
+            orphan_outputs.append(f"{task.task_key} -> {output_path}")
+    if orphan_outputs:
+        details = "\n".join(orphan_outputs[:10])
+        raise SystemExit(
+            "Found verified outputs without matching manifest rows for the selected tasks. "
+            "This looks like an interrupted or partially recorded run.\n"
+            "Use --overwrite-existing to rebuild them, or remove the orphan outputs first.\n"
+            f"{details}"
+        )
+
+
 def research_time_grade_for_year(year: str) -> str:
     return "fine_ok" if year == "2026" else "coarse_only"
 
 
 def process_task(task: VerifiedTask) -> dict[str, Any]:
+    task_started_at = time.perf_counter()
     output_path = Path(task.output_path)
+    temp_path = temp_output_path(output_path)
     ensure_dir(output_path.parent)
-    scan = pl.scan_parquet(list(task.input_paths))
+    if temp_path.exists():
+        temp_path.unlink()
+    prefetch = prepare_task_inputs(task)
+    effective_input_paths = prefetch.effective_input_paths
+    materialize_started_at = time.perf_counter()
+    scan = pl.scan_parquet(list(effective_input_paths))
     available_columns = set(scan.collect_schema().names())
     missing_columns = [column for column in task.allowed_columns if column not in available_columns]
     if missing_columns:
         raise ValueError(f"Missing admit-now columns for {task.task_key}: {missing_columns}")
-    row_count = input_rows(task.input_paths)
-    scan.select(list(task.allowed_columns)).sink_parquet(output_path)
+    row_count = input_rows(effective_input_paths)
+    try:
+        scan.select(list(task.allowed_columns)).sink_parquet(temp_path)
+        os.replace(temp_path, output_path)
+    except Exception:
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
+    materialize_seconds = time.perf_counter() - materialize_started_at
     file_size = output_path.stat().st_size
     return {
         "task_key": task.task_key,
@@ -271,7 +623,10 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
         "verified_table_name": task.verified_table_name,
         "output_path": str(output_path),
         "input_paths": list(task.input_paths),
-        "input_row_count": input_rows(task.input_paths),
+        "effective_input_paths": list(effective_input_paths),
+        "scratch_input_paths": list(prefetch.scratch_input_paths),
+        "input_read_mode": task.input_read_mode,
+        "input_row_count": row_count,
         "output_row_count": row_count,
         "output_bytes": file_size,
         "included_columns": list(task.allowed_columns),
@@ -282,6 +637,12 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
         "contains_caveat_fields": False,
         "reference_join_applied": False,
         "research_time_grade": research_time_grade_for_year(task.year),
+        "prefetch_copied_files": prefetch.prefetch_copied_files,
+        "prefetch_reused_files": prefetch.prefetch_reused_files,
+        "prefetch_bytes_copied": prefetch.prefetch_bytes_copied,
+        "prefetch_seconds": prefetch.prefetch_seconds,
+        "materialize_seconds": materialize_seconds,
+        "total_task_seconds": time.perf_counter() - task_started_at,
         "generated_at": iso_utc_now(),
     }
 
@@ -314,6 +675,7 @@ def build_summary(*, state: dict[str, Any], rows: list[dict[str, Any]]) -> dict[
         "pending_count": state["pending_count"],
         "workers": state["workers"],
         "executor_mode": state["executor_mode"],
+        "selection": state.get("selection"),
         "tables": by_table,
     }
 
@@ -334,11 +696,13 @@ def write_checkpoint(ckpt_path: Path, hb_path: Path, state: dict[str, Any]) -> N
             "active_task_keys": state.get("active_task_keys", []),
             "workers": state.get("workers"),
             "executor_mode": state.get("executor_mode"),
+            "selection": state.get("selection"),
         },
     )
 
 
 def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary: dict[str, Any]) -> None:
+    selection = summary.get("selection") or {}
     lines = [
         f"# Verified Layer {year}",
         "",
@@ -347,9 +711,37 @@ def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary
         f"- completed_count: {summary['completed_count']}",
         f"- failed_count: {summary['failed_count']}",
         "",
+    ]
+    if selection:
+        lines.extend(
+            [
+                "## Selection",
+                "",
+                f"- label: {selection.get('label', 'full')}",
+                f"- table: {selection.get('table', 'all')}",
+                f"- selected_date_count: {selection.get('selected_date_count', 0)}",
+                f"- selected_task_count: {selection.get('selected_task_count', 0)}",
+                f"- first_selected_date: {selection.get('first_selected_date') or 'n/a'}",
+                f"- last_selected_date: {selection.get('last_selected_date') or 'n/a'}",
+            ]
+        )
+        if selection.get("start_date") or selection.get("end_date"):
+            lines.append(
+                f"- date_range: {selection.get('start_date') or 'min'} -> {selection.get('end_date') or 'max'}"
+            )
+        if selection.get("date_batch_size"):
+            lines.append(
+                f"- date_batch: {selection['date_batch_index']} / size {selection['date_batch_size']}"
+            )
+        if selection.get("explicit_dates"):
+            lines.append(f"- explicit_dates: {', '.join(selection['explicit_dates'])}")
+        lines.extend(["",])
+    lines.extend(
+        [
         "## Tables",
         "",
-    ]
+        ]
+    )
     for table_name, table_summary in sorted(summary["tables"].items()):
         lines.extend(
             [
@@ -397,6 +789,7 @@ def reset_manifest_files(paths: list[Path]) -> None:
 
 def main() -> int:
     args = parse_args()
+    validate_args(args)
     if args.print_plan:
         print_scaffold_plan(
             name="build_verified_layer",
@@ -424,7 +817,10 @@ def main() -> int:
         raise SystemExit("--year is required unless --print-plan is used.")
 
     policy = read_policy(args.policy_path)
-    tasks = discover_tasks(args, policy)
+    try:
+        tasks = discover_tasks(args, policy)
+    except ValueError as exc:
+        raise SystemExit(str(exc))
     if not tasks:
         raise SystemExit("No verified tasks matched the requested selection.")
 
@@ -433,15 +829,27 @@ def main() -> int:
     hb_path = heartbeat_path(args.output_root, str(args.year))
     parts_path = partitions_jsonl_path(args.output_root, str(args.year))
     summary_path = summary_json_path(args.output_root, str(args.year))
-    report_path = args.research_root / f"verified_layer_{args.year}.md"
-
-    existing_rows = read_jsonl_rows(parts_path)
-    completed_task_keys = {row["task_key"] for row in existing_rows}
+    report_path = report_path_for_run(args.research_root, args)
+    selection = build_selection_metadata(args, tasks)
+    selected_task_keys = {task.task_key for task in tasks}
 
     if not args.resume and args.overwrite_existing:
         reset_manifest_files([parts_path, ckpt_path, hb_path, summary_path])
-        existing_rows = []
-        completed_task_keys = set()
+    existing_rows = read_jsonl_rows(parts_path)
+    if args.resume and args.overwrite_existing and existing_rows:
+        existing_rows = remove_selected_partition_rows(tasks, existing_rows)
+        write_jsonl_rows(parts_path, existing_rows)
+
+    existing_rows, completed_task_keys, stale_task_keys = reconcile_partition_rows(tasks, existing_rows)
+    if stale_task_keys:
+        write_jsonl_rows(parts_path, existing_rows)
+        logger.warning(
+            "Dropped %s stale partition manifest rows whose outputs were missing: %s",
+            len(stale_task_keys),
+            ", ".join(sorted(stale_task_keys)),
+        )
+    validate_existing_outputs(tasks, completed_task_keys, args.overwrite_existing)
+    selected_rows = [row for row in existing_rows if row.get("task_key") in selected_task_keys]
 
     state = {
         "status": "running",
@@ -457,6 +865,7 @@ def main() -> int:
         "pending_count": max(0, len(tasks) - len(completed_task_keys)),
         "active_task_key": None,
         "active_task_keys": [],
+        "selection": selection,
     }
 
     if args.resume and ckpt_path.exists():
@@ -464,21 +873,18 @@ def main() -> int:
         state["status"] = "running"
         state["workers"] = args.workers
         state["executor_mode"] = args.executor
+        state["failed_tasks"] = {}
+        state["failed_count"] = 0
         state["active_task_key"] = None
         state["active_task_keys"] = []
-        completed_task_keys = set(state.get("completed_task_keys", []))
-
-    for task in tasks:
-        output_path = Path(task.output_path)
-        if output_path.exists() and not args.overwrite_existing:
-            completed_task_keys.add(task.task_key)
 
     state["completed_task_keys"] = sorted(completed_task_keys)
     state["completed_count"] = len(completed_task_keys)
     state["pending_count"] = max(0, len(tasks) - len(completed_task_keys))
+    state["selection"] = selection
     write_checkpoint(ckpt_path, hb_path, state)
 
-    pending_tasks = [task for task in tasks if task.task_key not in completed_task_keys]
+    pending_tasks = interleave_tasks_by_table([task for task in tasks if task.task_key not in completed_task_keys])
     future_to_task: dict[Any, VerifiedTask] = {}
     executor, resolved_mode = build_executor(args.executor, args.workers, logger)
     state["executor_mode"] = resolved_mode
@@ -522,6 +928,7 @@ def main() -> int:
                     row = future.result()
                     append_partition_row(parts_path, row)
                     existing_rows.append(row)
+                    selected_rows.append(row)
                     completed_task_keys.add(task.task_key)
                     logger.info(
                         "Verified %s complete: rows=%s bytes=%s",
@@ -550,9 +957,9 @@ def main() -> int:
     state["status"] = "completed" if not state["failed_tasks"] else "completed_with_failures"
     state["active_task_keys"] = []
     state["active_task_key"] = None
-    summary = build_summary(state=state, rows=existing_rows)
+    summary = build_summary(state=state, rows=selected_rows)
     write_json(summary_path, summary)
-    write_markdown(report_path, year=str(args.year), rows=existing_rows, summary=summary)
+    write_markdown(report_path, year=str(args.year), rows=selected_rows, summary=summary)
     write_checkpoint(ckpt_path, hb_path, state)
     logger.info("Verified layer build complete for %s with %s partitions", args.year, len(existing_rows))
     return 0 if not state["failed_tasks"] else 1

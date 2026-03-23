@@ -90,6 +90,54 @@ def iter_files(root: Path) -> Any:
             yield Path(current_root) / filename
 
 
+def load_manifest_relative_paths(files_jsonl_path: Path) -> set[str]:
+    relative_paths: set[str] = set()
+    if not files_jsonl_path.exists():
+        return relative_paths
+
+    with files_jsonl_path.open("r", encoding="utf-8") as manifest_handle:
+        for line_number, line in enumerate(manifest_handle, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            record = json.loads(stripped)
+            relative_path = record.get("relative_path")
+            if not relative_path:
+                raise ValueError(
+                    f"Manifest record at line {line_number} is missing relative_path: {files_jsonl_path}"
+                )
+            if relative_path in relative_paths:
+                raise ValueError(
+                    f"Manifest contains duplicate relative_path {relative_path!r}: {files_jsonl_path}"
+                )
+            relative_paths.add(relative_path)
+
+    return relative_paths
+
+
+def validate_resume_state(
+    *,
+    state: dict[str, Any],
+    seen_relative_paths: set[str],
+    files_jsonl_path: Path,
+) -> None:
+    expected_files = int(state.get("files_scanned", 0))
+    if expected_files != len(seen_relative_paths):
+        raise ValueError(
+            "Checkpoint / manifest mismatch: "
+            f"checkpoint files_scanned={expected_files}, "
+            f"manifest unique records={len(seen_relative_paths)} at {files_jsonl_path}"
+        )
+
+    last_relative_path = state.get("last_relative_path")
+    if last_relative_path and last_relative_path not in seen_relative_paths:
+        raise ValueError(
+            "Checkpoint / manifest mismatch: "
+            f"last_relative_path {last_relative_path!r} is missing from {files_jsonl_path}"
+        )
+
+
 def build_record(path: Path, raw_dir: Path) -> dict[str, Any]:
     stat = path.stat()
     relative_path = path.relative_to(raw_dir).as_posix()
@@ -254,9 +302,25 @@ def main() -> int:
         )
         return 1
 
-    state = (
-        load_state(checkpoint_path, year, raw_dir) if args.resume else initial_state(year, raw_dir)
-    )
+    try:
+        state = (
+            load_state(checkpoint_path, year, raw_dir)
+            if args.resume
+            else initial_state(year, raw_dir)
+        )
+        seen_relative_paths = (
+            load_manifest_relative_paths(files_jsonl_path) if args.resume else set()
+        )
+        if args.resume:
+            validate_resume_state(
+                state=state,
+                seen_relative_paths=seen_relative_paths,
+                files_jsonl_path=files_jsonl_path,
+            )
+    except ValueError as exc:
+        logger.error("%s", exc)
+        return 1
+
     suffix_counts = Counter(state["suffix_counts"])
     date_metrics = defaultdict(lambda: {"file_count": 0, "total_bytes": 0})
     for trade_date, metrics in state["date_metrics"].items():
@@ -265,20 +329,25 @@ def main() -> int:
             "total_bytes": metrics["total_bytes"],
         }
 
-    last_relative_path = state.get("last_relative_path")
     mode = "a" if args.resume else "w"
     processed_since_checkpoint = 0
     truncated = False
 
     with files_jsonl_path.open(mode, encoding="utf-8") as manifest_handle:
         for path in iter_files(raw_dir):
+            if args.max_files and state["files_scanned"] >= args.max_files:
+                logger.info("Reached max-files=%s; stopping early.", args.max_files)
+                truncated = True
+                break
+
             record = build_record(path, raw_dir)
             relative_path = record["relative_path"]
 
-            if last_relative_path and relative_path <= last_relative_path:
+            if relative_path in seen_relative_paths:
                 continue
 
             manifest_handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+            seen_relative_paths.add(relative_path)
             state["files_scanned"] += 1
             state["bytes_scanned"] += record["size_bytes"]
             state["last_relative_path"] = relative_path
