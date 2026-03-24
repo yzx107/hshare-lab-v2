@@ -146,6 +146,61 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             ],
         )
 
+    def test_interleave_tasks_by_table_prefers_larger_inputs_within_each_table(self) -> None:
+        tasks = [
+            verified_layer.VerifiedTask(
+                year="2026",
+                table_name="orders",
+                date="2026-01-02",
+                input_paths=("orders-1.parquet",),
+                output_path="verified-orders-1.parquet",
+                allowed_columns=("date",),
+                excluded_columns=(),
+                input_bytes=100,
+            ),
+            verified_layer.VerifiedTask(
+                year="2026",
+                table_name="orders",
+                date="2026-02-09",
+                input_paths=("orders-2.parquet",),
+                output_path="verified-orders-2.parquet",
+                allowed_columns=("date",),
+                excluded_columns=(),
+                input_bytes=300,
+            ),
+            verified_layer.VerifiedTask(
+                year="2026",
+                table_name="trades",
+                date="2026-01-02",
+                input_paths=("trades-1.parquet",),
+                output_path="verified-trades-1.parquet",
+                allowed_columns=("date",),
+                excluded_columns=(),
+                input_bytes=50,
+            ),
+            verified_layer.VerifiedTask(
+                year="2026",
+                table_name="trades",
+                date="2026-02-09",
+                input_paths=("trades-2.parquet",),
+                output_path="verified-trades-2.parquet",
+                allowed_columns=("date",),
+                excluded_columns=(),
+                input_bytes=200,
+            ),
+        ]
+
+        ordered_task_keys = [task.task_key for task in verified_layer.interleave_tasks_by_table(tasks)]
+        self.assertEqual(
+            ordered_task_keys,
+            [
+                "2026-02-09:orders",
+                "2026-02-09:trades",
+                "2026-01-02:orders",
+                "2026-01-02:trades",
+            ],
+        )
+
     def test_builds_admit_now_tables_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

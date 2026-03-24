@@ -42,6 +42,8 @@ class VerifiedTask:
     output_path: str
     allowed_columns: tuple[str, ...]
     excluded_columns: tuple[str, ...]
+    input_row_count: int = 0
+    input_bytes: int = 0
     scratch_root: str | None = None
     input_read_mode: str = "direct_stage"
 
@@ -269,12 +271,15 @@ def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[Ver
             input_paths = tuple(str(path) for path in sorted((args.stage_root / table_name / f"date={trade_date}").glob("*.parquet")))
             if not input_paths:
                 continue
+            input_row_count, input_bytes = inspect_input_paths(input_paths)
             tasks.append(
                 VerifiedTask(
                     year=str(args.year),
                     table_name=table_name,
                     date=trade_date,
                     input_paths=input_paths,
+                    input_row_count=input_row_count,
+                    input_bytes=input_bytes,
                     output_path=str(output_path_for_task(args.output_root, str(args.year), table_name, trade_date)),
                     allowed_columns=allowed_columns,
                     excluded_columns=excluded_columns,
@@ -425,6 +430,15 @@ def input_rows(paths: tuple[str, ...]) -> int:
     return int(total_rows)
 
 
+def inspect_input_paths(paths: tuple[str, ...]) -> tuple[int, int]:
+    total_rows = 0
+    total_bytes = 0
+    for path in paths:
+        total_rows += pq.ParquetFile(path).metadata.num_rows
+        total_bytes += Path(path).stat().st_size
+    return int(total_rows), int(total_bytes)
+
+
 def temp_output_path(output_path: Path) -> Path:
     return output_path.with_name(f".{output_path.name}.tmp")
 
@@ -508,6 +522,11 @@ def interleave_tasks_by_table(tasks: list[VerifiedTask]) -> list[VerifiedTask]:
     grouped_tasks: dict[str, list[VerifiedTask]] = {table_name: [] for table_name in table_order}
     for task in tasks:
         grouped_tasks.setdefault(task.table_name, []).append(task)
+    for table_name, grouped in grouped_tasks.items():
+        grouped_tasks[table_name] = sorted(
+            grouped,
+            key=lambda task: (-task.input_bytes, task.date),
+        )
     task_queues: dict[str, deque[VerifiedTask]] = {
         table_name: deque(grouped_tasks[table_name]) for table_name in grouped_tasks
     }
@@ -605,7 +624,7 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
     missing_columns = [column for column in task.allowed_columns if column not in available_columns]
     if missing_columns:
         raise ValueError(f"Missing admit-now columns for {task.task_key}: {missing_columns}")
-    row_count = input_rows(effective_input_paths)
+    row_count = task.input_row_count if task.input_row_count > 0 else input_rows(task.input_paths)
     try:
         scan.select(list(task.allowed_columns)).sink_parquet(temp_path)
         os.replace(temp_path, output_path)
@@ -623,6 +642,7 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
         "verified_table_name": task.verified_table_name,
         "output_path": str(output_path),
         "input_paths": list(task.input_paths),
+        "input_bytes": task.input_bytes,
         "effective_input_paths": list(effective_input_paths),
         "scratch_input_paths": list(prefetch.scratch_input_paths),
         "input_read_mode": task.input_read_mode,
@@ -832,6 +852,15 @@ def main() -> int:
     report_path = report_path_for_run(args.research_root, args)
     selection = build_selection_metadata(args, tasks)
     selected_task_keys = {task.task_key for task in tasks}
+    total_input_rows = sum(task.input_row_count for task in tasks)
+    total_input_bytes = sum(task.input_bytes for task in tasks)
+    logger.info(
+        "Prepared %s verified tasks for %s: estimated_input_rows=%s estimated_input_bytes=%s",
+        len(tasks),
+        args.year,
+        total_input_rows,
+        total_input_bytes,
+    )
 
     if not args.resume and args.overwrite_existing:
         reset_manifest_files([parts_path, ckpt_path, hb_path, summary_path])
