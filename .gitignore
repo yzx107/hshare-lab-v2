@@ -25,3 +25,5 @@ tmp/
 
 debug_metrics.py
 full_run.log
+
+Research/Reports/verified_layer_*__*.md

@@ -57,7 +57,8 @@
 - `2026`：`OrderId lifecycle` full-year 审计已落地，当前可视为 `pass`
 - `2026`：`TradeDir` 当前只到 `candidate_directional_signal`，仍需 `manual review`，不能当成已确认 signed side
 - `2026`：`OrderType` 当前只到 `weak_pass`，可做弱一致性与 lifecycle-shape profiling，不能直接当成已确认事件语义
-- `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance 已有工作树产物，但 verified 落盘不等于高风险字段语义已完成验证
+- `2025`：`verified_orders / verified_trades` conservative v1 full-year materialization 已完成，并已生成 checked-in full-year report；`research_time_grade` 仍应解释为 `coarse_only`
+- `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance/report 已有 checked-in 产物，但 verified 落盘不等于高风险字段语义已完成验证
 - `BrokerNo / Level / VolumePre / Type / Ext / queue semantics` 仍不应视为已完成 semantic verification
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
 - `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚

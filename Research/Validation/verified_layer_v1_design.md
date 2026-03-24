@@ -41,7 +41,8 @@ verified v1 的目标是：
 ## Current Repo Status
 
 - `verified_orders` / `verified_trades` v1 builder has now been implemented in the repo.
-- `2026` full-year verified v1 materialization has corresponding checked-in acceptance/report drafts in the working tree, but those artifacts do not expand the semantic admission boundary by themselves.
+- `2025` full-year verified v1 materialization is now complete with a checked-in full-year report.
+- `2026` full-year verified v1 materialization has corresponding checked-in acceptance/report artifacts.
 - The existence of verified outputs should be interpreted as: conservative structural tables are materialized successfully.
 - It should not be interpreted as: higher-risk semantic fields have been promoted, or semantic verification for `TradeDir`, `BrokerNo`, queue semantics, or event-type semantics is finished.
 
@@ -162,4 +163,4 @@ If a future change needs:
 
 then that change should first update semantic status and admission policy, rather than silently expanding verified scope.
 
-This remains true after the current `2026` full-year verified build: implementation progress does not override semantic or admission policy gates.
+This remains true after the current `2025` and `2026` full-year verified builds: implementation progress does not override semantic or admission policy gates.
