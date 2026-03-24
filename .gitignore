@@ -22,3 +22,6 @@ Research/Notes/stop_after_august_2025_lifecycle.json
 *.arrow
 
 tmp/
+
+debug_metrics.py
+full_run.log
