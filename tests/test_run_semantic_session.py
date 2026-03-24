@@ -11,6 +11,8 @@ import pyarrow.parquet as pq
 
 from Scripts.semantic_contract import SEMANTIC_STATUS_VALUES, STATUS_NOT_RUN
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def write_parquet(path: Path, columns: dict[str, list[object]]) -> None:
     pq.write_table(pa.Table.from_pydict(columns), path)
@@ -47,7 +49,7 @@ class SemanticSessionRunnerTests(unittest.TestCase):
                     "--log-root",
                     str(log_root),
                 ],
-                cwd="/private/tmp/hshare_semantic_2026_runner",
+                cwd=str(REPO_ROOT),
                 check=True,
             )
             frame = pl.read_parquet(output_root / "semantic" / "year=2026" / "semantic_session_daily.parquet")
@@ -93,7 +95,7 @@ class SemanticSessionRunnerTests(unittest.TestCase):
                     "--log-root",
                     str(log_root),
                 ],
-                cwd="/private/tmp/hshare_semantic_2026_runner",
+                cwd=str(REPO_ROOT),
                 check=True,
             )
             frame = pl.read_parquet(output_root / "semantic" / "year=2026" / "semantic_session_daily.parquet")

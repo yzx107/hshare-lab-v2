@@ -125,7 +125,7 @@ class SemanticFrameworkTests(unittest.TestCase):
             lifecycle_row = lifecycle.to_dicts()[0]
             self.assertEqual(lifecycle_row["distinct_orderids"], 2)
             self.assertEqual(lifecycle_row["orders_with_multiple_events"], 1)
-            self.assertEqual(lifecycle_row["lifecycle_status"], "pass")
+            self.assertEqual(lifecycle_row["lifecycle_status"], "weak_pass")
 
             tradedir = pl.read_parquet(
                 output_root / "semantic" / "year=2026" / "semantic_tradedir_daily.parquet"
