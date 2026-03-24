@@ -59,3 +59,10 @@
   - `TradeDir`: stable 3-value code `{0,1,2}` with `candidate_directional_signal`, but still `requires_manual_review`
   - `OrderType`: stable 3-value code with `weak_pass`, but still `allow_with_caveat`
   - admissible for second-stage semantic verification and fine-grained timing studies, provided field-level semantics continue to pass validation
+
+## Current Repo Status Alignment
+
+- This matrix reflects the checked-in semantic findings currently available in the repo: lifecycle has landed as a full-year audit, `TradeDir` has landed as a contrast probe with manual-review status, and `OrderType` has landed as a `weak_pass` semantic probe.
+- The repo should not yet be read as if `TradeDir` signed-side mapping, queue semantics, `BrokerNo` semantics, or `Level / VolumePre / Type / Ext` semantics are complete.
+- `strict_ordering_sensitive_causality`, `execution_realism_or_fill_simulation`, and `latency_like_metrics` remain gated not because linkage/time-anchor are missing for `2026`, but because higher-risk field semantics are still only partially verified.
+- `queue_position_or_depletion` and `signed_flow_directional_factor` remain intentionally blocked in the current checked-in project state.

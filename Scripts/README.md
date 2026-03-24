@@ -54,6 +54,11 @@
 - `2025`：`SendTime` 仍缺失，但 `Time` 在 `7` 个样本日、`50,521,238` 条 matched edges 上均呈现 `coarse_time_anchor_status = weak_pass`
 - `2025`：`research_time_grade = coarse_only`
 - `2026`：`research_time_grade = fine_ok`
+- `2026`：`OrderId lifecycle` full-year 审计已落地，当前可视为 `pass`
+- `2026`：`TradeDir` 当前只到 `candidate_directional_signal`，仍需 `manual review`，不能当成已确认 signed side
+- `2026`：`OrderType` 当前只到 `weak_pass`，可做弱一致性与 lifecycle-shape profiling，不能直接当成已确认事件语义
+- `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance 已有工作树产物，但 verified 落盘不等于高风险字段语义已完成验证
+- `BrokerNo / Level / VolumePre / Type / Ext / queue semantics` 仍不应视为已完成 semantic verification
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
 - `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚
 
@@ -145,6 +150,7 @@
 - delegates to `run_semantic_lifecycle.py`, `run_semantic_tradedir.py`, `run_semantic_ordertype.py`, `run_semantic_session.py`
 - final outputs land in `dqa/semantic/year=<year>/...`
 - final markdown lands in `Research/Audits/semantic_<year>_summary.md`
+- current repo status: yearly summary markdown is part of the intended contract, but no checked-in `semantic_<year>_summary.md` artifact is present yet
 
 ## semantic 2026 framework 输出
 
@@ -156,5 +162,10 @@
 - `dqa/semantic/year=<year>/semantic_yearly_summary.parquet`
 - `dqa/semantic/year=<year>/semantic_admissibility_bridge.parquet`
 - `Research/Audits/semantic_<year>_summary.md`
+
+Current checked-in markdown coverage in `Research/Audits/` is narrower than the full intended framework contract:
+
+- present: `semantic_lifecycle_2025.md`, `semantic_lifecycle_2026.md`, `semantic_ordertype_2026.md`, `semantic_tradedir_contrast_2026.md`
+- not currently checked in: `semantic_<year>_summary.md`, `semantic_session_<year>.md`, `semantic_time_anchor_<year>.md`, `semantic_idspace_<year>.md`
 
 旧的 lowercase `scripts/` 目录视为 legacy，不再作为新主线入口。
