@@ -41,6 +41,7 @@
 - `run_semantic_tradedir.py`：`TradeDir` probe
 - `run_semantic_tradedir_contrast.py`：`Dir=1/2` contrast probe，检验 linkage / tick-rule / time-bucket 差异
 - `run_tradedir_validation.py`：读取现有 `TradeDir` probe / contrast / 文档锚点，压成可挂机复核的一页 readiness summary
+- `run_brokerno_validation.py`：读取 `BrokerNo` policy / reference，并对少量真实日期做 zero-rate 与 lookup coverage smoke
 - `run_semantic_ordertype.py`：`OrderType` probe
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
