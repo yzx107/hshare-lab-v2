@@ -1,6 +1,6 @@
 # Semantic Lifecycle Probe 2026
 
-- generated_at: 2026-03-17T07:59:09+00:00
+- generated_at: 2026-03-25T16:52:17+00:00
 - status: pass
 
 ## 2026-01-02
@@ -337,4 +337,39 @@
 - distinct_orderids: 58536043
 - linked_orderid_rate: 0.07955266125522013
 - orders_with_multiple_events_rate: 0.9914330218733781
+- status: pass
+
+## 2026-03-17
+- tested_rows: 132686149
+- distinct_orderids: 64446239
+- linked_orderid_rate: 0.0779196284828972
+- orders_with_multiple_events_rate: 0.9920995544829233
+- status: pass
+
+## 2026-03-19
+- tested_rows: 130746823
+- distinct_orderids: 63359294
+- linked_orderid_rate: 0.0820261980823208
+- orders_with_multiple_events_rate: 0.9924132361702136
+- status: pass
+
+## 2026-03-18
+- tested_rows: 126283770
+- distinct_orderids: 61366364
+- linked_orderid_rate: 0.07597274298343633
+- orders_with_multiple_events_rate: 0.9918802912944297
+- status: pass
+
+## 2026-03-20
+- tested_rows: 133373852
+- distinct_orderids: 64694278
+- linked_orderid_rate: 0.07768697874640475
+- orders_with_multiple_events_rate: 0.9928691993440285
+- status: pass
+
+## 2026-03-16
+- tested_rows: 145143697
+- distinct_orderids: 70674717
+- linked_orderid_rate: 0.07108928359769733
+- orders_with_multiple_events_rate: 0.9929968591172428
 - status: pass

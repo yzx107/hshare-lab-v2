@@ -86,6 +86,32 @@
 - `python -m Scripts.build_verified_layer --print-plan`
 - `python -m Scripts.report_field_policy_check --print-plan`
 
+## 周末增量顺序
+
+每周末 raw 更新一周数据后，优先走增量补齐，而不是攒多周一起重跑。
+
+推荐顺序：
+
+1. 先补 `candidate_cleaned`
+2. 再补 `DQA`
+3. 再补 `semantic`
+4. 最后按需要补 `verified`
+
+推荐命令：
+
+- `python -m Scripts.build_stage_parquet --year 2026 --resume`
+- `python -m Scripts.run_dqa_coverage --year 2026 --resume`
+- `python -m Scripts.run_dqa_schema --year 2026 --resume`
+- `python -m Scripts.run_dqa_linkage --year 2026 --resume`
+- `python -m Scripts.run_semantic_lifecycle --year 2026 --resume`
+- `python -m Scripts.run_semantic_tradedir --year 2026`
+- `python -m Scripts.run_semantic_ordertype --year 2026 --resume`
+- `python -m Scripts.run_semantic_session --year 2026`
+- `python -m Scripts.semantic_report --year 2026`
+- `python -m Scripts.build_verified_layer --year 2026 --resume`
+
+如果只是补最新一批日期，优先配合 `--dates`、`--max-days` 或已有 checkpoint 做窄范围增量，不默认重扫全年。
+
 ## build_raw_inventory 输出
 
 - `files.jsonl`：文件级 manifest 流
@@ -151,7 +177,7 @@
 - delegates to `run_semantic_lifecycle.py`, `run_semantic_tradedir.py`, `run_semantic_ordertype.py`, `run_semantic_session.py`
 - final outputs land in `dqa/semantic/year=<year>/...`
 - final markdown lands in `Research/Audits/semantic_<year>_summary.md`
-- current repo status: yearly summary markdown is part of the intended contract, but no checked-in `semantic_<year>_summary.md` artifact is present yet
+- current repo status: `semantic_2025_summary.md` / `semantic_2026_summary.md` are now checked in as the current yearly semantic framework summaries
 
 ## semantic 2026 framework 输出
 
@@ -164,9 +190,9 @@
 - `dqa/semantic/year=<year>/semantic_admissibility_bridge.parquet`
 - `Research/Audits/semantic_<year>_summary.md`
 
-Current checked-in markdown coverage in `Research/Audits/` is narrower than the full intended framework contract:
+Current checked-in markdown coverage in `Research/Audits/` now covers the core structured semantic framework contract:
 
-- present: `semantic_lifecycle_2025.md`, `semantic_lifecycle_2026.md`, `semantic_ordertype_2026.md`, `semantic_tradedir_contrast_2026.md`
-- not currently checked in: `semantic_<year>_summary.md`, `semantic_session_<year>.md`, `semantic_time_anchor_<year>.md`, `semantic_idspace_<year>.md`
+- present: `semantic_lifecycle_2025.md`, `semantic_lifecycle_2026.md`, `semantic_tradedir_2025.md`, `semantic_tradedir_2026.md`, `semantic_ordertype_2025.md`, `semantic_ordertype_2026.md`, `semantic_session_2025.md`, `semantic_session_2026.md`, `semantic_2025_summary.md`, `semantic_2026_summary.md`
+- not currently checked in: `semantic_time_anchor_<year>.md`, `semantic_idspace_<year>.md`
 
 旧的 lowercase `scripts/` 目录视为 legacy，不再作为新主线入口。
