@@ -40,6 +40,7 @@
 - `run_semantic_lifecycle.py`：`OrderId lifecycle` probe
 - `run_semantic_tradedir.py`：`TradeDir` probe
 - `run_semantic_tradedir_contrast.py`：`Dir=1/2` contrast probe，检验 linkage / tick-rule / time-bucket 差异
+- `run_tradedir_validation.py`：读取现有 `TradeDir` probe / contrast / 文档锚点，压成可挂机复核的一页 readiness summary
 - `run_semantic_ordertype.py`：`OrderType` probe
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
