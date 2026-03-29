@@ -57,7 +57,8 @@
 - `2025`：`research_time_grade = coarse_only`
 - `2026`：`research_time_grade = fine_ok`
 - `2026`：`OrderId lifecycle` full-year 审计已落地，当前可视为 `pass`
-- `2026`：`TradeDir` 当前只到 `candidate_directional_signal`，仍需 `manual review`，不能当成已确认 signed side
+- `2025/2026`：官方 OMD-C 文档与 vendor `ReadMe` 现在足以把 `TradeDir / Dir` 写成 `vendor-derived aggressor proxy`：`Dir=1` = sell aggressor，`Dir=2` = buy aggressor，`Dir=0` = other / special bucket
+- `2025/2026`：`TradeDir` 仍不能当成 HKEX 原生 signed side；`signed_flow` 研究继续 blocked，且 `Type in {U,X,P,D,M}` 应从 normal signed-flow bucket 分离
 - `2026`：`OrderType` 当前只到 `weak_pass`，可做弱一致性与 lifecycle-shape profiling，不能直接当成已确认事件语义
 - `2025`：`verified_orders / verified_trades` conservative v1 full-year materialization 已完成，并已生成 checked-in full-year report；`research_time_grade` 仍应解释为 `coarse_only`
 - `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance/report 已有 checked-in 产物，但 verified 落盘不等于高风险字段语义已完成验证

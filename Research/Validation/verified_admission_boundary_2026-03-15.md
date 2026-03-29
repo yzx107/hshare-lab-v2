@@ -68,6 +68,7 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 
 #### Trades
 
+- `Dir`
 - `Type`
 
 原因：
@@ -93,7 +94,6 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 
 #### Trades
 
-- `Dir`
 - `BrokerNo`
 - `BidOrderID`
 - `BidVolume`
@@ -102,9 +102,14 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 
 原因：
 
-- 它们直接牵涉 queue、broker identity、signed side、trade-to-order linkage-native meaning 等高风险语义
+- 它们直接牵涉 queue、broker identity、trade-to-order linkage-native meaning 等高风险语义
 - 当前项目已有明确 guardrail：这些语义尚未正式放行
 - 若过早进入 verified，会污染 Query 和下游研究的默认口径
+
+对于 `Dir`：
+
+- 当前已足够进入 `caveat-only` 语境
+- 但仍不足以进入 verified 默认表或被写成 confirmed signed-side truth
 
 ## Field-Specific Notes
 
@@ -130,6 +135,16 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 - 适合 session bucket、coarse temporal consistency、project-level time slicing
 - 不写成已完成官方 native time identity
 
+### `Dir`
+
+- 若后续进入 verified，只应进入 caveat-only namespace
+- 当前最稳的写法是 vendor-derived aggressor proxy：
+  - `Dir=1` = sell aggressor
+  - `Dir=2` = buy aggressor
+  - `Dir=0` = other / vendor-unclassified
+- 它不应被写成 HKEX native aggressor-side field
+- `Type in {U,X,P,D,M}` 应与 `Dir=0` 的特殊桶分开处理
+
 ## Query Impact
 
 对于 Query layer，verified 第一版应支持：
@@ -151,3 +166,5 @@ verified 第一版仍不应默认支持：
 ## Recommended Rule
 
 > Verified v1 should prefer conservative structural fields over semantically tempting vendor-defined fields. If a field is useful mainly because of an unverified business interpretation, it should stay out of verified until that interpretation is explicitly passed.
+>
+> A narrow exception is a vendor-derived proxy such as `Dir`: it may enter a caveat-only namespace once the proxy wording is explicit, but it still must stay out of the default verified surface.

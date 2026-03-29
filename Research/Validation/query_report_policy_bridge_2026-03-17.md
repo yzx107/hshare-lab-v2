@@ -54,7 +54,6 @@ Query 结果默认应先区分三层：
 
 如果 Query / report 提到下列字段：
 
-- `Dir`
 - `BrokerNo`
 - `Level`
 - `BidOrderID`
@@ -73,6 +72,7 @@ Query 结果默认应先区分三层：
 
 如果 Query / report 提到下列字段：
 
+- `Dir`
 - `OrderType`
 - `Ext`
 - `Type`
@@ -80,6 +80,8 @@ Query 结果默认应先区分三层：
 则默认动作应是：
 
 - 允许做枚举、漂移、共现、生命周期形状描述
+- `Dir` 若被解释，必须明确写成 vendor-derived aggressor proxy：`1=sell`, `2=buy`, `0=other`
+- `Dir=0` 与 `Type in {U,X,P,D,M}` 的特殊桶应单独处理，不应混入 normal signed-flow
 - 若进入结果展示，应显式写明 `vendor-defined` / `not research-verified`
 - 不应默认并入 `verified` 口径
 

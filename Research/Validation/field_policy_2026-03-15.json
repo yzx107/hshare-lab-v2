@@ -76,13 +76,13 @@
     },
     "Dir": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["enum_stability", "descriptive_contrast", "candidate_directional_signal_analysis"],
-      "forbidden_claims": ["confirmed_aggressor_side", "signed_trade_truth"]
+      "allowed_uses": ["enum_stability", "descriptive_contrast", "candidate_directional_signal_analysis", "vendor_aggressor_proxy_analysis", "special_trade_type_bucket_separation"],
+      "forbidden_claims": ["confirmed_aggressor_side", "signed_trade_truth", "official_native_aggressor_field"]
     },
     "Type": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["coverage", "enum_checks", "cooccurrence_checks"],
-      "forbidden_claims": ["official_trdtype_mapping"]
+      "allowed_uses": ["coverage", "enum_checks", "cooccurrence_checks", "special_trade_type_bucket_separation"],
+      "forbidden_claims": ["official_trdtype_mapping", "raw_official_trdtype_identity"]
     },
     "BrokerNo": {
       "statuses": ["vendor-defined", "unverified-semantic"],

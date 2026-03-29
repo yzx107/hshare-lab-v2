@@ -68,7 +68,9 @@
 
 - `BrokerNo` 已确认等同官方 `BrokerID`
 - `BrokerNo=0` 已有固定官方语义
-- `TradeDir`、`Level`、`VolumePre` 已可按字段名直接解释
+- 不应写成 `TradeDir` 已确认等同 HKEX 原生 aggressor-side 字段
+- 不应写成 `TradeDir=1/2/0` 可无 caveat 直接当 signed-side truth
+- `Level`、`VolumePre` 已可按字段名直接解释
 - 当前 `BidOrderID` / `AskOrderID` 一定是官方 trade message 原生字段
 
 这些仍需通过 semantic verification 单独确认。
@@ -89,6 +91,11 @@
 - vendor `Level` 已等于官方 `OrderBookPosition`
 
 因此，vendor `ReadMe` / notice 应视为 export-layer contract，而不是官方字段语义终局依据。
+
+但对 `TradeDir` 有一个更细的边界：
+
+- 当前可以把它写成 vendor-derived aggressor proxy
+- 不可以把它写成 HKEX 原生成交方向字段
 
 ## Practical Project Wording
 

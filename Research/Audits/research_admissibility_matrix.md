@@ -1,19 +1,20 @@
 # Research Admissibility Matrix
 
-- generated_at: 2026-03-15
+- generated_at: 2026-03-29
 - scope: `2025` vs `2026` linkage-related research admissibility
 - sources:
-  - `2025`: `ID-linkage = pass`, `SendTime-level anchor = unavailable`, `Time-level coarse temporal validation = weak_pass`
-  - `2026`: `ID-linkage = pass`, `SendTime-level anchor = pass`, `Time-level grade = fine_ok`, `TradeDir contrast = candidate_directional_signal (manual review)`, `OrderType = weak_pass (allow_with_caveat)`
+  - `2025`: `ID-linkage = pass`, `SendTime-level anchor = unavailable`, `Time-level coarse temporal validation = weak_pass`, `TradeDir = vendor-derived aggressor proxy (coarse-only caveat)`
+  - `2026`: `ID-linkage = pass`, `SendTime-level anchor = pass`, `Time-level grade = fine_ok`, `TradeDir = vendor-derived aggressor proxy (manual-review caveat)`, `OrderType = weak_pass (allow_with_caveat)`
 
 ## Working Rule
 
 - `2025`:
   - suitable for `ID-linked + coarse-time-consistent` research
   - not suitable for `SendTime`-sensitive ordering, lag, latency, queue, or execution studies
+  - `TradeDir` may be used only as a vendor-derived aggressor proxy with coarse-time caveat, where `Dir=1` = sell aggressor, `Dir=2` = buy aggressor, and `Dir=0` / `Type in {U,X,P,D,M}` are kept out of normal signed-flow buckets
 - `2026`:
   - suitable for both coarse and fine time-sensitive linkage research, subject to semantic verification of specific fields
-  - `TradeDir` may be used as a candidate directional signal only under explicit manual-review caveat; not as a confirmed signed-side label
+  - `TradeDir` may be used as a vendor-derived aggressor proxy only under explicit caveat; not as a confirmed signed-side label
 
 ## Matrix
 
@@ -24,7 +25,7 @@
 | `order_trade_consistency_same_second` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` only supports same-second / coarse consistency. |
 | `order_lifecycle_shape_by_event_count` | yes | no | yes | `allowed` | `allowed` | Measure lifecycle by event counts, not fine timing. |
 | `trade_dir_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` may use ID linkage + coarse temporal sanity only. |
-| `trade_dir_candidate_signal_profile` | yes | no | yes | `blocked` | `allowed_with_caveat` | `2026` may study `Dir=1/2` contrast as candidate directional signal, but not as confirmed signed side. |
+| `trade_dir_candidate_signal_profile` | yes | no | yes | `allowed_with_caveat` | `allowed_with_caveat` | `Dir=1/2` may be used as a vendor-derived aggressor proxy with `Dir=1=sell`, `Dir=2=buy`; keep `Dir=0` and `Type in {U,X,P,D,M}` out of normal signed-flow buckets. |
 | `broker_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed` | Descriptive / weak semantic checks only on `2025`. |
 | `ordertype_weak_consistency_check` | yes | no | yes | `allowed_with_caveat` | `allowed_with_caveat` | `2026` representative sample supports weak consistency checks, but event semantics are still not confirmed. |
 | `coarse_lag_bucket` | yes | no | yes | `allowed_with_caveat` | `allowed` | `2025` can use same-second / few-second buckets only. |
@@ -52,11 +53,12 @@
   - `ID-linkage`: pass
   - `research_time_grade`: coarse_only
   - admissible for descriptive linkage structure, lifecycle shape-by-events, and coarse temporal sanity checks
+  - `TradeDir`: vendor-derived aggressor proxy with `Dir=1=sell`, `Dir=2=buy`, `Dir=0=other/special bucket`; usable only with coarse-time caveat
   - inadmissible for precise lag, latency, queue, and execution-sensitive studies
 - `2026`
   - `ID-linkage`: pass
   - `research_time_grade`: fine_ok
-  - `TradeDir`: stable 3-value code `{0,1,2}` with `candidate_directional_signal`, but still `requires_manual_review`
+  - `TradeDir`: stable 3-value code `{0,1,2}` now best read as a vendor-derived aggressor proxy; `Dir=0` is concentrated in special public-trade-type buckets rather than mixed into normal signed-flow
   - `OrderType`: stable 3-value code with `weak_pass`, but still `allow_with_caveat`
   - admissible for second-stage semantic verification and fine-grained timing studies, provided field-level semantics continue to pass validation
 
@@ -64,5 +66,6 @@
 
 - This matrix reflects the checked-in semantic findings currently available in the repo: lifecycle has landed as a full-year audit, `TradeDir` has landed as a contrast probe with manual-review status, and `OrderType` has landed as a `weak_pass` semantic probe.
 - The repo should not yet be read as if `TradeDir` signed-side mapping, queue semantics, `BrokerNo` semantics, or `Level / VolumePre / Type / Ext` semantics are complete.
+- HKEX official docs and vendor `ReadMe` now support a stronger but still limited wording for `TradeDir`: vendor-derived aggressor proxy, not HKEX native aggressor-side truth.
 - `strict_ordering_sensitive_causality`, `execution_realism_or_fill_simulation`, and `latency_like_metrics` remain gated not because linkage/time-anchor are missing for `2026`, but because higher-risk field semantics are still only partially verified.
 - `queue_position_or_depletion` and `signed_flow_directional_factor` remain intentionally blocked in the current checked-in project state.

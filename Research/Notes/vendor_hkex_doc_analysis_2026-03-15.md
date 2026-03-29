@@ -44,11 +44,24 @@
 ### 3. 当前不能直接放行的推断
 
 - 不可把 vendor `Dir=1/2/0` 直接升级成官方 aggressor-side truth
+- 不可把 vendor `Dir` 写成 HKEX `Trade (50)` / `Trade Ticker (52)` 原生字段；官方 OMD-C 在这两类消息里提供 `TrdType`，但不提供成交 aggressor side
 - 不可把 `BrokerNo` 直接写死为 HKEX binary `BrokerID`
 - 不可把 `Level` 直接写死为官方 order book depth level
 - 不可把 `VolumePre` 直接写死为官方 binary 原生字段
 - 不可把 `BidOrderID / AskOrderID` 直接写死为官方 trade message 原生字段
 - 不可把 vendor `OrderType=1/2/3` 直接写死为已完成官方 message semantic mapping
+
+### 4. 当前可以安全升级到 caveat-only 的表述
+
+- 结合 HKEX 官方文档“Trade / Trade Ticker 无原生 aggressor-side 字段”与 vendor `ReadMe` 的 `Dir` 释义，当前可以把 `Dir` 写成：
+  - vendor-derived aggressor proxy
+  - `Dir=1` = vendor-coded sell aggressor
+  - `Dir=2` = vendor-coded buy aggressor
+  - `Dir=0` = other / vendor-unclassified bucket
+- 这一级表述仍然不是：
+  - 官方 HKEX native field mapping
+  - confirmed signed-trade truth
+  - 无 caveat 的 signed-flow alpha input
 
 ## Evidence Mapping
 
@@ -62,6 +75,7 @@
   - `Delete Order (32)`
   - `Trade (50)`
   - `Broker Queue (54)`
+- HKEX `Trade (50)` / `Trade Ticker (52)` message definitions提供 `TrdType` / Public Trade Type 语境，但没有 native `Dir/Side/Direction` aggressor-side 字段。
 - 这足以支撑 “OMD-C family + FullTick-compatible order-level content” 这一级 provenance。
 
 ### B. Vendor readme / notice 可直接支撑
@@ -69,6 +83,10 @@
 - `ReadMe.txt` 给出了 vendor CSV 字段名与 vendor 侧释义：
   - orders: `SeqNum / OrderId / OrderType / Ext / Time / Price / Volume / Level / BrokerNo / VolumePre`
   - trades: `Time / Price / Volume / Dir / Type / BrokerNo / TickID / BidOrderID / BidVolume / AskOrderID / AskVolume`
+- vendor `ReadMe.txt` 还给出了 `Dir` 的 export-layer 释义：
+  - `1` = 卖方主动成交
+  - `2` = 买方主动成交
+  - `0` = 其它
 - `raw_vendor_notice_2026-01-01.txt` 明确记录了 `2026-01-01` 的目录变更与“完整委托和成交记录”通知。
 
 ### C. Local vendor PDF 可直接支撑
@@ -123,8 +141,8 @@
 | `TickID` | vendor-defined with plausible official-family fit | vendor trade identifier, not yet confirmed as official native field mapping |
 | `OrderType` | vendor-defined | stable vendor event code, not yet official semantic mapping |
 | `Ext` | vendor-defined | vendor extension bitfield, not research-verified |
-| `Dir` | vendor-defined | vendor direction code, not confirmed aggressor-side truth |
-| `Type` | vendor-defined | vendor trade type code, not yet mapped to official `TrdType` |
+| `Dir` | vendor-defined | vendor-derived aggressor proxy (`1=sell`, `2=buy`, `0=other`), not official native field or confirmed signed-trade truth |
+| `Type` | vendor-defined | vendor public-trade-type code compatible with HKEX public trade type letters, not raw official `TrdType` integer mapping |
 | `Level` | vendor-defined | vendor level field, not confirmed official order book position |
 | `VolumePre` | vendor-defined | vendor pre-modify volume field, not confirmed official native field |
 | `BrokerNo` | vendor-defined | vendor broker/seat field, not yet confirmed equal to official `BrokerID` |

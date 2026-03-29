@@ -38,8 +38,8 @@
 | `Time` | `vendor_defined` + `official_family_compatible` | vendor `ReadMe` 定义 `HHMMSS`；官方存在 `TradeTime` 等时间字段 | session bucket、time-format checks | 当前 `Time` 已确认等同官方 `TradeTime` |
 | `Price` | `official_family_compatible` | vendor `ReadMe` 有成交价；官方 Trade message存在 `Price` | 非空/正值/异常率、基础成交分布 | 当前 vendor `Price` 已与官方 binary price field 逐字段对齐 |
 | `Volume` | `official_family_compatible` | vendor `ReadMe` 有成交量；官方 Trade message存在 `Quantity` | 非空/正值/异常率、基础成交量分布 | 当前 `Volume` 已确认等同官方 `Quantity` |
-| `Dir` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供 `0/1/2` 释义 | 枚举稳定性、分层统计、候选方向信号探索 | 已确认 aggressor side / signed trade truth |
-| `Type` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 有字段但未在文本中给出完整释义；官方 Historical Full Book 存在 `TrdType` | coverage、枚举、与其他字段共现关系 | 当前 `Type` 已确认等于官方 `TrdType` |
+| `Dir` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供 `0/1/2` 释义；HKEX `Trade / Trade Ticker` 文档不提供 native aggressor-side 字段 | 枚举稳定性、分层统计、vendor aggressor proxy 分析、`Dir=0` 特殊桶分离 | 已确认 HKEX 原生 aggressor side；可无 caveat 地当 signed trade truth |
+| `Type` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 有字段；HKEX 官方文档存在 `TrdType` / public trade type 语境，但当前 vendor 列未完成官方映射 | coverage、枚举、特殊 trade-type bucket 分离、与其他字段共现关系 | 当前 `Type` 已确认等于官方原始 `TrdType` 数值字段 |
 | `BrokerNo` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义为经纪商席位号 | coverage、reference join、ambiguity checks | 已确认等于官方 `BrokerID` |
 | `TickID` | `vendor_defined` + `official_family_compatible` | vendor `ReadMe` 定义为成交明细 ID；官方 Historical Full Book 存在 `TradeID` | 去重、唯一性、同日粒度标识检查 | 当前 `TickID` 已确认等于官方 `TradeID` |
 | `BidOrderID` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义为买盘委托 ID | linkage feasibility、match rate、lag pattern | 官方 trade message 原生字段已确认 |
@@ -51,6 +51,7 @@
 
 - 可以放心把 `OrderId`、`Price`、`Volume` 放进 `official-family-compatible` 口径，但不要写成已完成官方逐字段映射。
 - `OrderType`、`Ext`、`Dir`、`Type`、`Level`、`BrokerNo`、`VolumePre` 仍应视为 `vendor_defined + unverified_semantic`。
+- 其中 `Dir` 现在可以更准确地表述为 `vendor-derived aggressor proxy`，但仍不是官方 native side 字段，也不是无 caveat 的 signed-flow truth。
 - `BidOrderID / AskOrderID / BidVolume / AskVolume` 有很强 linkage 价值，但当前仍不是官方 schema confirmation。
 
 ## Suggested Contract Wording

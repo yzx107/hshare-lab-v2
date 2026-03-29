@@ -14,7 +14,7 @@
 
 | Field | Candidate Meaning | Status | Blocking | Notes |
 |---|---|---|---|---|
-| `TradeDir` | candidate directional code | `candidate_directional_signal` | `yes` | `2026` representative sample 上稳定为 `{0,1,2}`；`Dir=1/2` 在 `previous-trade price move` 上有稳定差异，但 signed-side mapping 仍未确认，保持 `requires_manual_review` |
+| `TradeDir` | vendor-derived aggressor proxy | `candidate_directional_signal` | `partial` | `2025/2026` 当前最稳口径是 `Dir=1=sell`, `Dir=2=buy`, `Dir=0=other/special bucket`；可进入 caveat-only verified policy，但 signed-side truth 与 signed-flow alpha 仍阻塞 |
 | `BrokerNo` | trade-side / reporting / one-side broker | `unknown` | `partial` | broker alpha 阻塞 |
 | `BidOrderID` | linked bid order id | `weak_pass` | `partial` | `2025/2026` full-year direct equality 与 linkage backbone 已成立，但 native field meaning 仍未完全确认；默认不进入 verified v1 |
 | `AskOrderID` | linked ask order id | `weak_pass` | `partial` | `2025/2026` full-year direct equality 与 linkage backbone 已成立，但 native field meaning 仍未完全确认；默认不进入 verified v1 |
@@ -32,7 +32,7 @@
 - `fail`: 不得进入研究主线
 - `weak_pass`: 可支持弱一致性 / 轮廓研究，但不能直接放行强语义解释
 - `unknown`: 只能保留在 candidate cleaned，不得默认解释
-- `candidate_directional_signal`: 存在稳定的候选方向相关信号，但还不能直接映射为 confirmed signed side，默认仍需人工审查
+- `candidate_directional_signal`: 存在稳定的候选方向相关信号；若官方文档与 vendor 文档共同支持，可升级为 vendor-derived proxy，但仍不能直接映射为 confirmed signed side
 
 ## Related Policy Docs
 

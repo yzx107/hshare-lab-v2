@@ -24,6 +24,7 @@
   - `dir0_specialness_score = 0.4032756015451462`
   - `Dir=0` has `bid_present_rate = ask_present_rate = both_present_rate = 0.0`
   - `Dir=0` concentrates in `0900_0929` and `1600_plus` buckets that `Dir=1/2` do not occupy
+  - full-year `candidate_cleaned` follow-up shows `Dir=0` is concentrated in special public-trade-type buckets such as `U / X / P / D / M`
 
 ## Daily Contrast
 
@@ -59,13 +60,15 @@
   - `TradeDir` likely carries some direction-related short-horizon coding signal
   - `Dir=1/2` contrast is stable on representative samples
   - `Dir=0` is structurally distinct
+  - `Dir=1` is best read as vendor-coded sell aggressor
+  - `Dir=2` is best read as vendor-coded buy aggressor
+  - `Dir=0` is an `other / vendor-unclassified` bucket and should be separated from normal signed-flow buckets
 - Not safe to say:
-  - `Dir=1` equals buy aggressor
-  - `Dir=2` equals sell aggressor
-  - `TradeDir` is ready for signed-flow alpha or confirmed aggressor-side research
+  - `Dir` is an HKEX native aggressor-side field
+  - `TradeDir` is ready for signed-flow alpha or confirmed aggressor-side research without caveat
 
 ## Project Wording
 
 > For 2026 representative samples, `TradeDir` is a stable 3-value code `{0,1,2}`.
-> Contrast probing suggests a candidate directional signal between `Dir=1` and `Dir=2` based on previous-trade price-move behavior, but linkage structure does not identify a confirmed signed-side mapping.
+> Contrast probing suggests a candidate directional signal between `Dir=1` and `Dir=2` based on previous-trade price-move behavior, while HKEX official docs and vendor export docs together support reading it as a vendor-derived aggressor proxy rather than an HKEX native field.
 > Current admissibility remains `requires_manual_review`.

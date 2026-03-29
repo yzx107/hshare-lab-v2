@@ -115,8 +115,9 @@
       "reason": "vendor_trade_type_code_without_verified_trdtype_mapping"
     },
     "Dir": {
-      "bucket": "keep_out_for_now",
-      "reason": "signed_side_semantics_not_verified"
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "vendor_derived_aggressor_proxy_not_official_truth",
+      "caveat": "dir_1_sell_aggressor_dir_2_buy_aggressor_dir_0_other_special_trade_types_should_be_separated_and_signed_flow_claims_remain_blocked"
     },
     "BrokerNo": {
       "bucket": "keep_out_for_now",

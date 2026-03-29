@@ -52,7 +52,7 @@
 | `BidOrderID / AskOrderID` linkage columns | direct equality works, native meaning still unverified | direct equality works, native meaning still unverified | `keep_out_for_now` | 可继续服务 DQA / semantic / research admissibility；不进入 verified v1 默认表 |
 | `verified_trade_order_linkage` table | too strong for v1 | too strong for v1 | `defer` | 等下一阶段 verified 扩容，而不是现在默认 materialize |
 | `OrderType` | no full-year pass-level semantic release | `weak_pass` | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；若后续暴露，需显式 caveat |
-| `TradeDir / Dir` | blocked | candidate directional signal only | `keep_out_for_now` | 仍不得当 confirmed signed side 进入 verified |
+| `TradeDir / Dir` | vendor-derived aggressor proxy with `coarse_only` caveat | vendor-derived aggressor proxy with manual-review caveat | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；若后续暴露，必须写明 `Dir=1=sell`, `Dir=2=buy`, `Dir=0=other/special bucket`，且仍不得当 confirmed signed side 使用 |
 | `BrokerNo` | blocked | blocked | `keep_out_for_now` | 只允许 reference lookup 语境，不进 verified |
 | `Level / VolumePre` | blocked | blocked | `keep_out_for_now` | queue/depth 语义未验证 |
 | `Type / Ext` | vendor-defined only | vendor-defined only | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表 |
@@ -74,8 +74,8 @@
 
 - `verified_trade_order_linkage`
 - broker enrichment / participant enrichment
-- `OrderType / Type / Ext` caveat namespace
-- `Dir / BrokerNo / Level / VolumePre / BidOrderID / AskOrderID` 进 verified 默认表
+- `OrderType / Type / Ext / Dir` caveat namespace
+- `BrokerNo / Level / VolumePre / BidOrderID / AskOrderID` 进 verified 默认表
 
 ## Build Rule
 
@@ -97,7 +97,6 @@ verified v1 的实现应满足：
 - `BidOrderID / AskOrderID`
 - `verified_trade_order_linkage`
 - `OrderType`
-- `Dir`
 - `BrokerNo`
 
 那应该先更新：
@@ -107,3 +106,5 @@ verified v1 的实现应满足：
 - verified field policy
 
 而不是直接扩表。
+
+如果以后要把 `Dir` 放进 verified 默认表，或去掉 caveat-only 约束，也应先更新这三层 policy，而不是直接扩表。
