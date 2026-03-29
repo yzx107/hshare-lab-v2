@@ -52,11 +52,13 @@
     },
     "OrderType": {
       "bucket": "admit_with_explicit_caveat_only",
-      "reason": "stable_but_semantically_unverified_vendor_code"
+      "reason": "stable_vendor_event_code_not_official_event_semantics",
+      "caveat": "ordertype_1_add_2_modify_3_delete_vendor_event_code_only_not_official_message_identity"
     },
     "Ext": {
       "bucket": "admit_with_explicit_caveat_only",
-      "reason": "vendor_bitfield_without_verified_semantics"
+      "reason": "vendor_bitfield_only_bit0_is_ready_for_order_side_proxy_use",
+      "caveat": "ext_bit0_can_support_ordersidevendor_0_buy_1_sell_but_full_ext_semantics_remain_unverified"
     },
     "Level": {
       "bucket": "keep_out_for_now",
@@ -112,7 +114,7 @@
     },
     "Type": {
       "bucket": "admit_with_explicit_caveat_only",
-      "reason": "vendor_trade_type_code_without_verified_trdtype_mapping"
+      "reason": "vendor_public_trade_type_bucket_without_verified_trdtype_integer_mapping"
     },
     "Dir": {
       "bucket": "admit_with_explicit_caveat_only",

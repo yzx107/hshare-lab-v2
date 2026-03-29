@@ -1,4 +1,4 @@
-# Verified Layer v1 Design
+# Verified Layer v1 设计（Verified Layer v1 Design）
 
 ## Scope
 
@@ -36,7 +36,7 @@ verified v1 的目标是：
   - `full-year lifecycle = 48/48, 0 failed`
 
 这些结论足够支持 conservative verified v1 的 structural build，
-但还不足以自动放行 caveat fields 或 linkage-native semantics。
+但还不足以把 caveat fields 自动混入默认 verified 表或放行 linkage-native semantics。
 
 ## Current Repo Status
 
@@ -45,10 +45,16 @@ verified v1 的目标是：
 - `2026` full-year verified v1 materialization has corresponding checked-in acceptance/report artifacts.
 - The existence of verified outputs should be interpreted as: conservative structural tables are materialized successfully.
 - It should not be interpreted as: higher-risk semantic fields have been promoted, or semantic verification for `TradeDir`, `BrokerNo`, queue semantics, or event-type semantics is finished.
+- Repo 现在也允许显式构建 `caveat-only` 变体，但这些变体仍不等于默认 verified surface。
 
 ## v1 Output Tables
 
 - `verified_trades`
+
+Optional caveat-only variants:
+
+- `verified_orders__caveat_ordertype_ordersidevendor`
+- `verified_trades__caveat_dir`
 - `verified_orders`
 
 Not in v1 default scope:
@@ -71,6 +77,12 @@ These need more semantic / reference handling and should not be forced into the 
 - 把 `BidOrderID / AskOrderID` 直接提升到 verified 默认表
 - 把 `OrderType / Dir / BrokerNo / Level / VolumePre / Type / Ext` 混入 verified v1
 
+当前可以按显式受限命名空间单独 materialize：
+
+- `Dir`
+- `OrderType`
+- `OrderSideVendor`（由 `Ext.bit0` 派生）
+
 ## Field Selection Rule
 
 verified v1 should include only:
@@ -82,6 +94,12 @@ verified v1 should exclude by default:
 
 - `admit_with_explicit_caveat_only`
 - `keep_out_for_now`
+
+如果显式请求 caveat-only 变体，则：
+
+- 只允许暴露已在 verified admission policy 中标注为 `admit_with_explicit_caveat_only` 的字段
+- 以及 policy 明确允许的派生字段 `OrderSideVendor`
+- caveat-only 变体不得覆盖默认 verified 表
 
 ## Table Contract Shape
 
@@ -126,6 +144,12 @@ verified v1 rows or table-level manifests should carry:
 - `contains_caveat_fields = false`
 - `reference_join_applied = false`
 
+caveat-only 变体 rows or manifests should carry:
+
+- `admission_rule = admit_now_plus_caveat_only`
+- `contains_caveat_fields = true`
+- `included_caveat_columns`
+
 ## What v1 Explicitly Does Not Mean
 
 verified v1 does not mean:
@@ -145,14 +169,15 @@ In particular:
 1. Read verified admission policy.
 2. Build allowed column list per table.
 3. Materialize `verified_orders` and `verified_trades`.
-4. Write summary manifest with policy version and excluded-field list.
-5. Defer linkage and broker enrichment tables to later phases.
+4. If explicitly requested, materialize caveat-only variants in a separate namespace.
+5. Write summary manifest with policy version and excluded-field list.
+6. Defer linkage and broker enrichment tables to later phases.
 
 ## Build Boundary
 
 verified v1 is intentionally conservative.
 
-If a future change needs:
+If a future change needs new default verified columns such as:
 
 - `BrokerNo`
 - `Dir`
@@ -160,6 +185,7 @@ If a future change needs:
 - `BidOrderID / AskOrderID`
 - `OrderType`
 - `Type`
+- full `Ext`
 
 then that change should first update semantic status and admission policy, rather than silently expanding verified scope.
 

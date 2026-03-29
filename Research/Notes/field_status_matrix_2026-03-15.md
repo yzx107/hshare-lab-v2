@@ -1,4 +1,4 @@
-# Field Status Matrix 2026-03-15
+# 字段状态矩阵 2026-03-15（Field Status Matrix）
 
 ## Scope
 
@@ -22,8 +22,8 @@
 | --- | --- | --- | --- | --- |
 | `SeqNum` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供字段名；官方 OMD-C 存在消息流顺序语境，但当前列名未完成官方映射 | sequence / monotonicity / gap checks | 官方 native sequence field 已确认 |
 | `OrderId` | `official_family_compatible` | vendor `ReadMe` 有该字段；HKEX OMD-C 官方消息存在 `OrderId` | order-level linkage、生命周期骨架、same-order consistency | 当前 vendor `OrderId` 已与官方 binary 逐字段对齐 |
-| `OrderType` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义 `1/2/3 = 增加/修改/删除`；官方也有 Add/Modify/Delete message family | 枚举稳定性、生命周期形状、弱一致性检查 | `1/2/3` 已正式等于官方 message semantic mapping |
-| `Ext` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供 bit 位说明 | coverage、枚举统计、cross-field consistency | bit 位已完成官方字段映射 |
+| `OrderType` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义 `1/2/3 = 增加/修改/删除`；旧格式 raw 目录也与 `OrderAdd -> 1`、`OrderModifyDelete -> 2/3` 强一致；官方存在 Add/Modify/Delete message family | 枚举稳定性、生命周期形状、弱一致性检查、`stable vendor event code` 语境下的研究过滤 | `1/2/3` 已正式等于官方 message semantic mapping |
+| `Ext` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供 bit 位说明；其中 `bit0` 已可写成 `vendor order-side proxy` | coverage、枚举统计、cross-field consistency、`bit0` 的 order-side 分桶 | 整列 bit 位已完成官方字段映射；`bit1/bit2` 已语义毕业 |
 | `Time` | `vendor_defined` + `official_family_compatible` | vendor `ReadMe` 定义 `HHMMSS`；HKEX 官方产品存在 time / send time / trade time 语境 | session bucket、time-format checks、与技术时间列对照 | 当前 `Time` 已确认等同某个官方原生时间字段 |
 | `Price` | `official_family_compatible` | vendor `ReadMe` 有订单价格；HKEX OMD-C Add Order / related messages存在 `Price` | 非空/正值/异常率、基础价格分布 | 当前 vendor `Price` 已与官方 binary price field 逐字段对齐 |
 | `Volume` | `official_family_compatible` | vendor `ReadMe` 有订单量；HKEX OMD-C Add Order / related messages存在 `Quantity` 语境 | 非空/正值/异常率、基础量分布 | 当前 `Volume` 已确认等同官方 `Quantity` |
@@ -39,7 +39,7 @@
 | `Price` | `official_family_compatible` | vendor `ReadMe` 有成交价；官方 Trade message存在 `Price` | 非空/正值/异常率、基础成交分布 | 当前 vendor `Price` 已与官方 binary price field 逐字段对齐 |
 | `Volume` | `official_family_compatible` | vendor `ReadMe` 有成交量；官方 Trade message存在 `Quantity` | 非空/正值/异常率、基础成交量分布 | 当前 `Volume` 已确认等同官方 `Quantity` |
 | `Dir` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 提供 `0/1/2` 释义；HKEX `Trade / Trade Ticker` 文档不提供 native aggressor-side 字段 | 枚举稳定性、分层统计、vendor aggressor proxy 分析、`Dir=0` 特殊桶分离 | 已确认 HKEX 原生 aggressor side；可无 caveat 地当 signed trade truth |
-| `Type` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 有字段；HKEX 官方文档存在 `TrdType` / public trade type 语境，但当前 vendor 列未完成官方映射 | coverage、枚举、特殊 trade-type bucket 分离、与其他字段共现关系 | 当前 `Type` 已确认等于官方原始 `TrdType` 数值字段 |
+| `Type` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 有字段；HKEX 官方文档存在 `TrdType` / public trade type 语境；当前 vendor 列更适合写成 public trade type letter bucket | coverage、枚举、特殊 trade-type bucket 分离、与其他字段共现关系 | 当前 `Type` 已确认等于官方原始 `TrdType` 数值字段 |
 | `BrokerNo` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义为经纪商席位号 | coverage、reference join、ambiguity checks | 已确认等于官方 `BrokerID` |
 | `TickID` | `vendor_defined` + `official_family_compatible` | vendor `ReadMe` 定义为成交明细 ID；官方 Historical Full Book 存在 `TradeID` | 去重、唯一性、同日粒度标识检查 | 当前 `TickID` 已确认等于官方 `TradeID` |
 | `BidOrderID` | `vendor_defined` + `unverified_semantic` | vendor `ReadMe` 定义为买盘委托 ID | linkage feasibility、match rate、lag pattern | 官方 trade message 原生字段已确认 |
@@ -52,6 +52,7 @@
 - 可以放心把 `OrderId`、`Price`、`Volume` 放进 `official-family-compatible` 口径，但不要写成已完成官方逐字段映射。
 - `OrderType`、`Ext`、`Dir`、`Type`、`Level`、`BrokerNo`、`VolumePre` 仍应视为 `vendor_defined + unverified_semantic`。
 - 其中 `Dir` 现在可以更准确地表述为 `vendor-derived aggressor proxy`，但仍不是官方 native side 字段，也不是无 caveat 的 signed-flow truth。
+- `OrderType` 现在可以更准确地表述为 `stable vendor event code`；`Ext.bit0` 可以更准确地表述为 `vendor order-side proxy`，但都还不是官方原生字段映射。
 - `BidOrderID / AskOrderID / BidVolume / AskVolume` 有很强 linkage 价值，但当前仍不是官方 schema confirmation。
 
 ## Suggested Contract Wording

@@ -1,4 +1,4 @@
-# Verified Admission Boundary 2026-03-15
+# Verified 准入边界 2026-03-15（Verified Admission Boundary）
 
 ## Scope
 
@@ -81,6 +81,7 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 
 - 先不进入 verified 第一版
 - 若后续有强需求，可进入 `verified_with_caveat` 或同等显式受限视图
+- 当前更适合放开的不是整列 `Ext`，而是从 `Ext.bit0` 派生出的 `OrderSideVendor`
 
 ### C. Keep Out Of Verified For Now
 
@@ -145,6 +146,21 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 - 它不应被写成 HKEX native aggressor-side field
 - `Type in {U,X,P,D,M}` 应与 `Dir=0` 的特殊桶分开处理
 
+### `OrderType`
+
+- 当前最稳的写法是 `stable vendor event code`
+- `1` = `Add`
+- `2` = `Modify`
+- `3` = `Delete`
+- 可进入 caveat-only namespace，但不应写成官方原生 event semantics 已确认
+
+### `Ext` / `OrderSideVendor`
+
+- 不建议把整列 `Ext` 直接并入 verified 默认表
+- 当前更稳的做法是只暴露 `Ext.bit0` 派生字段 `OrderSideVendor`
+- `OrderSideVendor=0` = buy，`OrderSideVendor=1` = sell
+- `bit1/bit2` 仍未完成同等级验证，不能因为 `bit0` 通过就把整列 `Ext` 视为已验证
+
 ## Query Impact
 
 对于 Query layer，verified 第一版应支持：
@@ -167,4 +183,4 @@ verified 第一版仍不应默认支持：
 
 > Verified v1 should prefer conservative structural fields over semantically tempting vendor-defined fields. If a field is useful mainly because of an unverified business interpretation, it should stay out of verified until that interpretation is explicitly passed.
 >
-> A narrow exception is a vendor-derived proxy such as `Dir`: it may enter a caveat-only namespace once the proxy wording is explicit, but it still must stay out of the default verified surface.
+> Narrow caveat-only exceptions are allowed for fields such as `Dir`, `OrderType`, and a derived `OrderSideVendor` field from `Ext.bit0`, once the proxy/code wording is explicit. They still must stay out of the default verified surface.

@@ -1,17 +1,23 @@
-# Research Report Template
+# 研究报告模板（Research Report Template）
 
-## Title
+## 使用说明
+
+- 默认用中文写报告；字段名、bucket 名、policy 名保持英文原样
+- 如果英文术语更精确，可在中文后保留英文括注，例如 `vendor-derived aggressor proxy`
+- 不要为了语言统一，改写 contract、schema、CLI、字段名
+
+## 标题（Title）
 
 - generated_at:
 - scope:
 - dataset_slice:
 - status:
 
-## Research Question
+## 研究问题（Research Question）
 
-State the exact question being studied.
+写清楚本报告到底在研究什么，不要写成泛泛主题。
 
-## Admissibility Gate
+## 准入门（Admissibility Gate）
 
 - provenance_note:
   - Use the short or medium form from [provenance_note_template.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/provenance_note_template.md)
@@ -33,20 +39,20 @@ State the exact question being studied.
   - `blocked`
 - blocking_reason:
 
-## Source Basis
+## 来源依据（Source Basis）
 
 - official_sources:
 - vendor_sources:
 - reference_sources:
 - local_notes:
 
-## Method Boundary
+## 方法边界（Method Boundary）
 
 - allowed_interpretations:
 - prohibited_interpretations:
 - whether_any_vendor_defined_field_is_used_as_business_truth:
 
-## Data Slice
+## 数据切片（Data Slice）
 
 - year:
 - dates:
@@ -56,13 +62,13 @@ State the exact question being studied.
 - reference_join_applied:
 - reference_join_type:
 
-## Findings
+## 主要发现（Findings）
 
 - finding_1:
 - finding_2:
 - finding_3:
 
-## Field-Level Caveats
+## 字段级保留条件（Field-Level Caveats）
 
 - `OrderId`:
 - `OrderType`:
@@ -74,11 +80,11 @@ State the exact question being studied.
 - `VolumePre`:
 - `BidOrderID` / `AskOrderID`:
 
-Only keep the lines relevant to the report.
+只保留和当前报告真正相关的字段行。
 
-## Safe Wording
+## 推荐表述（Safe Wording）
 
-Prefer wording such as:
+优先使用：
 
 - `compatible with`
 - `vendor-defined`
@@ -86,18 +92,18 @@ Prefer wording such as:
 - `candidate interpretation`
 - `linkage feasibility`
 
-Avoid wording such as:
+避免使用：
 
 - `confirmed official mapping`
 - `verified business meaning`
 - `proven aggressor side`
 - `official schema identity`
 
-## Conclusion
+## 结论（Conclusion）
 
-Summarize the result without overstating field semantics.
+总结结果时，不要把字段语义写得比证据更强。
 
-## References
+## 参考材料（References）
 
 - [DATA_CONTRACT.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DATA_CONTRACT.md)
 - [DQA_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DQA_SPEC.md)

@@ -40,8 +40,11 @@ class VerifiedTask:
     date: str
     input_paths: tuple[str, ...]
     output_path: str
-    allowed_columns: tuple[str, ...]
+    input_columns: tuple[str, ...]
+    output_columns: tuple[str, ...]
     excluded_columns: tuple[str, ...]
+    caveat_columns: tuple[str, ...] = ()
+    variant_label: str = ""
     input_row_count: int = 0
     input_bytes: int = 0
     scratch_root: str | None = None
@@ -49,10 +52,12 @@ class VerifiedTask:
 
     @property
     def task_key(self) -> str:
-        return f"{self.date}:{self.table_name}"
+        return f"{self.date}:{self.verified_table_name}"
 
     @property
     def verified_table_name(self) -> str:
+        if self.variant_label:
+            return f"verified_{self.table_name}__{self.variant_label}"
         return f"verified_{self.table_name}"
 
 
@@ -76,7 +81,9 @@ def default_executor_mode() -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Materialize verified v1 tables from admit-now fields only.")
+    parser = argparse.ArgumentParser(
+        description="Materialize verified v1 tables from admit-now fields, with optional caveat-only variants."
+    )
     parser.add_argument("--year", help="Year such as 2025 or 2026.")
     parser.add_argument(
         "--table",
@@ -113,6 +120,13 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_POLICY_PATH,
         help="Path to the verified field policy JSON.",
+    )
+    parser.add_argument(
+        "--include-caveat-columns",
+        help=(
+            "Comma-separated caveat-only columns or derived fields to expose in a separate verified namespace. "
+            "Examples: OrderType,Dir,OrderSideVendor"
+        ),
     )
     parser.add_argument("--dates", help="Comma-separated trade dates in YYYYMMDD or YYYY-MM-DD format.")
     parser.add_argument("--start-date", help="Inclusive lower bound trade date in YYYYMMDD or YYYY-MM-DD format.")
@@ -213,15 +227,82 @@ def read_policy(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def table_policy_columns(policy: dict[str, Any], table_name: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    allowed: list[str] = []
+def explicit_caveat_columns_from_args(args: argparse.Namespace) -> tuple[str, ...]:
+    if not args.include_caveat_columns:
+        return ()
+    values = [token.strip() for token in args.include_caveat_columns.split(",") if token.strip()]
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return tuple(ordered)
+
+
+def derived_caveat_columns_for_table(table_name: str) -> tuple[str, ...]:
+    if table_name == "orders":
+        return ("OrderSideVendor",)
+    return ()
+
+
+def supported_caveat_columns(policy: dict[str, Any]) -> set[str]:
+    supported: set[str] = {"OrderSideVendor"}
+    for table_name in ("orders", "trades"):
+        for column_name, spec in policy[table_name].items():
+            if spec["bucket"] == "admit_with_explicit_caveat_only":
+                supported.add(column_name)
+    return supported
+
+
+def validate_requested_caveat_columns(policy: dict[str, Any], requested_columns: tuple[str, ...]) -> None:
+    unsupported = sorted(set(requested_columns) - supported_caveat_columns(policy))
+    if unsupported:
+        raise SystemExit(
+            "Unsupported caveat columns requested: "
+            f"{', '.join(unsupported)}. Supported values are admit_with_explicit_caveat_only fields plus OrderSideVendor."
+        )
+
+
+def variant_label_for_caveat_columns(caveat_columns: tuple[str, ...]) -> str:
+    if not caveat_columns:
+        return ""
+    return "caveat_" + "_".join(value.lower() for value in caveat_columns)
+
+
+def table_policy_projection(
+    policy: dict[str, Any],
+    table_name: str,
+    requested_caveat_columns: tuple[str, ...],
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...], str]:
+    input_columns: list[str] = []
+    output_columns: list[str] = []
     excluded: list[str] = []
+    caveat_columns: list[str] = []
+    requested_set = set(requested_caveat_columns)
     for column_name, spec in policy[table_name].items():
         if spec["bucket"] == "admit_now":
-            allowed.append(column_name)
+            input_columns.append(column_name)
+            output_columns.append(column_name)
+        elif spec["bucket"] == "admit_with_explicit_caveat_only" and column_name in requested_set:
+            input_columns.append(column_name)
+            output_columns.append(column_name)
+            caveat_columns.append(column_name)
         else:
             excluded.append(column_name)
-    return tuple(allowed), tuple(excluded)
+    for column_name in derived_caveat_columns_for_table(table_name):
+        if column_name in requested_set:
+            output_columns.append(column_name)
+            caveat_columns.append(column_name)
+    caveat_tuple = tuple(caveat_columns)
+    return (
+        tuple(input_columns),
+        tuple(output_columns),
+        tuple(excluded),
+        caveat_tuple,
+        variant_label_for_caveat_columns(caveat_tuple),
+    )
 
 
 def parse_selected_dates(args: argparse.Namespace, table_name: str) -> list[str]:
@@ -258,20 +339,34 @@ def parse_selected_dates(args: argparse.Namespace, table_name: str) -> list[str]
 
 
 def output_path_for_task(output_root: Path, year: str, table_name: str, trade_date: str) -> Path:
-    verified_table_name = f"verified_{table_name}"
+    verified_table_name = (
+        f"verified_{table_name}"
+        if not table_name.startswith("verified_")
+        else table_name
+    )
     return output_root / verified_table_name / f"year={year}" / f"date={trade_date}" / "part-00000.parquet"
 
 
 def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[VerifiedTask]:
     tables = ("orders", "trades") if args.table == "all" else (args.table,)
     tasks: list[VerifiedTask] = []
+    requested_caveat_columns = explicit_caveat_columns_from_args(args)
     for table_name in tables:
-        allowed_columns, excluded_columns = table_policy_columns(policy, table_name)
+        input_columns, output_columns, excluded_columns, caveat_columns, variant_label = table_policy_projection(
+            policy,
+            table_name,
+            requested_caveat_columns,
+        )
         for trade_date in parse_selected_dates(args, table_name):
             input_paths = tuple(str(path) for path in sorted((args.stage_root / table_name / f"date={trade_date}").glob("*.parquet")))
             if not input_paths:
                 continue
             input_row_count, input_bytes = inspect_input_paths(input_paths)
+            verified_table_name = (
+                f"verified_{table_name}"
+                if not variant_label
+                else f"verified_{table_name}__{variant_label}"
+            )
             tasks.append(
                 VerifiedTask(
                     year=str(args.year),
@@ -280,9 +375,12 @@ def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[Ver
                     input_paths=input_paths,
                     input_row_count=input_row_count,
                     input_bytes=input_bytes,
-                    output_path=str(output_path_for_task(args.output_root, str(args.year), table_name, trade_date)),
-                    allowed_columns=allowed_columns,
+                    output_path=str(output_path_for_task(args.output_root, str(args.year), verified_table_name, trade_date)),
+                    input_columns=input_columns,
+                    output_columns=output_columns,
                     excluded_columns=excluded_columns,
+                    caveat_columns=caveat_columns,
+                    variant_label=variant_label,
                     scratch_root=(
                         str(args.scratch_root)
                         if args.scratch_root and (args.scratch_table == "all" or args.scratch_table == table_name)
@@ -326,6 +424,7 @@ def is_partial_selection(args: argparse.Namespace) -> bool:
         or args.end_date
         or args.max_days
         or args.date_batch_size
+        or explicit_caveat_columns_from_args(args)
     )
 
 
@@ -353,6 +452,9 @@ def selection_label(args: argparse.Namespace) -> str:
         parts.append(f"{edge}_{args.max_days}d")
     if args.date_batch_size:
         parts.append(f"batch_{args.date_batch_index}_of_size_{args.date_batch_size}")
+    caveat_columns = explicit_caveat_columns_from_args(args)
+    if caveat_columns:
+        parts.append(f"caveat_{'_'.join(value.lower() for value in caveat_columns)}")
     return "__".join(parts)
 
 
@@ -366,10 +468,12 @@ def report_path_for_run(research_root: Path, args: argparse.Namespace) -> Path:
 def build_selection_metadata(args: argparse.Namespace, tasks: list[VerifiedTask]) -> dict[str, Any]:
     selected_dates = sorted({task.date for task in tasks})
     explicit_dates = explicit_dates_from_args(args)
+    caveat_columns = explicit_caveat_columns_from_args(args)
     return {
         "label": selection_label(args),
         "is_partial": is_partial_selection(args),
         "table": args.table,
+        "include_caveat_columns": list(caveat_columns),
         "explicit_dates": explicit_dates,
         "start_date": args.start_date,
         "end_date": args.end_date,
@@ -621,12 +725,18 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
     materialize_started_at = time.perf_counter()
     scan = pl.scan_parquet(list(effective_input_paths))
     available_columns = set(scan.collect_schema().names())
-    missing_columns = [column for column in task.allowed_columns if column not in available_columns]
+    required_source_columns = set(task.input_columns)
+    if "OrderSideVendor" in task.caveat_columns:
+        required_source_columns.add("Ext")
+    missing_columns = [column for column in sorted(required_source_columns) if column not in available_columns]
     if missing_columns:
-        raise ValueError(f"Missing admit-now columns for {task.task_key}: {missing_columns}")
+        raise ValueError(f"Missing verified input columns for {task.task_key}: {missing_columns}")
     row_count = task.input_row_count if task.input_row_count > 0 else input_rows(task.input_paths)
+    select_exprs: list[Any] = [pl.col(column) for column in task.input_columns]
+    if "OrderSideVendor" in task.caveat_columns:
+        select_exprs.append(pl.col("Ext").cast(pl.Utf8).str.slice(0, 1).alias("OrderSideVendor"))
     try:
-        scan.select(list(task.allowed_columns)).sink_parquet(temp_path)
+        scan.select(select_exprs).sink_parquet(temp_path)
         os.replace(temp_path, output_path)
     except Exception:
         if temp_path.exists():
@@ -649,12 +759,13 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
         "input_row_count": row_count,
         "output_row_count": row_count,
         "output_bytes": file_size,
-        "included_columns": list(task.allowed_columns),
+        "included_columns": list(task.output_columns),
+        "included_caveat_columns": list(task.caveat_columns),
         "excluded_columns": list(task.excluded_columns),
         "verified_policy_version": "2026-03-15",
         "source_layer": "candidate_cleaned",
-        "admission_rule": "admit_now_only",
-        "contains_caveat_fields": False,
+        "admission_rule": "admit_now_plus_caveat_only" if task.caveat_columns else "admit_now_only",
+        "contains_caveat_fields": bool(task.caveat_columns),
         "reference_join_applied": False,
         "research_time_grade": research_time_grade_for_year(task.year),
         "prefetch_copied_files": prefetch.prefetch_copied_files,
@@ -724,21 +835,22 @@ def write_checkpoint(ckpt_path: Path, hb_path: Path, state: dict[str, Any]) -> N
 def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary: dict[str, Any]) -> None:
     selection = summary.get("selection") or {}
     lines = [
-        f"# Verified Layer {year}",
+        f"# Verified Layer {year}（已验证层）",
         "",
-        f"- generated_at: {summary['generated_at']}",
-        f"- status: {summary['status']}",
-        f"- completed_count: {summary['completed_count']}",
-        f"- failed_count: {summary['failed_count']}",
+        f"- 生成时间: {summary['generated_at']}",
+        f"- 状态: {summary['status']}",
+        f"- 完成任务数: {summary['completed_count']}",
+        f"- 失败任务数: {summary['failed_count']}",
         "",
     ]
     if selection:
         lines.extend(
             [
-                "## Selection",
+                "## 选择范围",
                 "",
                 f"- label: {selection.get('label', 'full')}",
                 f"- table: {selection.get('table', 'all')}",
+                f"- include_caveat_columns: {', '.join(selection.get('include_caveat_columns', [])) or 'none'}",
                 f"- selected_date_count: {selection.get('selected_date_count', 0)}",
                 f"- selected_task_count: {selection.get('selected_task_count', 0)}",
                 f"- first_selected_date: {selection.get('first_selected_date') or 'n/a'}",
@@ -758,8 +870,8 @@ def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary
         lines.extend(["",])
     lines.extend(
         [
-        "## Tables",
-        "",
+            "## 数据表",
+            "",
         ]
     )
     for table_name, table_summary in sorted(summary["tables"].items()):
@@ -775,14 +887,16 @@ def write_markdown(path: Path, *, year: str, rows: list[dict[str, Any]], summary
             ]
         )
     if rows:
-        lines.extend(["## Sample Partition Rows", ""])
+        lines.extend(["## 示例分区", ""])
         for row in rows[:4]:
             lines.extend(
                 [
                     f"### {row['verified_table_name']} {row['date']}",
                     f"- output_row_count: {row['output_row_count']}",
                     f"- included_columns: {', '.join(row['included_columns'])}",
+                    f"- included_caveat_columns: {', '.join(row.get('included_caveat_columns', [])) or 'none'}",
                     f"- excluded_columns: {', '.join(row['excluded_columns'])}",
+                    f"- admission_rule: {row.get('admission_rule', 'admit_now_only')}",
                     f"- research_time_grade: {row['research_time_grade']}",
                     "",
                 ]
@@ -816,7 +930,7 @@ def main() -> int:
             purpose="Materialize research-ready tables from mechanically safe and semantically verified fields.",
             responsibilities=[
                 "Read candidate_cleaned inputs and verified admission policy decisions.",
-                "Build verified_orders and verified_trades from admit-now fields only.",
+                "Build conservative verified outputs from admit-now fields, with optional caveat-only variants.",
                 "Keep manifest, policy versions, and excluded-field lists in sync.",
                 "Defer verified_trade_order_linkage and broker enrichment until a later phase.",
             ],
@@ -837,6 +951,7 @@ def main() -> int:
         raise SystemExit("--year is required unless --print-plan is used.")
 
     policy = read_policy(args.policy_path)
+    validate_requested_caveat_columns(policy, explicit_caveat_columns_from_args(args))
     try:
         tasks = discover_tasks(args, policy)
     except ValueError as exc:

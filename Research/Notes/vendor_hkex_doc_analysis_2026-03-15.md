@@ -1,4 +1,4 @@
-# HKEX / Vendor Technical Document Analysis 2026-03-15
+# HKEX / Vendor 技术文档分析 2026-03-15
 
 ## Scope
 
@@ -58,6 +58,17 @@
   - `Dir=1` = vendor-coded sell aggressor
   - `Dir=2` = vendor-coded buy aggressor
   - `Dir=0` = other / vendor-unclassified bucket
+- 结合 vendor `ReadMe`、旧格式 raw 目录结构与全年 semantic 结果，当前可以把 `OrderType` 写成：
+  - stable vendor event code
+  - `1` = `Add`
+  - `2` = `Modify`
+  - `3` = `Delete`
+  - 这一级表述仍不是官方原生 event semantics
+- 结合 vendor `ReadMe` 与 `BidOrderID / AskOrderID -> OrderId` 的实盘交叉验证，当前可以把 `Ext.bit0` 写成：
+  - vendor order-side proxy
+  - `0` = buy
+  - `1` = sell
+  - 整列 `Ext` 仍不能整体升级为已验证业务语义
 - 这一级表述仍然不是：
   - 官方 HKEX native field mapping
   - confirmed signed-trade truth
@@ -139,8 +150,8 @@
 | --- | --- | --- |
 | `OrderId` | official-family-compatible | order-level identifier compatible with OMD-C FullTick-style content |
 | `TickID` | vendor-defined with plausible official-family fit | vendor trade identifier, not yet confirmed as official native field mapping |
-| `OrderType` | vendor-defined | stable vendor event code, not yet official semantic mapping |
-| `Ext` | vendor-defined | vendor extension bitfield, not research-verified |
+| `OrderType` | vendor-defined | stable vendor event code (`1=Add`, `2=Modify`, `3=Delete`), not official event semantics |
+| `Ext` | vendor-defined | vendor bitfield; `bit0` can be used as a vendor order-side proxy, but the full field is not research-verified |
 | `Dir` | vendor-defined | vendor-derived aggressor proxy (`1=sell`, `2=buy`, `0=other`), not official native field or confirmed signed-trade truth |
 | `Type` | vendor-defined | vendor public-trade-type code compatible with HKEX public trade type letters, not raw official `TrdType` integer mapping |
 | `Level` | vendor-defined | vendor level field, not confirmed official order book position |

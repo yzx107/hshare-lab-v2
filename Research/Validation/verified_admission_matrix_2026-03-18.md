@@ -1,4 +1,4 @@
-# Verified Admission Matrix 2026-03-18
+# Verified 准入矩阵 2026-03-18（Verified Admission Matrix）
 
 ## Scope
 
@@ -51,11 +51,13 @@
 | `SeqNum` / `Time` as project structural sequencing/time columns | `coarse_only` | `fine_ok` | `admit_now_with_year_caveat` | 两年都可进入 verified v1，但 `2025` 不得被当作 fine-grained timing anchor |
 | `BidOrderID / AskOrderID` linkage columns | direct equality works, native meaning still unverified | direct equality works, native meaning still unverified | `keep_out_for_now` | 可继续服务 DQA / semantic / research admissibility；不进入 verified v1 默认表 |
 | `verified_trade_order_linkage` table | too strong for v1 | too strong for v1 | `defer` | 等下一阶段 verified 扩容，而不是现在默认 materialize |
-| `OrderType` | no full-year pass-level semantic release | `weak_pass` | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；若后续暴露，需显式 caveat |
+| `OrderType` | vendor `1/2/3` 定义 + lifecycle 结构稳定 | `weak_pass` + raw 目录结构强一致 | `admit_with_explicit_caveat_only` | 可作为 `stable vendor event code` 暴露；不进 verified v1 默认表，不写成官方 event semantics |
 | `TradeDir / Dir` | vendor-derived aggressor proxy with `coarse_only` caveat | vendor-derived aggressor proxy with manual-review caveat | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；若后续暴露，必须写明 `Dir=1=sell`, `Dir=2=buy`, `Dir=0=other/special bucket`，且仍不得当 confirmed signed side 使用 |
+| `OrderSideVendor` (from `Ext.bit0`) | sampled trade-order joins support `0=buy / 1=sell` | sampled trade-order joins support `0=buy / 1=sell` | `admit_with_explicit_caveat_only` | 只放开派生字段，不等于整列 `Ext` 已完成语义验证 |
 | `BrokerNo` | blocked | blocked | `keep_out_for_now` | 只允许 reference lookup 语境，不进 verified |
 | `Level / VolumePre` | blocked | blocked | `keep_out_for_now` | queue/depth 语义未验证 |
-| `Type / Ext` | vendor-defined only | vendor-defined only | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表 |
+| `Type` | vendor public-trade-type bucket only | vendor public-trade-type bucket only | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；可用于特殊成交类型分桶 |
+| `Ext` (full field) | vendor bitfield only | vendor bitfield only | `admit_with_explicit_caveat_only` | 当前不建议整列暴露；优先只放开 `OrderSideVendor` |
 
 ## Immediate Verified v1 Decision
 
@@ -74,8 +76,13 @@
 
 - `verified_trade_order_linkage`
 - broker enrichment / participant enrichment
-- `OrderType / Type / Ext / Dir` caveat namespace
+- `OrderType / Type / Ext / Dir` caveat namespace 默认表
 - `BrokerNo / Level / VolumePre / BidOrderID / AskOrderID` 进 verified 默认表
+
+现在已经可以做、但应保持显式受限命名空间的，是：
+
+- `verified_orders__caveat_ordertype_ordersidevendor`
+- `verified_trades__caveat_dir`
 
 ## Build Rule
 
@@ -89,6 +96,11 @@ verified v1 的实现应满足：
   - `admission_rule = admit_now_only`
   - `contains_caveat_fields = false`
   - `reference_join_applied = false`
+
+若构建 caveat-only 变体，则 manifest 还应明确：
+
+- `admission_rule = admit_now_plus_caveat_only`
+- `contains_caveat_fields = true`
 
 ## What Changes Later
 
@@ -107,4 +119,4 @@ verified v1 的实现应满足：
 
 而不是直接扩表。
 
-如果以后要把 `Dir` 放进 verified 默认表，或去掉 caveat-only 约束，也应先更新这三层 policy，而不是直接扩表。
+如果以后要把 `Dir`、`OrderType`、`OrderSideVendor` 放进 verified 默认表，或去掉 caveat-only 约束，也应先更新这三层 policy，而不是直接扩表。

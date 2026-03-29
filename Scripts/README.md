@@ -2,6 +2,12 @@
 
 本目录是 Hshare Lab v2 的新脚本入口。
 
+## 文档语言
+
+- 本目录说明默认使用中文
+- 字段名、脚本名、CLI 参数名保持英文原样
+- 需要精确引用 contract、policy、schema 时，使用中文解释 + 英文字段名并列
+
 ## 主栈分工
 
 - `Parquet`：唯一工作格式；`CSV` 只留在 raw evidence
@@ -46,7 +52,7 @@
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
-- `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；当前已支持 `verified_orders / verified_trades` 的 admit-now materialization，不默认放行高风险语义字段
+- `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；默认构建 `admit_now` 的 `verified_orders / verified_trades`，并支持把 `Dir / OrderType / OrderSideVendor` 这类 `caveat-only` 字段落到单独 verified 变体
 - `report_field_policy_check.py`：检查研究 markdown 是否触碰 field / reference / verified admission policy 的敏感边界
 
 ## 当前研究边界
@@ -59,7 +65,8 @@
 - `2026`：`OrderId lifecycle` full-year 审计已落地，当前可视为 `pass`
 - `2025/2026`：官方 OMD-C 文档与 vendor `ReadMe` 现在足以把 `TradeDir / Dir` 写成 `vendor-derived aggressor proxy`：`Dir=1` = sell aggressor，`Dir=2` = buy aggressor，`Dir=0` = other / special bucket
 - `2025/2026`：`TradeDir` 仍不能当成 HKEX 原生 signed side；`signed_flow` 研究继续 blocked，且 `Type in {U,X,P,D,M}` 应从 normal signed-flow bucket 分离
-- `2026`：`OrderType` 当前只到 `weak_pass`，可做弱一致性与 lifecycle-shape profiling，不能直接当成已确认事件语义
+- `2025/2026`：`OrderType` 现在可以更稳地写成 `stable vendor event code`：`1=Add`、`2=Modify`、`3=Delete`；可进入 `caveat-only`，但仍不是官方原生 event semantics
+- `2025/2026`：`Ext.bit0` 现在可写成 `vendor order-side proxy`：`0=buy`、`1=sell`；当前只放开 `bit0`，不等于整列 `Ext` 已完成语义验证
 - `2025`：`verified_orders / verified_trades` conservative v1 full-year materialization 已完成，并已生成 checked-in full-year report；`research_time_grade` 仍应解释为 `coarse_only`
 - `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance/report 已有 checked-in 产物，但 verified 落盘不等于高风险字段语义已完成验证
 - `BrokerNo / Level / VolumePre / Type / Ext / queue semantics` 仍不应视为已完成 semantic verification
