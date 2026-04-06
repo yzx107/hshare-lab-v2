@@ -54,6 +54,7 @@
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
 - `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；默认构建 `admit_now` 的 `verified_orders / verified_trades`，现在默认也会派生 `instrument_key`，并在 `2026` 默认暴露 `SendTime`；同时支持把 `Dir / OrderType / OrderSideVendor` 这类 `caveat-only` 字段落到单独 verified 变体
 - `build_instrument_profile.py`：从 raw zip member universe 生成 sidecar `instrument_profile`，并可选拼接 `listing_date / southbound_eligible / float_mktcap_hkd / instrument_family` seed；同时对 HKEX 官方可安全使用的产品编码区间做保守分类
+- `sync_instrument_profile_seed.py`：从注册 reference source 同步 `instrument_profile_seed`；当前已支持 `Tushare hk_basic`，并预留 `OpenD`、`HKEX REIT`、`港股通名单` lane
 - `run_information_regime_summary.py`：输出 `entropy / MI / TE` 的年份边界、字段 lane 和 admissibility regime summary，不做因子研究
 - `report_field_policy_check.py`：检查研究 markdown 是否触碰 field / reference / verified admission policy 的敏感边界
 
@@ -102,6 +103,7 @@
 - `python -m Scripts.run_source_group_inventory --year 2025 --group HKDarkPool`
 - `python -m Scripts.build_verified_layer --print-plan`
 - `python -m Scripts.build_instrument_profile --print-plan`
+- `python -m Scripts.sync_instrument_profile_seed --print-plan`
 - `python -m Scripts.run_information_regime_summary --year 2026 --method all`
 - `python -m Scripts.report_field_policy_check --print-plan`
 
@@ -162,6 +164,16 @@
   - `stock_research_candidate`
   - `stock_research_candidate_status`
   - `stock_research_candidate_note`
+
+## sync_instrument_profile_seed 说明
+
+- source registry：`config/reference_sources.example.json`
+- 本地私有配置：`config/reference_sources.local.json`
+- 当前注册 source：
+  - `tushare_hk_basic`
+  - `hkex_reit_manual_seed`
+  - `hkex_southbound_manual_seed`
+  - `opend_security_snapshot`（预留）
 
 ## run_dqa_coverage 输出
 

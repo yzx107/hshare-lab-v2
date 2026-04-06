@@ -19,6 +19,11 @@ dev = [
   "pytest>=8.3,<9.0",
   "ruff>=0.11,<1.0",
 ]
+reference = [
+  "pandas>=2.2,<3.0",
+  "requests>=2.32,<3.0",
+  "tushare>=1.4,<2.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["Scripts"]

@@ -23,8 +23,11 @@ Research/Notes/stop_after_august_2025_lifecycle.json
 !Research/References/normalized/instrument_profile_seed.csv
 
 tmp/
+config/reference_sources.local.json
 
 debug_metrics.py
 full_run.log
 
 Research/Reports/verified_layer_*__*.md
+!Research/References/normalized/hkex_reit_seed.csv
+!Research/References/normalized/hkex_southbound_seed.csv

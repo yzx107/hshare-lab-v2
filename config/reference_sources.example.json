@@ -1,0 +1,48 @@
+{
+  "version": "2026-04-07",
+  "purpose": "Registered reference sources for instrument-profile enrichment and universe classification.",
+  "default_seed_path": "Research/References/normalized/instrument_profile_seed.csv",
+  "sources": {
+    "tushare_hk_basic": {
+      "enabled": true,
+      "kind": "api",
+      "role": "instrument_profile_enrichment",
+      "credential_env": "TUSHARE_TOKEN",
+      "local_credential_key": "tushare.token",
+      "fields": [
+        "listing_date",
+        "name",
+        "fullname",
+        "market",
+        "trade_unit",
+        "isin",
+        "curr_type"
+      ],
+      "notes": "Use as listing_date/basic HK security metadata enrichment. Do not treat as security-type proof by default."
+    },
+    "hkex_reit_manual_seed": {
+      "enabled": true,
+      "kind": "curated_csv",
+      "role": "instrument_family_exception_seed",
+      "path": "Research/References/normalized/hkex_reit_seed.csv",
+      "notes": "Curated low-code REIT overrides for instrument_family enrichment."
+    },
+    "hkex_southbound_manual_seed": {
+      "enabled": true,
+      "kind": "curated_csv",
+      "role": "southbound_eligibility_seed",
+      "path": "Research/References/normalized/hkex_southbound_seed.csv",
+      "notes": "Time-bounded southbound eligibility seed. Always keep as_of_date."
+    },
+    "opend_security_snapshot": {
+      "enabled": false,
+      "kind": "api",
+      "role": "secondary_security_reference",
+      "local_host_key": "opend.host",
+      "local_port_key": "opend.port",
+      "default_host": "127.0.0.1",
+      "default_port": 11111,
+      "notes": "Optional secondary source for operational cross-checks. Do not promote to semantic proof by default."
+    }
+  }
+}

@@ -21,12 +21,14 @@ reference 文件可以支持：
 - source-contract interpretation
 - lookup enrichment
 - DQA explanation
+- registered sidecar enrichment from approved external sources such as `Tushare`, curated `HKEX` lists, or future `OpenD` cross-checks
 
 reference 文件不可以单独完成：
 
 - field semantic verification
 - verified layer promotion
 - official native schema confirmation
+- automatic source promotion into verified default truth without explicit policy
 
 ## Reference Matrix
 

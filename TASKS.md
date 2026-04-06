@@ -163,6 +163,16 @@
   - 当前是在阻止下游把全 universe 默认当普通股票池
   - 当前已提供 `stock_research_candidate` lane，先支持股票研究标的选择；低位非股票例外仍需后续 seed/reference 继续剥离
 
+## T-R06D: Reference Source Registry
+- **阶段**: Stage 4 工程加固
+- **状态**: 🔄 第一版已落地
+- **目标**: 把 `Tushare / HKEX curated seed / OpenD` 等 sidecar reference source 统一纳入配置与同步脚本
+- **验收门禁**:
+  - source registry config 已落地
+  - 私有凭证不入库
+  - `instrument_profile_seed` 可由注册 source 同步
+  - 外部 source 继续保持 `reference_lookup / enrichment` 身份，不越界为 semantic proof
+
 ## T-R06A: Query / Report Policy Landing
 - **阶段**: Stage 4 工程加固
 - **状态**: ✅ 已完成
