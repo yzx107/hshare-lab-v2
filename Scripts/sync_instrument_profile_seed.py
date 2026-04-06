@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -14,12 +15,14 @@ from Scripts.reference_sources import (
     get_registered_source,
     load_local_source_config,
     load_source_registry,
+    resolve_source_endpoint,
     resolve_source_secret,
 )
 from Scripts.runtime import DEFAULT_LOG_ROOT, configure_logger, iso_utc_now, print_scaffold_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SEED_PATH = REPO_ROOT / "Research" / "References" / "normalized" / "instrument_profile_seed.csv"
+DEFAULT_FUTU_HOME = REPO_ROOT / ".tmp" / "futu_home"
 
 
 SEED_SCHEMA: dict[str, pl.DataType] = {
@@ -37,7 +40,7 @@ SEED_SCHEMA: dict[str, pl.DataType] = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Sync instrument_profile seed from registered reference sources such as Tushare or curated HKEX seed CSVs."
+        description="Sync instrument_profile seed from registered reference sources such as Tushare, curated HKEX seed CSVs, or OpenD current snapshots."
     )
     parser.add_argument(
         "--seed-path",
@@ -127,7 +130,7 @@ def fetch_tushare_hk_basic(token: str, as_of_date: str) -> pl.DataFrame:
     )
     if pandas_frame is None or len(pandas_frame) == 0:
         return normalize_seed_frame(None)
-    frame = pl.from_pandas(pd.DataFrame(pandas_frame))
+    frame = pl.DataFrame(pd.DataFrame(pandas_frame).to_dict(orient="records"))
     return normalize_seed_frame(
         frame.with_columns(
             pl.col("ts_code").cast(pl.Utf8).str.replace(r"\.HK$", "").str.zfill(5).alias("instrument_key"),
@@ -156,6 +159,125 @@ def load_curated_seed(path: Path) -> pl.DataFrame:
     if not path.exists() or path.stat().st_size == 0:
         return normalize_seed_frame(None)
     return normalize_seed_frame(pl.read_csv(path, null_values=["", "NA", "N/A", "NULL", "null"]))
+
+
+def normalize_opend_listing_date(frame: pl.DataFrame) -> pl.DataFrame:
+    if "listing_date" not in frame.columns:
+        return frame.with_columns(pl.lit(None, dtype=pl.Utf8).alias("listing_date"))
+    return frame.with_columns(
+        pl.when(pl.col("listing_date").cast(pl.Utf8, strict=False).str.strip_chars() == "1970-01-01")
+        .then(pl.lit(None, dtype=pl.Utf8))
+        .otherwise(pl.col("listing_date").cast(pl.Utf8, strict=False).str.strip_chars())
+        .alias("listing_date")
+    )
+
+
+def opend_instrument_family_expr() -> pl.Expr:
+    return (
+        pl.when(pl.col("stock_type") == "ETF")
+        .then(pl.lit("exchange_traded_fund"))
+        .when(pl.col("stock_type") == "IDX")
+        .then(pl.lit("market_index"))
+        .otherwise(pl.lit(None, dtype=pl.Utf8))
+        .alias("instrument_family")
+    )
+
+
+def opend_instrument_family_note_expr() -> pl.Expr:
+    return (
+        pl.when(pl.col("stock_type") == "ETF")
+        .then(
+            pl.lit(
+                "Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority."
+            )
+        )
+        .when(pl.col("stock_type") == "IDX")
+        .then(pl.lit("Current OpenD security snapshot classifies this instrument as market index."))
+        .otherwise(pl.lit(None, dtype=pl.Utf8))
+        .alias("instrument_family_note")
+    )
+
+
+def opend_seed_from_basicinfo(frame: pl.DataFrame, as_of_date: str) -> pl.DataFrame:
+    if frame.height == 0:
+        return normalize_seed_frame(None)
+    normalized = normalize_opend_listing_date(frame)
+    return normalize_seed_frame(
+        normalized.with_columns(
+            pl.col("code").cast(pl.Utf8).str.replace(r"^HK\.", "").str.zfill(5).alias("instrument_key"),
+            opend_instrument_family_expr(),
+            pl.when(pl.col("stock_type").is_in(["ETF", "IDX"]))
+            .then(pl.lit("opend_security_snapshot"))
+            .otherwise(pl.lit(None, dtype=pl.Utf8))
+            .alias("instrument_family_source"),
+            opend_instrument_family_note_expr(),
+            pl.lit(as_of_date).alias("as_of_date"),
+            pl.lit("opend_security_snapshot").alias("source_label"),
+        ).select(
+            "instrument_key",
+            "listing_date",
+            pl.lit(None, dtype=pl.Utf8).alias("float_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("southbound_eligible"),
+            "instrument_family",
+            "instrument_family_source",
+            "instrument_family_note",
+            "as_of_date",
+            "source_label",
+        )
+    )
+
+
+def fetch_opend_security_snapshot(host: str, port: int, as_of_date: str) -> pl.DataFrame:
+    previous_home = os.environ.get("HOME")
+    DEFAULT_FUTU_HOME.mkdir(parents=True, exist_ok=True)
+    os.environ["HOME"] = str(DEFAULT_FUTU_HOME)
+    context = None
+    try:
+        import pandas as pd
+        from futu import Market, OpenQuoteContext, RET_OK, SecurityType
+    except ImportError as exc:
+        raise SystemExit("OpenD dependencies are missing. Install the optional reference dependencies first.") from exc
+    try:
+        context = OpenQuoteContext(host=host, port=port)
+        frames: list[pl.DataFrame] = []
+        for security_type in (
+            SecurityType.STOCK,
+            SecurityType.ETF,
+            SecurityType.WARRANT,
+            SecurityType.BOND,
+            SecurityType.IDX,
+        ):
+            ret, data = context.get_stock_basicinfo(Market.HK, security_type)
+            if ret != RET_OK or data is None or len(data) == 0:
+                continue
+            frames.append(pl.DataFrame(pd.DataFrame(data).to_dict(orient="records")))
+        if not frames:
+            return normalize_seed_frame(None)
+        combined = pl.concat(frames, how="diagonal_relaxed")
+        seed = opend_seed_from_basicinfo(combined, as_of_date)
+        return normalize_seed_frame(
+            seed.group_by("instrument_key")
+            .agg(
+                pl.col("listing_date").drop_nulls().first().alias("listing_date"),
+                pl.col("float_mktcap_hkd").drop_nulls().first().alias("float_mktcap_hkd"),
+                pl.col("southbound_eligible").drop_nulls().first().alias("southbound_eligible"),
+                pl.col("instrument_family").drop_nulls().first().alias("instrument_family"),
+                pl.col("instrument_family_source").drop_nulls().first().alias("instrument_family_source"),
+                pl.col("instrument_family_note").drop_nulls().first().alias("instrument_family_note"),
+                pl.col("as_of_date").drop_nulls().first().alias("as_of_date"),
+                pl.col("source_label").drop_nulls().first().alias("source_label"),
+            )
+            .sort("instrument_key")
+        )
+    finally:
+        try:
+            context.close()  # type: ignore[name-defined]
+        except Exception:
+            pass
+        if previous_home is None:
+            os.environ.pop("HOME", None)
+        else:
+            os.environ["HOME"] = previous_home
 
 
 def selected_source_ids(args: argparse.Namespace, registry: dict[str, Any]) -> list[str]:
@@ -190,8 +312,16 @@ def run_sources(
             source_path = REPO_ROOT / Path(source["path"])
             frame = load_curated_seed(source_path)
         elif source_id == "opend_security_snapshot":
-            logger.info("OpenD source is registered but not yet materialized into seed ingestion. Skipping.")
-            frame = normalize_seed_frame(None)
+            endpoint = resolve_source_endpoint(source_id, registry=registry, local_config=local_config)
+            try:
+                frame = fetch_opend_security_snapshot(
+                    str(endpoint["host"]),
+                    int(endpoint["port"]),
+                    as_of_date,
+                )
+            except Exception as exc:
+                logger.warning("OpenD source skipped: host=%s port=%s reason=%s", endpoint["host"], endpoint["port"], exc)
+                frame = normalize_seed_frame(None)
         else:
             raise SystemExit(f"Unsupported source id for seed sync: {source_id}")
         logger.info("Source %s rows=%s", source_id, frame.height)
@@ -211,6 +341,7 @@ def main() -> int:
                 "Fetch or load source rows from enabled sources.",
                 "Merge source rows into Research/References/normalized/instrument_profile_seed.csv without overwriting existing non-null values by default.",
                 "Keep source roles explicit for listing_date, southbound, and instrument-family enrichment.",
+                "Treat OpenD only as secondary current-snapshot reference, not as semantic proof.",
             ],
             inputs=[
                 "config/reference_sources.example.json",
@@ -218,6 +349,7 @@ def main() -> int:
                 "Research/References/normalized/instrument_profile_seed.csv",
                 "Research/References/normalized/hkex_reit_seed.csv",
                 "Research/References/normalized/hkex_southbound_seed.csv",
+                "local OpenD quote service (optional)",
             ],
             outputs=[
                 "Research/References/normalized/instrument_profile_seed.csv",

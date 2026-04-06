@@ -25,7 +25,7 @@
       "kind": "curated_csv",
       "role": "instrument_family_exception_seed",
       "path": "Research/References/normalized/hkex_reit_seed.csv",
-      "notes": "Curated low-code REIT overrides for instrument_family enrichment."
+      "notes": "Curated REIT override seed maintained from official HKEX REIT market-data lists. Higher priority than secondary OpenD ETF classification."
     },
     "hkex_southbound_manual_seed": {
       "enabled": true,
@@ -35,14 +35,14 @@
       "notes": "Time-bounded southbound eligibility seed. Always keep as_of_date."
     },
     "opend_security_snapshot": {
-      "enabled": false,
+      "enabled": true,
       "kind": "api",
       "role": "secondary_security_reference",
       "local_host_key": "opend.host",
       "local_port_key": "opend.port",
       "default_host": "127.0.0.1",
       "default_port": 11111,
-      "notes": "Optional secondary source for operational cross-checks. Do not promote to semantic proof by default."
+      "notes": "Current-security snapshot for listing-date backfill and secondary low-code non-equity classification. Do not promote to semantic proof by default."
     }
   }
 }

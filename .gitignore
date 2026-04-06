@@ -23,6 +23,7 @@ Research/Notes/stop_after_august_2025_lifecycle.json
 !Research/References/normalized/instrument_profile_seed.csv
 
 tmp/
+.tmp/
 config/reference_sources.local.json
 
 debug_metrics.py

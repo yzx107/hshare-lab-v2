@@ -165,13 +165,18 @@
 
 ## T-R06D: Reference Source Registry
 - **阶段**: Stage 4 工程加固
-- **状态**: 🔄 第一版已落地
+- **状态**: 🔄 第二版已落地
 - **目标**: 把 `Tushare / HKEX curated seed / OpenD` 等 sidecar reference source 统一纳入配置与同步脚本
 - **验收门禁**:
   - source registry config 已落地
   - 私有凭证不入库
   - `instrument_profile_seed` 可由注册 source 同步
   - 外部 source 继续保持 `reference_lookup / enrichment` 身份，不越界为 semantic proof
+ - **当前说明**:
+   - `Tushare` 已实装并回填 `listing_date`
+   - `HKEX REIT` curated seed 已补入当前 REIT override
+   - `OpenD` 已接成 secondary current snapshot source
+   - `southbound` 仍保留为 time-bounded curated seed，不做脆弱爬虫
 
 ## T-R06A: Query / Report Policy Landing
 - **阶段**: Stage 4 工程加固

@@ -173,7 +173,11 @@
   - `tushare_hk_basic`
   - `hkex_reit_manual_seed`
   - `hkex_southbound_manual_seed`
-  - `opend_security_snapshot`（预留）
+  - `opend_security_snapshot`（当前已接线，作为 secondary current snapshot source）
+- `OpenD` 运行前提：
+  - 本机 `127.0.0.1:11111` 有可用 quote service
+  - Python 环境已安装 `futu-api`
+  - OpenD 只作为 sidecar enrichment / secondary classification，不作为 semantic proof
 
 ## run_dqa_coverage 输出
 

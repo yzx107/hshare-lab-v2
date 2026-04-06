@@ -59,6 +59,7 @@
 
 - 长期注册 source
 - 通过 curated CSV 维护
+- 当前 seed 已补入官方 HKEX REIT 名单对应的 REIT override，用于修正低位 `REIT / unit trust` 被误落入股票候选池的问题
 
 ### 3. `hkex_southbound_manual_seed`
 
@@ -88,18 +89,22 @@
 
 当前允许：
 
+- `listing_date` 二次补全
+- 当前 security snapshot 下的 `ETF / index` 辅助分类
 - 运维侧 / 对账侧 / secondary lookup cross-check
-- future fallback enrichment discussion
 
 当前不允许：
 
-- 在没有单独 policy 的情况下直接覆盖 seed
-- 在没有单独验证的情况下升级成 semantic proof
+- 把 OpenD current snapshot 当作历史全时段真值
+- 在没有单独 policy 的情况下越界成 tick semantic proof
+- 用 OpenD 去替代 HKEX curated REIT override
 
 当前定位：
 
 - 已注册 source
-- 当前为预留入口，默认不启用
+- 当前已接线
+- 继续保持 `secondary_security_reference`
+- 对于 `REIT`，优先级低于 `hkex_reit_manual_seed`，因为 OpenD 会把 REIT 归在 `ETF` 桶里
 
 ## Global Rules
 
@@ -121,5 +126,6 @@
 
 1. 先跑 `tushare_hk_basic`，补 `listing_date`
 2. 再补 `hkex_reit_manual_seed`
-3. 再补 `hkex_southbound_manual_seed`
-4. 最后重建 `instrument_profile`
+3. 再跑 `opend_security_snapshot`，做 current snapshot 下的 secondary classification / listing-date backfill
+4. 如有需要，再补 `hkex_southbound_manual_seed`
+5. 最后重建 `instrument_profile`

@@ -31,6 +31,7 @@ DQA interpretation, and query-side lookup joins.
   - 建议列：`instrument_key, listing_date, float_mktcap_hkd, southbound_eligible, instrument_family, instrument_family_source, instrument_family_note, as_of_date, source_label`。
 - `normalized/hkex_reit_seed.csv`
   - 低位 `REIT / unit trust` 例外补丁的 curated seed。
+  - 当前已补入 REIT override，优先级高于 OpenD 对 REIT 的 ETF 桶分类。
 - `normalized/hkex_southbound_seed.csv`
   - `southbound_eligible` 的 time-bounded curated seed。
 

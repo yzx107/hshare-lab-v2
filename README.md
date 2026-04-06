@@ -43,7 +43,7 @@
 - `instrument_profile sidecar`：已扩展为 `instrument universe classification sidecar`，供下游 boundary / strategy 模块消费；对 HKEX 官方可安全使用的产品编码区间做保守分类，其余统一写成 `listed_security_unclassified`，不混入 verified fact 表
 - `stock research target lane`：当前已作为 `instrument_profile` sidecar 的保守 lane 提供，默认使用 `stock_research_candidate`，先让下游有股票候选研究池，而不是继续把全 universe 当股票
 - `cross-security role split`：默认 `equity target` 主线不回滚；`non-equity` 只允许作为显式 `source lane` 进入 dependence / TE 扩展研究
-- `reference source registry`：当前已正式注册 `Tushare`、`HKEX curated seed` 与预留 `OpenD`，用于 sidecar enrichment，而不是 tick 语义证明
+- `reference source registry`：当前已正式接入 `Tushare`、`HKEX curated REIT seed` 与 `OpenD secondary snapshot`；`southbound` 仍保持 time-bounded curated seed 入口，用于 sidecar enrichment，而不是 tick 语义证明
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 
 ## 当前原则

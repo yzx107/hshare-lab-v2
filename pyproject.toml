@@ -23,6 +23,7 @@ reference = [
   "pandas>=2.2,<3.0",
   "requests>=2.32,<3.0",
   "tushare>=1.4,<2.0",
+  "futu-api>=10.2,<11.0",
 ]
 
 [tool.hatch.build.targets.wheel]
