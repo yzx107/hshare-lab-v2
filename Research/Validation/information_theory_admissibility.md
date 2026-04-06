@@ -91,6 +91,7 @@
 
 ### D. sidecar reference 的允许用法
 
+- `instrument_profile` sidecar 在本页中只被视为可选 stratification / bucket reference，不是信息论方法的必需输入，也不是本页用来证明 tick 字段语义的证据
 - `instrument_profile` sidecar 可用于：
   - instrument 分层
   - listing-age bucket
