@@ -16,6 +16,7 @@
 
 - 当前任务不是严格按 `T-R00 -> T-R07` 串行完成
 - `T-R01 / T-R02` 仍有未补基础项，但 `T-R03 / T-R04 / T-R05` 已经在 sample-year 层面并行推进
+- `information theory admissibility` 已作为轻量 policy 支线接入，不改变主线层级顺序
 - 看状态时请区分：
   - `架构前置是否完整`
   - `当前执行主线是否已向后推进`
@@ -131,7 +132,21 @@
   - `verified_trades`
   - `verified_orders`
   - `verified_trade_order_linkage`
-- `broker_reference`
+  - `broker_reference`
+
+## T-R06B: Information-Theory Admissibility
+- **阶段**: Stage 3 研究验证 + Stage 4 工程加固
+- **状态**: ✅ Phase 1 已完成
+- **目标**: 把 `entropy / MI / TE` 的 admissibility / feasibility / 年份边界接到 repo 正式 policy 导航
+- **验收门禁**:
+  - `Research/Validation/information_theory_admissibility.md` 已落地
+  - `2025 coarse_only / 2026 fine_ok` 在信息论方法中的差异化边界被显式固化
+  - 明确哪些信息论结果必须基于 `verified`，哪些不能直接基于 `stage`
+  - 如实现 runner，也只能做 regime summary / boundary check，不做因子研究
+- **当前说明**:
+  - `2025`：可做 coarse entropy / MI，正式 `transfer entropy` 仍 blocked
+  - `2026`：可做 finer entropy / MI，并在 `verified + SendTime + admissible fields` 条件下做 `allowed_with_caveat` 的 TE summary
+  - caveat 字段继续保留在 caveat lane，不进入默认正式输入 lane
 
 ## T-R06A: Query / Report Policy Landing
 - **阶段**: Stage 4 工程加固

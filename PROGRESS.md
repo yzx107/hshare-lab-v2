@@ -32,6 +32,7 @@
 - `2025` 的 `Time`-anchor 扩展样本共覆盖 `50,521,238` 条 matched edges，平均 `order_time <= trade_time` 比例约 `99.9786%`
 - `2025` 当前可记为 `research_time_grade = coarse_only`
 - `2026` 当前可记为 `research_time_grade = fine_ok`
+- `information theory admissibility` 的 Phase 1 已落地：`2025` 只允许 coarse entropy / MI，正式 `transfer entropy` 仍 blocked；`2026` 可在 verified + admissible 字段边界内做 finer entropy / MI，并对 TE 保持 `allowed_with_caveat`
 - `2025` 针对观测到的 raw source group label `HKDarkPool` 的专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
 - 该 `HKDarkPool` 标签当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
 - 该 `HKDarkPool` 标签首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract；仓库内官方/vendor reference 尚未直接确认它是正式官方术语
@@ -70,6 +71,7 @@
   - `2025/2026` lifecycle / linkage / OrderType 年度结论接入 admissibility matrix
   - `2025/2026` semantic boundary 固化
   - `research admissibility matrix` 收口
+  - `information theory admissibility` 接线，供下游 repo 引用
   - verified admission / implementation
 
 ## Reboot Milestones
@@ -144,6 +146,13 @@
 - [ ] `verified_trade_order_linkage`
 - [ ] `broker_reference`
 - **状态**: ⏳ 待开始
+
+### R6B: Information-Theory Admissibility
+- **目标**: 把 `entropy / mutual information / transfer entropy` 的允许输入层、字段边界、年份边界和 summary 留痕要求固化为上游 policy
+- [x] 新增 `information_theory_admissibility.md`
+- [x] 新增最小 `information regime summary` runner
+- [x] 将入口接到 `README / PROGRESS / TASKS / policy_navigation`
+- **状态**: ✅ Phase 1 已完成
 
 ## 当前阻塞 / 待补基础项
 

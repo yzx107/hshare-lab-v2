@@ -54,6 +54,7 @@
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
 - `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；默认构建 `admit_now` 的 `verified_orders / verified_trades`，现在默认也会派生 `instrument_key`，并在 `2026` 默认暴露 `SendTime`；同时支持把 `Dir / OrderType / OrderSideVendor` 这类 `caveat-only` 字段落到单独 verified 变体
 - `build_instrument_profile.py`：从 raw zip member universe 生成 sidecar `instrument_profile`，并可选拼接 `listing_date / southbound_eligible / float_mktcap_hkd` seed
+- `run_information_regime_summary.py`：输出 `entropy / MI / TE` 的年份边界、字段 lane 和 admissibility regime summary，不做因子研究
 - `report_field_policy_check.py`：检查研究 markdown 是否触碰 field / reference / verified admission policy 的敏感边界
 
 ## 当前研究边界
@@ -71,6 +72,7 @@
 - `2025`：`verified_orders / verified_trades` conservative v1 full-year materialization 已完成，并已生成 checked-in full-year report；`research_time_grade` 仍应解释为 `coarse_only`
 - `2025/2026`：`verified` 默认表现在会稳定暴露 `instrument_key`，避免下游继续从 `source_file` 正则拆股票代码
 - `2026`：`verified_orders / verified_trades` 默认表现在也会暴露 `SendTime`，供 fine-grained timing 研究直接消费；`2025` 的 `SendTime` 仍不进入默认 verified
+- `information theory`：当前只做 `admissibility / feasibility / boundary` 接线；`2025` 只允许 coarse entropy / MI，正式 TE blocked；`2026` 可在 verified + admissible 字段边界内做 finer entropy / MI，并对 TE 保持 `allowed_with_caveat`
 - `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance/report 已有 checked-in 产物，但 verified 落盘不等于高风险字段语义已完成验证
 - `BrokerNo / Level / VolumePre / Type / Ext / queue semantics` 仍不应视为已完成 semantic verification
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
@@ -98,6 +100,7 @@
 - `python -m Scripts.run_source_group_inventory --year 2025 --group HKDarkPool`
 - `python -m Scripts.build_verified_layer --print-plan`
 - `python -m Scripts.build_instrument_profile --print-plan`
+- `python -m Scripts.run_information_regime_summary --year 2026 --method all`
 - `python -m Scripts.report_field_policy_check --print-plan`
 
 ## 周末增量顺序

@@ -29,6 +29,11 @@
 - [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
 - [verified_layer_v1_design.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_layer_v1_design.md)
 
+## Method / Downstream Research Boundary
+
+- [information_theory_admissibility.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/information_theory_admissibility.md)
+- [research_admissibility_matrix.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md)
+
 ## Inventory / Samples
 
 - [raw_inventory_overview_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/raw_inventory_overview_2026-03-15.md)
