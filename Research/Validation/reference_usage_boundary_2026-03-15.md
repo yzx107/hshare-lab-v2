@@ -89,7 +89,9 @@ Not allowed:
 Allowed:
 
 - `instrument_key -> listing_date / southbound_eligible / float_mktcap_hkd` sidecar enrichment
+- `instrument_key -> instrument_family` sidecar enrichment
 - boundary module filters such as listing-age / southbound eligibility / market-cap buckets
+- product-family / universe segmentation such as `ETF / REIT / structured product / listed_security_unclassified`
 - building a standalone `instrument_profile` reference layer
 
 Not allowed:
@@ -97,6 +99,8 @@ Not allowed:
 - silently merging profile columns into verified fact tables
 - using missing / stale `as_of_date` rows as if they were historical truth
 - treating profile seed contents as proof of tick field semantics
+- treating `listed_security_unclassified` as if it already means `common_equity`
+- treating stock-code allocation ranges as issuer / benchmark / economic exposure proof
 
 ### D. `raw_vendor_notice_2026-01-01.txt`
 

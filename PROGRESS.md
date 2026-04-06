@@ -33,6 +33,8 @@
 - `2025` 当前可记为 `research_time_grade = coarse_only`
 - `2026` 当前可记为 `research_time_grade = fine_ok`
 - `information theory admissibility` 的 Phase 1 已落地：`2025` 只允许 coarse entropy / MI，正式 `transfer entropy` 仍 blocked；`2026` 可在 verified + admissible 字段边界内做 finer entropy / MI，并对 TE 保持 `allowed_with_caveat`
+- `instrument_profile` sidecar 已补上 `instrument universe classification` 能力：优先使用 seed enrichment，并对 HKEX 官方可安全使用的产品编码区间做 `official_range_classified`；其余统一保守落到 `listed_security_unclassified`
+- `stock_research_candidate` lane 已加入 `instrument_profile`：当前作为低位 `listed_security_unclassified` 上市证券候选池，先服务股票研究 universe 选择，但仍不是 pure common-equity proof
 - `2025` 针对观测到的 raw source group label `HKDarkPool` 的专项 inventory 已完成：全年扫描 `246` 个交易日，其中 `44` 天命中、`142` 个 member、`935,527` 行
 - 该 `HKDarkPool` 标签当前呈现为稳定独立的 `7` 列 trade-like schema：`time, price, share, turnover, side, type, brokerno`
 - 该 `HKDarkPool` 标签首次出现于 `2025-07-04`，最后出现于 `2025-12-31`，当前继续隔离处理，不并入主 contract；仓库内官方/vendor reference 尚未直接确认它是正式官方术语
@@ -72,6 +74,7 @@
   - `2025/2026` semantic boundary 固化
   - `research admissibility matrix` 收口
   - `information theory admissibility` 接线，供下游 repo 引用
+  - `instrument universe classification` sidecar 接线，防止下游把全 universe 误当普通股票池
   - verified admission / implementation
 
 ## Reboot Milestones

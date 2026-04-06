@@ -17,6 +17,7 @@
 - 当前任务不是严格按 `T-R00 -> T-R07` 串行完成
 - `T-R01 / T-R02` 仍有未补基础项，但 `T-R03 / T-R04 / T-R05` 已经在 sample-year 层面并行推进
 - `information theory admissibility` 已作为轻量 policy 支线接入，不改变主线层级顺序
+- `instrument universe classification` 已接入 `instrument_profile` sidecar，不改变 verified 主表边界
 - 看状态时请区分：
   - `架构前置是否完整`
   - `当前执行主线是否已向后推进`
@@ -147,6 +148,20 @@
   - `2025`：可做 coarse entropy / MI，正式 `transfer entropy` 仍 blocked
   - `2026`：可做 finer entropy / MI，并在 `verified + SendTime + admissible fields` 条件下做 `allowed_with_caveat` 的 TE summary
   - caveat 字段继续保留在 caveat lane，不进入默认正式输入 lane
+
+## T-R06C: Instrument Universe Classification Sidecar
+- **阶段**: Stage 3 研究验证 + Stage 4 工程加固
+- **状态**: ✅ Phase 1 已完成
+- **目标**: 把“tick universe 不只是普通股票”收口成上游可消费的 sidecar / policy，而不是让下游各自猜
+- **验收门禁**:
+  - `instrument_profile` 已补出 `instrument_family / instrument_family_status / instrument_family_source / instrument_family_note`
+  - 对 HKEX 官方可安全使用的产品编码区间可做 `official_range_classified`
+  - 未能安全识别的对象必须保守落到 `listed_security_unclassified`
+  - 不把 sidecar 分类静默混入 verified 默认 fact 表
+- **当前说明**:
+  - 当前不是在证明“所有 instrument 都已经被完整 security master 化”
+  - 当前是在阻止下游把全 universe 默认当普通股票池
+  - 当前已提供 `stock_research_candidate` lane，先支持股票研究标的选择；低位非股票例外仍需后续 seed/reference 继续剥离
 
 ## T-R06A: Query / Report Policy Landing
 - **阶段**: Stage 4 工程加固

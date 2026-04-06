@@ -44,12 +44,16 @@
         "listing_age_filters",
         "southbound_eligibility_filters",
         "market_cap_bucket_reference",
-        "instrument_profile_sidecar_enrichment"
+        "instrument_profile_sidecar_enrichment",
+        "instrument_family_stratification",
+        "universe_segmentation"
       ],
       "forbidden_claims": [
         "tick_field_semantics_proved",
         "historical_truth_without_asof_boundary",
-        "verified_truth_by_default"
+        "verified_truth_by_default",
+        "listed_security_unclassified_means_common_equity",
+        "stock_code_range_proves_economic_exposure"
       ]
     },
     "normalized/ReadMe.utf8.txt": {

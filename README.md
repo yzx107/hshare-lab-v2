@@ -40,7 +40,8 @@
 - `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
 - `information theory admissibility`：已形成 `entropy / MI / TE` 的 Phase 1 policy 入口，明确 `2025` 与 `2026` 的允许边界
 - `verified default surface`：当前默认 verified 已覆盖 `instrument_key`，并在 `2026` 默认暴露 `SendTime`
-- `instrument_profile sidecar`：新增独立 reference layer 骨架，供下游 boundary / strategy 模块消费，不混入 verified fact 表
+- `instrument_profile sidecar`：已扩展为 `instrument universe classification sidecar`，供下游 boundary / strategy 模块消费；对 HKEX 官方可安全使用的产品编码区间做保守分类，其余统一写成 `listed_security_unclassified`，不混入 verified fact 表
+- `stock research target lane`：当前已作为 `instrument_profile` sidecar 的保守 lane 提供，默认使用 `stock_research_candidate`，先让下游有股票候选研究池，而不是继续把全 universe 当股票
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 
 ## 当前原则
@@ -144,6 +145,7 @@ Hshare_Lab_v2/
 ## Policy Navigation
 
 - [policy_navigation_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/policy_navigation_2026-03-17.md)
+- [instrument_universe_classification_boundary_2026-04-06.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/instrument_universe_classification_boundary_2026-04-06.md)
 - [information_theory_admissibility.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/information_theory_admissibility.md)
 - [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
 - [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)
