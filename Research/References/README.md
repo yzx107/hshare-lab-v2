@@ -26,6 +26,9 @@ DQA interpretation, and query-side lookup joins.
   - UTF-8 normalized broker number mapping for broker lookup work.
 - `normalized/List_of_Current_SEHK_EP.utf8.tsv`
   - UTF-8 normalized SEHK participant list for participant/broker reference joins.
+- `normalized/instrument_profile_seed.csv`
+  - `instrument_profile` sidecar enrichment 的可选 seed 文件。
+  - 建议列：`instrument_key, listing_date, float_mktcap_hkd, southbound_eligible, as_of_date, source_label`。
 
 ## Intended usage
 
@@ -33,6 +36,7 @@ DQA interpretation, and query-side lookup joins.
 - `CFBC file specification` supports security reference / full-book file interpretation.
 - `brokerno` supports `BrokerNo -> broker / participant` lookup.
 - `List_of_Current_SEHK_EP` supports richer broker / participant reference joins.
+- `instrument_profile_seed` 用于 sidecar instrument profile enrichment，应保持在 verified fact 表之外。
 
 These files are references only. They do not override stage/DQA/semantic contracts by themselves.
 They should also not be silently collapsed into `verified` truth without explicit policy.

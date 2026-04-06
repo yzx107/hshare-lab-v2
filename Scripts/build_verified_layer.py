@@ -43,6 +43,7 @@ class VerifiedTask:
     input_columns: tuple[str, ...]
     output_columns: tuple[str, ...]
     excluded_columns: tuple[str, ...]
+    derived_columns: tuple[str, ...] = ()
     caveat_columns: tuple[str, ...] = ()
     variant_label: str = ""
     input_row_count: int = 0
@@ -271,23 +272,59 @@ def variant_label_for_caveat_columns(caveat_columns: tuple[str, ...]) -> str:
     return "caveat_" + "_".join(value.lower() for value in caveat_columns)
 
 
+def field_applies_to_year(spec: dict[str, Any], year: str) -> bool:
+    admit_years = tuple(spec.get("admit_years", ()))
+    if admit_years and year not in admit_years:
+        return False
+    exclude_years = tuple(spec.get("exclude_years", ()))
+    if exclude_years and year in exclude_years:
+        return False
+    return True
+
+
+def derived_column_dependencies(column_name: str, spec: dict[str, Any]) -> tuple[str, ...]:
+    derivation = spec.get("derivation")
+    if not derivation:
+        return ()
+    if derivation == "source_file_basename_no_ext":
+        return ("source_file",)
+    raise ValueError(f"Unsupported derivation for {column_name}: {derivation}")
+
+
 def table_policy_projection(
     policy: dict[str, Any],
     table_name: str,
     requested_caveat_columns: tuple[str, ...],
-) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...], str]:
+    year: str,
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...], str]:
     input_columns: list[str] = []
     output_columns: list[str] = []
     excluded: list[str] = []
+    derived_columns: list[str] = []
     caveat_columns: list[str] = []
     requested_set = set(requested_caveat_columns)
     for column_name, spec in policy[table_name].items():
-        if spec["bucket"] == "admit_now":
-            input_columns.append(column_name)
-            output_columns.append(column_name)
-        elif spec["bucket"] == "admit_with_explicit_caveat_only" and column_name in requested_set:
-            input_columns.append(column_name)
-            output_columns.append(column_name)
+        applies_to_year = field_applies_to_year(spec, year)
+        if spec["bucket"] == "admit_now" and applies_to_year:
+            if spec.get("derivation"):
+                for dependency in derived_column_dependencies(column_name, spec):
+                    if dependency not in input_columns:
+                        input_columns.append(dependency)
+                output_columns.append(column_name)
+                derived_columns.append(column_name)
+            else:
+                input_columns.append(column_name)
+                output_columns.append(column_name)
+        elif spec["bucket"] == "admit_with_explicit_caveat_only" and column_name in requested_set and applies_to_year:
+            if spec.get("derivation"):
+                for dependency in derived_column_dependencies(column_name, spec):
+                    if dependency not in input_columns:
+                        input_columns.append(dependency)
+                output_columns.append(column_name)
+                derived_columns.append(column_name)
+            else:
+                input_columns.append(column_name)
+                output_columns.append(column_name)
             caveat_columns.append(column_name)
         else:
             excluded.append(column_name)
@@ -300,6 +337,7 @@ def table_policy_projection(
         tuple(input_columns),
         tuple(output_columns),
         tuple(excluded),
+        tuple(derived_columns),
         caveat_tuple,
         variant_label_for_caveat_columns(caveat_tuple),
     )
@@ -352,10 +390,11 @@ def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[Ver
     tasks: list[VerifiedTask] = []
     requested_caveat_columns = explicit_caveat_columns_from_args(args)
     for table_name in tables:
-        input_columns, output_columns, excluded_columns, caveat_columns, variant_label = table_policy_projection(
+        input_columns, output_columns, excluded_columns, derived_columns, caveat_columns, variant_label = table_policy_projection(
             policy,
             table_name,
             requested_caveat_columns,
+            str(args.year),
         )
         for trade_date in parse_selected_dates(args, table_name):
             input_paths = tuple(str(path) for path in sorted((args.stage_root / table_name / f"date={trade_date}").glob("*.parquet")))
@@ -379,6 +418,7 @@ def discover_tasks(args: argparse.Namespace, policy: dict[str, Any]) -> list[Ver
                     input_columns=input_columns,
                     output_columns=output_columns,
                     excluded_columns=excluded_columns,
+                    derived_columns=derived_columns,
                     caveat_columns=caveat_columns,
                     variant_label=variant_label,
                     scratch_root=(
@@ -713,6 +753,18 @@ def research_time_grade_for_year(year: str) -> str:
     return "fine_ok" if year == "2026" else "coarse_only"
 
 
+def derived_default_expr(column_name: str) -> pl.Expr:
+    if column_name == "instrument_key":
+        extracted = pl.col("source_file").cast(pl.Utf8).str.extract(r"([^/]+)\.csv$", 1)
+        return (
+            pl.when(extracted.is_not_null())
+            .then(extracted)
+            .otherwise(pl.col("source_file").cast(pl.Utf8))
+            .alias("instrument_key")
+        )
+    raise ValueError(f"Unsupported derived default column: {column_name}")
+
+
 def process_task(task: VerifiedTask) -> dict[str, Any]:
     task_started_at = time.perf_counter()
     output_path = Path(task.output_path)
@@ -726,6 +778,9 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
     scan = pl.scan_parquet(list(effective_input_paths))
     available_columns = set(scan.collect_schema().names())
     required_source_columns = set(task.input_columns)
+    for column_name in task.derived_columns:
+        if column_name == "instrument_key":
+            required_source_columns.add("source_file")
     if "OrderSideVendor" in task.caveat_columns:
         required_source_columns.add("Ext")
     missing_columns = [column for column in sorted(required_source_columns) if column not in available_columns]
@@ -733,6 +788,8 @@ def process_task(task: VerifiedTask) -> dict[str, Any]:
         raise ValueError(f"Missing verified input columns for {task.task_key}: {missing_columns}")
     row_count = task.input_row_count if task.input_row_count > 0 else input_rows(task.input_paths)
     select_exprs: list[Any] = [pl.col(column) for column in task.input_columns]
+    for column_name in task.derived_columns:
+        select_exprs.append(derived_default_expr(column_name))
     if "OrderSideVendor" in task.caveat_columns:
         select_exprs.append(pl.col("Ext").cast(pl.Utf8).str.slice(0, 1).alias("OrderSideVendor"))
     try:

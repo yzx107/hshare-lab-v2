@@ -11,6 +11,7 @@ verified v1 的目标是：
 - 把当前已可接受的 conservative structural fields 从 `candidate_cleaned` 提升到更高置信度入口
 - 保持与 field policy、verified admission policy、reference policy 一致
 - 不提前放行高风险 vendor-defined semantics
+- 让下游不必再从 `source_file` 正则拆 `instrument_key`
 
 ## Inputs
 
@@ -89,6 +90,7 @@ verified v1 should include only:
 
 - mechanically safe tech fields
 - `admit_now` fields from verified admission policy
+- policy 明确允许的派生 structural fields，例如 `instrument_key`
 
 verified v1 should exclude by default:
 
@@ -110,11 +112,13 @@ Expected core columns:
 - `date`
 - `table_name`
 - `source_file`
+- `instrument_key`
 - `ingest_ts`
 - `row_num_in_file`
 - `SeqNum`
 - `OrderId`
 - `Time`
+- `SendTime`（仅 `2026`）
 - `Price`
 - `Volume`
 
@@ -125,10 +129,12 @@ Expected core columns:
 - `date`
 - `table_name`
 - `source_file`
+- `instrument_key`
 - `ingest_ts`
 - `row_num_in_file`
 - `TickID`
 - `Time`
+- `SendTime`（仅 `2026`）
 - `Price`
 - `Volume`
 
@@ -160,8 +166,10 @@ verified v1 does not mean:
 
 In particular:
 
-- `SeqNum` and `Time` may appear in verified v1 as project-level structural fields
+- `instrument_key` may appear in verified v1 as a project-level field derived from `source_file`
+- `SeqNum`、`Time` and `SendTime` may appear in verified v1 as project-level structural/time fields
 - they still must not be described as confirmed official native fields
+- `2025` should still not be treated as `SendTime`-reliable, even if the stage layer physically carries that column
 - verified v1 should not silently embed broker / participant lookup labels as fact columns
 
 ## Recommended Build Sequence

@@ -26,11 +26,13 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 - `date`
 - `table_name`
 - `source_file`
+- `instrument_key`
 - `ingest_ts`
 - `row_num_in_file`
 - `SeqNum`
 - `OrderId`
 - `Time`
+- `SendTime`（仅 `2026`）
 - `Price`
 - `Volume`
 
@@ -39,10 +41,12 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 - `date`
 - `table_name`
 - `source_file`
+- `instrument_key`
 - `ingest_ts`
 - `row_num_in_file`
 - `TickID`
 - `Time`
+- `SendTime`（仅 `2026`）
 - `Price`
 - `Volume`
 
@@ -50,12 +54,14 @@ verified layer 的目标不是“把常用字段都搬进去”，而是：
 
 - 技术追溯列属于 mechanically safe
 - `OrderId`、`TickID`、`Price`、`Volume` 可作为高价值结构列
-- `SeqNum`、`Time` 目前虽未完成官方 native mapping，但可作为 verified layer 中的 conservative structural fields 使用，前提是不宣称官方字段原义
+- `instrument_key` 可稳定由 `source_file` 派生，优于让每个下游自己正则提取股票代码
+- `SeqNum`、`Time`、`SendTime` 目前虽未完成官方 native mapping，但可作为 verified layer 中的 conservative structural fields 使用，前提是不宣称官方字段原义；其中 `SendTime` 仅先放开 `2026`
 
 使用边界：
 
-- `SeqNum`、`Time` 的 verified 含义应限定为 project-level verified structural field
+- `SeqNum`、`Time`、`SendTime` 的 verified 含义应限定为 project-level verified structural field
 - 不把它们写成“已确认官方 native sequence / native time field”
+- `2025` 仍不得把 `SendTime` 当成 fine-grained timing anchor，因此默认 verified 继续不暴露该列
 
 ### B. Admit With Explicit Caveat Only
 

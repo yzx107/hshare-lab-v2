@@ -38,6 +38,8 @@
 - `2025/2026`：全量 `staging` 已完成，当前主线切到 `full-year DQA`
 - `2025`：观测到的 raw source group label `HKDarkPool` 已隔离 inventory，`ID-linkage` 与 `Time` coarse anchor 边界已基本定住
 - `research admissibility`：已形成 `2025 coarse_only / 2026 fine_ok` 的项目口径
+- `verified default surface`：当前默认 verified 已覆盖 `instrument_key`，并在 `2026` 默认暴露 `SendTime`
+- `instrument_profile sidecar`：新增独立 reference layer 骨架，供下游 boundary / strategy 模块消费，不混入 verified fact 表
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 
 ## 当前原则
@@ -114,6 +116,7 @@ Hshare_Lab_v2/
 ├── 2026/                    # raw layer
 ├── candidate_cleaned/       # stage parquet / 待验证 cleaned layer
 ├── dqa/                     # DQA 报告与中间产物
+├── reference/               # instrument_profile 等 sidecar 参考层
 ├── verified/                # verified research-ready layer
 ├── manifests/               # 数据清单
 └── logs/                    # 长任务日志

@@ -8,6 +8,7 @@
 
 - `normalized/brokerno.utf8.csv`
 - `normalized/List_of_Current_SEHK_EP.utf8.tsv`
+- `normalized/instrument_profile_seed.csv`
 - `normalized/ReadMe.utf8.txt`
 - `vendor/CFBC_File_Specification_wef_20250630.pdf`
 - `raw_vendor_notice_2026-01-01.txt`
@@ -33,6 +34,7 @@ reference 文件不可以单独完成：
 | --- | --- | --- | --- | --- |
 | `brokerno.utf8.csv` | broker lookup | yes | no by default | `reference_lookup` |
 | `List_of_Current_SEHK_EP.utf8.tsv` | participant lookup / broker enrichment | yes | no by default | `reference_lookup` |
+| `instrument_profile_seed.csv` | instrument profile enrichment | yes | no by default | `reference_lookup` |
 | `ReadMe.utf8.txt` | vendor export contract | no direct row join | no | `source_contract_reference` |
 | `raw_vendor_notice_2026-01-01.txt` | vendor export drift note | no direct row join | no | `source_contract_reference` |
 | `CFBC_File_Specification_wef_20250630.pdf` | OMD / Historical Full Book product-family reference | no direct row join | no | `provenance_reference` |
@@ -81,6 +83,20 @@ Not allowed:
 
 - treating vendor field descriptions as final research-verified semantics
 - treating vendor labels as official HKEX field identity proof
+
+### C2. `instrument_profile_seed.csv`
+
+Allowed:
+
+- `instrument_key -> listing_date / southbound_eligible / float_mktcap_hkd` sidecar enrichment
+- boundary module filters such as listing-age / southbound eligibility / market-cap buckets
+- building a standalone `instrument_profile` reference layer
+
+Not allowed:
+
+- silently merging profile columns into verified fact tables
+- using missing / stale `as_of_date` rows as if they were historical truth
+- treating profile seed contents as proof of tick field semantics
 
 ### D. `raw_vendor_notice_2026-01-01.txt`
 

@@ -20,6 +20,7 @@ Research/Notes/stop_after_august_2025_lifecycle.json
 *.csv
 *.feather
 *.arrow
+!Research/References/normalized/instrument_profile_seed.csv
 
 tmp/
 

@@ -65,6 +65,7 @@
 ## Current Repo Status Alignment
 
 - This matrix reflects the checked-in semantic findings currently available in the repo: lifecycle has landed as a full-year audit, `TradeDir` has landed as a contrast probe with manual-review status, and `OrderType` has landed as a `weak_pass` semantic probe.
+- 默认 verified 输出现在两年都会暴露 `instrument_key`，并在 `2026` 暴露 `SendTime`；这能改善下游消费体验，但不改变按年份定义的 admissibility 边界。
 - The repo should not yet be read as if `TradeDir` signed-side mapping, queue semantics, `BrokerNo` semantics, or `Level / VolumePre / Type / Ext` semantics are complete.
 - HKEX official docs and vendor `ReadMe` now support a stronger but still limited wording for `TradeDir`: vendor-derived aggressor proxy, not HKEX native aggressor-side truth.
 - `strict_ordering_sensitive_causality`, `execution_realism_or_fill_simulation`, and `latency_like_metrics` remain gated not because linkage/time-anchor are missing for `2026`, but because higher-risk field semantics are still only partially verified.

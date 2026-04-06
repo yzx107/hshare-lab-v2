@@ -19,6 +19,12 @@
       "bucket": "admit_now",
       "reason": "mechanically_safe_tech_field"
     },
+    "instrument_key": {
+      "bucket": "admit_now",
+      "reason": "project_level_instrument_identifier_derived_from_source_file",
+      "caveat": "derived_from_source_file_basename_without_reference_enrichment",
+      "derivation": "source_file_basename_no_ext"
+    },
     "ingest_ts": {
       "bucket": "admit_now",
       "reason": "mechanically_safe_tech_field"
@@ -41,6 +47,14 @@
       "bucket": "admit_now",
       "reason": "project_level_time_field",
       "caveat": "coarse_or_project_level_time_not_official_native_mapping"
+    },
+    "SendTime": {
+      "bucket": "admit_now",
+      "reason": "project_level_sendtime_field",
+      "caveat": "admitted_for_2026_verified_default_only_2025_sendtime_remains_outside_default_verified_due_to_time_anchor_boundary",
+      "admit_years": [
+        "2026"
+      ]
     },
     "Price": {
       "bucket": "admit_now",
@@ -86,6 +100,12 @@
       "bucket": "admit_now",
       "reason": "mechanically_safe_tech_field"
     },
+    "instrument_key": {
+      "bucket": "admit_now",
+      "reason": "project_level_instrument_identifier_derived_from_source_file",
+      "caveat": "derived_from_source_file_basename_without_reference_enrichment",
+      "derivation": "source_file_basename_no_ext"
+    },
     "ingest_ts": {
       "bucket": "admit_now",
       "reason": "mechanically_safe_tech_field"
@@ -103,6 +123,14 @@
       "bucket": "admit_now",
       "reason": "project_level_time_field",
       "caveat": "coarse_or_project_level_time_not_official_native_mapping"
+    },
+    "SendTime": {
+      "bucket": "admit_now",
+      "reason": "project_level_sendtime_field",
+      "caveat": "admitted_for_2026_verified_default_only_2025_sendtime_remains_outside_default_verified_due_to_time_anchor_boundary",
+      "admit_years": [
+        "2026"
+      ]
     },
     "Price": {
       "bucket": "admit_now",

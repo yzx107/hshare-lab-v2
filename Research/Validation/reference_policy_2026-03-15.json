@@ -35,6 +35,23 @@
         "verified_truth_by_default"
       ]
     },
+    "normalized/instrument_profile_seed.csv": {
+      "role": "instrument_profile_reference",
+      "query_join_allowed": true,
+      "verified_direct_input_allowed": false,
+      "safe_output_label": "reference_lookup",
+      "allowed_uses": [
+        "listing_age_filters",
+        "southbound_eligibility_filters",
+        "market_cap_bucket_reference",
+        "instrument_profile_sidecar_enrichment"
+      ],
+      "forbidden_claims": [
+        "tick_field_semantics_proved",
+        "historical_truth_without_asof_boundary",
+        "verified_truth_by_default"
+      ]
+    },
     "normalized/ReadMe.utf8.txt": {
       "role": "vendor_export_contract",
       "query_join_allowed": false,

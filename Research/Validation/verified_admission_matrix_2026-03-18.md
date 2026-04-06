@@ -44,11 +44,13 @@
 
 | object_or_field_group | 2025 basis | 2026 basis | verified_v1_decision | notes |
 | --- | --- | --- | --- | --- |
-| `verified_orders` core structural columns | sufficient | sufficient | `admit_now` | `date, table_name, source_file, ingest_ts, row_num_in_file, SeqNum, OrderId, Time, Price, Volume` |
-| `verified_trades` core structural columns | sufficient | sufficient | `admit_now` | `date, table_name, source_file, ingest_ts, row_num_in_file, TickID, Time, Price, Volume` |
+| `verified_orders` core structural columns | sufficient | sufficient | `admit_now` | `date, table_name, source_file, instrument_key, ingest_ts, row_num_in_file, SeqNum, OrderId, Time, Price, Volume`；`2026` 默认额外带 `SendTime` |
+| `verified_trades` core structural columns | sufficient | sufficient | `admit_now` | `date, table_name, source_file, instrument_key, ingest_ts, row_num_in_file, TickID, Time, Price, Volume`；`2026` 默认额外带 `SendTime` |
 | `OrderId` as project structural order key | lifecycle/linkage backbone established | lifecycle/linkage backbone established | `admit_now` | 可作为 verified structural identifier；不宣称官方 native field identity |
 | `TickID` as project structural trade key | mechanically safe | mechanically safe | `admit_now` | 保守进入 verified，不宣称官方 `TradeID` mapping 已确认 |
+| `instrument_key` as project structural instrument key | source_file-derived and mechanically stable | source_file-derived and mechanically stable | `admit_now` | 默认进入 verified，避免下游继续从 `source_file` 正则拆代码；不等于 reference-enriched instrument master |
 | `SeqNum` / `Time` as project structural sequencing/time columns | `coarse_only` | `fine_ok` | `admit_now_with_year_caveat` | 两年都可进入 verified v1，但 `2025` 不得被当作 fine-grained timing anchor |
+| `SendTime` as project timestamp column | stage 中存在，但 `2025` time-anchor 仍未放行 | `time_anchor = pass`, `fine_ok` | `admit_now_with_year_caveat` | 默认 verified 仅先在 `2026` 暴露；`2025` 继续留在 stage，避免误导下游把它当 fine-grained truth |
 | `BidOrderID / AskOrderID` linkage columns | direct equality works, native meaning still unverified | direct equality works, native meaning still unverified | `keep_out_for_now` | 可继续服务 DQA / semantic / research admissibility；不进入 verified v1 默认表 |
 | `verified_trade_order_linkage` table | too strong for v1 | too strong for v1 | `defer` | 等下一阶段 verified 扩容，而不是现在默认 materialize |
 | `OrderType` | vendor `1/2/3` 定义 + lifecycle 结构稳定 | `weak_pass` + raw 目录结构强一致 | `admit_with_explicit_caveat_only` | 可作为 `stable vendor event code` 暴露；不进 verified v1 默认表，不写成官方 event semantics |
@@ -71,6 +73,8 @@
 - mechanically safe technical columns
 - conservative structural columns
 - current `admit_now` fields
+- `instrument_key`
+- `2026` 的 `SendTime`
 
 现在仍然默认不做：
 
