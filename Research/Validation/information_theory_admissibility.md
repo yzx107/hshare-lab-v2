@@ -35,6 +35,35 @@
   - `2026 = fine_ok`
 - 任何信息论输出都不得弱化既有字段边界；`Dir / OrderType / OrderSideVendor / Type` 若被使用，仍然属于 `explicit caveat` 语境
 
+## Universe 角色分层
+
+信息论方法在本 repo 中必须把 `target universe` 与 `source universe` 分开。
+
+默认主线：
+
+- `default universe = equity target`
+
+含义：
+
+- 正式下游消费、IC / spread / pre-eval / scoreboard 默认只针对股票研究对象
+- 不允许把股票、ETF、REIT、权证、CBBC、债券/票据类混成一个同质研究 universe
+
+扩展 source lane：
+
+- `non-equity instruments may be used only as explicit source-lane inputs`
+
+允许用途：
+
+- `cross-security dependence`
+- `transfer-entropy source`
+- `market state / regime source`
+- `non-equity source -> equity target` 的显式扩展研究
+
+不允许：
+
+- 把 non-equity instruments 拉回默认 target universe
+- 在未显式声明 target/source 角色的情况下，把 cross-security 结果写成默认股票因子结论
+
 ## 分层规则
 
 | usage_case | allowed_layer | status | notes |

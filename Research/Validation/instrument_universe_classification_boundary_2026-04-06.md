@@ -177,3 +177,9 @@
 - 上游必须承认 tick universe 不是纯股票池
 - 下游若需要股票研究池，必须显式使用 `instrument_profile` sidecar 做 universe 选择
 - 在缺少更强 reference 前，`listed_security_unclassified` 不能自动进入“普通股票”叙事
+- 默认 target universe 应写成 `equity target`，当前由 `stock_research_candidate = true` 保守承载
+- non-equity objects 不应回流进默认股票主线；若要使用，只能作为 `explicit source lane`
+- `ETF / REIT / warrant / CBBC / bond / other listed security -> equity target` 的 cross-security 研究是允许的，但必须显式声明：
+  - `target = equity only`
+  - `source = non-equity source universe`
+  - `not in default core scoreboard`
