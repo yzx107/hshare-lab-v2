@@ -25,6 +25,10 @@ Research/Notes/stop_after_august_2025_lifecycle.json
 tmp/
 .tmp/
 config/reference_sources.local.json
+config/ftp_source.local.json
+
+.graphifyignore
+graphify-out/
 
 debug_metrics.py
 full_run.log
