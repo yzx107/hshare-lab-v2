@@ -25,7 +25,8 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
                         "This output uses reference lookup enrichment only.",
                         "These are vendor-defined and not research-verified fields.",
                         "We study `OrderId`, `Dir`, `BrokerNo`, and `BidOrderID`.",
-                        "This draft should avoid saying confirmed official mapping and verified by lookup table.",
+                        "This draft should avoid saying confirmed official mapping "
+                        "and verified by lookup table.",
                     ]
                 )
                 + "\n",
@@ -53,7 +54,9 @@ class ReportFieldPolicyCheckTests(unittest.TestCase):
             self.assertIn("BrokerNo", mentioned)
             self.assertIn("BidOrderID", mentioned)
             self.assertIn("Dir", payload["mentioned_unverified_fields"])
-            self.assertIn("Dir", payload["mentioned_keep_out_fields"])
+            self.assertIn("Dir", payload["mentioned_caveat_only_fields"])
+            self.assertIn("BidOrderID", payload["mentioned_caveat_only_fields"])
+            self.assertIn("BrokerNo", payload["mentioned_keep_out_fields"])
             self.assertIn("confirmed_official_mapping", payload["avoid_phrase_hits"])
             self.assertIn("verified_by_lookup_table", payload["reference_avoid_label_hits"])
             self.assertTrue(payload["has_provenance_phrase"])

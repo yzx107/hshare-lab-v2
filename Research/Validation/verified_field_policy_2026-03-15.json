@@ -83,8 +83,9 @@
       "reason": "broker_identity_semantics_not_verified"
     },
     "VolumePre": {
-      "bucket": "keep_out_for_now",
-      "reason": "pre_modify_quantity_semantics_not_verified"
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "modify_previous_quantity_check_supported_not_official_native_field_identity",
+      "caveat": "volume_pre_matches_prior_active_order_volume_in_orderbook_probe_but_only_for_modify_consistency_dqa_not_default_verified"
     }
   },
   "trades": {
@@ -154,16 +155,18 @@
       "reason": "broker_identity_semantics_not_verified"
     },
     "BidOrderID": {
-      "bucket": "keep_out_for_now",
-      "reason": "linkage_native_meaning_not_verified"
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "active_orderbook_linkage_probe_supports_replay_evidence_not_native_meaning",
+      "caveat": "may_support_trade_to_active_bid_order_linkage_dqa_and_side_match_checks_not_default_verified"
     },
     "BidVolume": {
       "bucket": "keep_out_for_now",
       "reason": "linkage_native_meaning_not_verified"
     },
     "AskOrderID": {
-      "bucket": "keep_out_for_now",
-      "reason": "linkage_native_meaning_not_verified"
+      "bucket": "admit_with_explicit_caveat_only",
+      "reason": "active_orderbook_linkage_probe_supports_replay_evidence_not_native_meaning",
+      "caveat": "may_support_trade_to_active_ask_order_linkage_dqa_and_side_match_checks_not_default_verified"
     },
     "AskVolume": {
       "bucket": "keep_out_for_now",

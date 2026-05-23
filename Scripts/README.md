@@ -49,6 +49,8 @@
 - `run_tradedir_validation.py`：读取现有 `TradeDir` probe / contrast / 文档锚点，压成可挂机复核的一页 readiness summary
 - `run_brokerno_validation.py`：读取 `BrokerNo` policy / reference，并对少量真实日期做 zero-rate 与 lookup coverage smoke
 - `run_semantic_ordertype.py`：`OrderType` probe
+- `run_hshare_orderbook_probe.py`：按 `OrderId` 维护 active order book，对比 `Ext[0] / Ext[1]` side candidate，并输出 crossed book / linkage / `VolumePre` / `Level` 复核指标
+- `build_orderbook_replay_caveat.py`：物化 `orderbook_replay__caveat_lifecycle_linkage`，输出 lifecycle events 与 trade linkage 证据表，不输出 reconstructed depth
 - `run_semantic_session.py`：`Session` probe
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
@@ -70,6 +72,7 @@
 - `2025/2026`：`TradeDir` 仍不能当成 HKEX 原生 signed side；`signed_flow` 研究继续 blocked，且 `Type in {U,X,P,D,M}` 应从 normal signed-flow bucket 分离
 - `2025/2026`：`OrderType` 现在可以更稳地写成 `stable vendor event code`：`1=Add`、`2=Modify`、`3=Delete`；可进入 `caveat-only`，但仍不是官方原生 event semantics
 - `2025/2026`：`Ext.bit0` 现在可写成 `vendor order-side proxy`：`0=buy`、`1=sell`；当前只放开 `bit0`，不等于整列 `Ext` 已完成语义验证
+- `2026`：`BidOrderID / AskOrderID / VolumePre` 可进入 `orderbook_replay` caveat-only DQA 语境；不得进入 verified 默认表，也不得宣称官方 native trade/order 字段语义
 - `2025`：`verified_orders / verified_trades` conservative v1 full-year materialization 已完成，并已生成 checked-in full-year report；`research_time_grade` 仍应解释为 `coarse_only`
 - `2025/2026`：`verified` 默认表现在会稳定暴露 `instrument_key`，避免下游继续从 `source_file` 正则拆股票代码
 - `2026`：`verified_orders / verified_trades` 默认表现在也会暴露 `SendTime`，供 fine-grained timing 研究直接消费；`2025` 的 `SendTime` 仍不进入默认 verified
@@ -77,7 +80,7 @@
 - `stock_research_candidate`：当前作为 `instrument_profile` sidecar 的保守研究标的 lane 提供；定义为“低位 `listed_security_unclassified` 上市证券候选池”，可供股票研究先行使用，但不等于纯净股票 master
 - `information theory`：当前只做 `admissibility / feasibility / boundary` 接线；`2025` 只允许 coarse entropy / MI，正式 TE blocked；`2026` 可在 verified + admissible 字段边界内做 finer entropy / MI，并对 TE 保持 `allowed_with_caveat`
 - `2026`：`verified_orders / verified_trades` conservative v1 builder 已实现，full-year acceptance/report 已有 checked-in 产物，但 verified 落盘不等于高风险字段语义已完成验证
-- `BrokerNo / Level / VolumePre / Type / Ext / queue semantics` 仍不应视为已完成 semantic verification
+- `BrokerNo / Level / Type / full Ext / queue semantics` 仍不应视为已完成 semantic verification
 - linkage 相关研究从现在开始拆年，不把 `2025/2026` 混成同一 linkage 范式
 - `2026` 表内排序默认 `SeqNum` 优先，`SendTime` 用于时间窗与 lag 分析，不替代主排序锚
 
@@ -127,6 +130,8 @@
 - `python -m Scripts.run_semantic_lifecycle --year 2026 --resume`
 - `python -m Scripts.run_semantic_tradedir --year 2026`
 - `python -m Scripts.run_semantic_ordertype --year 2026 --resume`
+- `python -m Scripts.run_hshare_orderbook_probe --print-plan`
+- `python -m Scripts.build_orderbook_replay_caveat --print-plan`
 - `python -m Scripts.run_semantic_session --year 2026`
 - `python -m Scripts.semantic_report --year 2026`
 - `python -m Scripts.build_verified_layer --year 2026 --resume`

@@ -1,6 +1,6 @@
 # Semantic Summary 2026
 
-- generated_at: 2026-03-25T18:06:14+00:00
+- generated_at: 2026-05-23T14:23:40+00:00
 - semantic_areas: 4
 
 This summary aggregates semantic probe status into admissibility-facing gating signals.
@@ -43,13 +43,13 @@ This summary aggregates semantic probe status into admissibility-facing gating s
 
 ## Admissibility Bridge
 - orderid_lifecycle / order_lifecycle_shape_by_event_count: allow
-- orderid_lifecycle / execution_realism_or_fill_simulation: allow
-- orderid_lifecycle / strict_ordering_sensitive_causality: allow
+- orderid_lifecycle / execution_realism_or_fill_simulation: blocked
+- orderid_lifecycle / strict_ordering_sensitive_causality: blocked
 - tradedir / trade_dir_weak_consistency_check: requires_manual_review
 - tradedir / signed_flow: blocked
 - tradedir / aggressor_side_inference: blocked
 - ordertype / ordertype_weak_consistency_check: allow_with_caveat
 - ordertype / order_lifecycle_shape_by_event_count: allow_with_caveat
-- ordertype / event_semantics_inference: allow_with_caveat
+- ordertype / event_semantics_inference: blocked
 - session / matched_edge_session_profile: requires_session_split
-- session / cross_session_unaware_research: requires_session_split
+- session / cross_session_unaware_research: blocked

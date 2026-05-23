@@ -35,10 +35,50 @@ class SemanticReportTests(unittest.TestCase):
                 "summary": "ok",
                 "evidence_path": "x",
             }
-            write_parquet(year_dir / "semantic_orderid_lifecycle_daily.parquet", [{**common, "semantic_area": "orderid_lifecycle", "status": "weak_pass", "admissibility_impact": "allow_with_caveat"}])
-            write_parquet(year_dir / "semantic_tradedir_daily.parquet", [{**common, "semantic_area": "tradedir", "status": "unknown", "admissibility_impact": "requires_manual_review"}])
-            write_parquet(year_dir / "semantic_ordertype_daily.parquet", [{**common, "semantic_area": "ordertype", "status": "weak_pass", "admissibility_impact": "allow_with_caveat"}])
-            write_parquet(year_dir / "semantic_session_daily.parquet", [{**common, "semantic_area": "session", "status": "not_run", "admissibility_impact": "requires_session_split"}])
+            write_parquet(
+                year_dir / "semantic_orderid_lifecycle_daily.parquet",
+                [
+                    {
+                        **common,
+                        "semantic_area": "orderid_lifecycle",
+                        "status": "weak_pass",
+                        "admissibility_impact": "allow_with_caveat",
+                    }
+                ],
+            )
+            write_parquet(
+                year_dir / "semantic_tradedir_daily.parquet",
+                [
+                    {
+                        **common,
+                        "semantic_area": "tradedir",
+                        "status": "unknown",
+                        "admissibility_impact": "requires_manual_review",
+                    }
+                ],
+            )
+            write_parquet(
+                year_dir / "semantic_ordertype_daily.parquet",
+                [
+                    {
+                        **common,
+                        "semantic_area": "ordertype",
+                        "status": "weak_pass",
+                        "admissibility_impact": "allow_with_caveat",
+                    }
+                ],
+            )
+            write_parquet(
+                year_dir / "semantic_session_daily.parquet",
+                [
+                    {
+                        **common,
+                        "semantic_area": "session",
+                        "status": "not_run",
+                        "admissibility_impact": "requires_session_split",
+                    }
+                ],
+            )
 
             subprocess.run(
                 [
@@ -64,6 +104,12 @@ class SemanticReportTests(unittest.TestCase):
             self.assertEqual(bridge.height, 11)
             self.assertIn("research_module", bridge.columns)
             self.assertIn("final_research_status", bridge.columns)
+            statuses = {
+                row["research_module"]: row["final_research_status"]
+                for row in bridge.to_dicts()
+            }
+            self.assertEqual(statuses["execution_realism_or_fill_simulation"], "blocked")
+            self.assertEqual(statuses["event_semantics_inference"], "blocked")
 
 
 if __name__ == "__main__":

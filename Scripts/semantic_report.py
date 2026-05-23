@@ -6,13 +6,19 @@ from typing import Any
 
 import polars as pl
 
-from Scripts.runtime import DEFAULT_DATA_ROOT, ensure_dir, iso_utc_now, print_scaffold_plan, write_json
+from Scripts.runtime import (
+    DEFAULT_DATA_ROOT,
+    ensure_dir,
+    iso_utc_now,
+    print_scaffold_plan,
+    write_json,
+)
 from Scripts.semantic_contract import (
     ADMISSIBILITY_BRIDGE_COLUMNS,
     SEMANTIC_AREA_NAMES,
+    STATUS_SEVERITY,
     SUMMARY_TABLE_BY_AREA,
     TOTAL_SUMMARY_COLUMNS,
-    STATUS_SEVERITY,
     area_modules,
     build_empty_record,
     get_daily_columns,
@@ -31,7 +37,9 @@ AREA_DAILY_FILES = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Aggregate semantic probe outputs into unified summaries.")
+    parser = argparse.ArgumentParser(
+        description="Aggregate semantic probe outputs into unified summaries."
+    )
     parser.add_argument("--year", help="Year such as 2025 or 2026.")
     parser.add_argument("--input-root", type=Path, default=DEFAULT_DQA_ROOT)
     parser.add_argument("--research-root", type=Path, default=DEFAULT_RESEARCH_AUDITS_ROOT)
@@ -103,39 +111,88 @@ def build_area_summary(area: str, year: str, rows: list[dict[str, Any]]) -> dict
         base.update(
             {
                 "linked_orderids_total": sum(int(row["linked_orderids"] or 0) for row in rows),
-                "linked_orderid_rate_avg": safe_avg([row["linked_orderid_rate"] for row in rows]),
-                "orders_with_multiple_events_rate_avg": safe_avg([row["orders_with_multiple_events_rate"] for row in rows]),
-                "orders_with_multiple_trades_rate_avg": safe_avg([row["orders_with_multiple_trades_rate"] for row in rows]),
-                "cross_session_candidate_rate_avg": safe_avg([row["cross_session_candidate_rate"] for row in rows]),
+                "linked_orderid_rate_avg": safe_avg(
+                    [row["linked_orderid_rate"] for row in rows]
+                ),
+                "orders_with_multiple_events_rate_avg": safe_avg(
+                    [row["orders_with_multiple_events_rate"] for row in rows]
+                ),
+                "orders_with_multiple_trades_rate_avg": safe_avg(
+                    [row["orders_with_multiple_trades_rate"] for row in rows]
+                ),
+                "cross_session_candidate_rate_avg": safe_avg(
+                    [row["cross_session_candidate_rate"] for row in rows]
+                ),
             }
         )
     elif area == "tradedir":
         base.update(
             {
-                "tradedir_nonnull_rate_avg": safe_avg([row["tradedir_nonnull_rate"] for row in rows]),
+                "tradedir_nonnull_rate_avg": safe_avg(
+                    [row["tradedir_nonnull_rate"] for row in rows]
+                ),
                 "tradedir_zero_rate_avg": safe_avg([row["tradedir_zero_rate"] for row in rows]),
                 "tradedir_pos_rate_avg": safe_avg([row["tradedir_pos_rate"] for row in rows]),
                 "tradedir_neg_rate_avg": safe_avg([row["tradedir_neg_rate"] for row in rows]),
-                "linked_side_consistency_rate_avg": safe_avg([row["linked_side_consistency_rate"] for row in rows]),
+                "linked_side_consistency_rate_avg": safe_avg(
+                    [row["linked_side_consistency_rate"] for row in rows]
+                ),
             }
         )
     elif area == "ordertype":
-        distinct_values = sorted({int(row["distinct_ordertype_values"]) for row in rows if row["distinct_ordertype_values"] is not None})
+        distinct_values = sorted(
+            {
+                int(row["distinct_ordertype_values"])
+                for row in rows
+                if row["distinct_ordertype_values"] is not None
+            }
+        )
         base.update(
             {
-                "distinct_ordertype_values_union": ",".join(str(value) for value in distinct_values) if distinct_values else None,
-                "single_ordertype_orderid_rate_avg": safe_avg([row["single_ordertype_orderid_rate"] for row in rows]),
-                "multi_ordertype_orderid_rate_avg": safe_avg([row["multi_ordertype_orderid_rate"] for row in rows]),
-                "ordertype_transition_pattern_count_total": sum(int(row["ordertype_transition_pattern_count"] or 0) for row in rows),
+                "distinct_ordertype_values_union": (
+                    ",".join(str(value) for value in distinct_values)
+                    if distinct_values
+                    else None
+                ),
+                "single_ordertype_orderid_rate_avg": safe_avg(
+                    [row["single_ordertype_orderid_rate"] for row in rows]
+                ),
+                "multi_ordertype_orderid_rate_avg": safe_avg(
+                    [row["multi_ordertype_orderid_rate"] for row in rows]
+                ),
+                "ordertype_transition_pattern_count_total": sum(
+                    int(row["ordertype_transition_pattern_count"] or 0) for row in rows
+                ),
             }
         )
     elif area == "session":
-        distinct_values = sorted({int(row["distinct_session_values"]) for row in rows if row["distinct_session_values"] is not None})
+        distinct_values = sorted(
+            {
+                int(row["distinct_session_values"])
+                for row in rows
+                if row["distinct_session_values"] is not None
+            }
+        )
         base.update(
             {
-                "distinct_session_values_union": ",".join(str(value) for value in distinct_values) if distinct_values else None,
-                "cross_session_linkage_rate_avg": safe_avg([row["cross_session_linkage_rate"] for row in rows]),
-                "session_time_window_consistent_day_rate": safe_avg([1.0 if row["session_time_window_consistent_flag"] is True else 0.0 if row["session_time_window_consistent_flag"] is False else None for row in rows]),
+                "distinct_session_values_union": (
+                    ",".join(str(value) for value in distinct_values)
+                    if distinct_values
+                    else None
+                ),
+                "cross_session_linkage_rate_avg": safe_avg(
+                    [row["cross_session_linkage_rate"] for row in rows]
+                ),
+                "session_time_window_consistent_day_rate": safe_avg(
+                    [
+                        1.0
+                        if row["session_time_window_consistent_flag"] is True
+                        else 0.0
+                        if row["session_time_window_consistent_flag"] is False
+                        else None
+                        for row in rows
+                    ]
+                ),
                 "session_split_required_flag": True,
             }
         )
@@ -157,7 +214,11 @@ def build_bridge_rows(year: str, area_summary_rows: list[dict[str, Any]]) -> lis
             continue
         modules = area_modules(summary["semantic_area"])
         for module in modules["recommended"] + modules["blocked"]:
-            final_status = "blocked" if module in modules["blocked"] and summary["admissibility_impact"] in {"block", "requires_manual_review"} else summary["admissibility_impact"]
+            final_status = (
+                "blocked"
+                if module in modules["blocked"]
+                else summary["admissibility_impact"]
+            )
             record = {column: None for column in ADMISSIBILITY_BRIDGE_COLUMNS}
             record.update(
                 {
@@ -169,48 +230,122 @@ def build_bridge_rows(year: str, area_summary_rows: list[dict[str, Any]]) -> lis
                     "admissibility_impact": summary["admissibility_impact"],
                     "final_research_status": final_status,
                     "reason": summary["summary"],
-                    "notes": f"recommended={summary['recommended_modules']}; blocked={summary['blocked_modules']}",
+                    "notes": (
+                        f"recommended={summary['recommended_modules']}; "
+                        f"blocked={summary['blocked_modules']}"
+                    ),
                 }
             )
             rows.append(record)
     return rows
 
 
-def write_markdown(path: Path, *, year: str, area_summary_rows: list[dict[str, Any]], bridge_rows: list[dict[str, Any]]) -> None:
+def write_markdown(
+    path: Path,
+    *,
+    year: str,
+    area_summary_rows: list[dict[str, Any]],
+    bridge_rows: list[dict[str, Any]],
+) -> None:
     ensure_dir(path.parent)
-    lines = [f"# Semantic Summary {year}", "", f"- generated_at: {iso_utc_now()}", f"- semantic_areas: {len([row for row in area_summary_rows if row.get('semantic_area')])}", "", "This summary aggregates semantic probe status into admissibility-facing gating signals."]
+    semantic_area_count = len([row for row in area_summary_rows if row.get("semantic_area")])
+    lines = [
+        f"# Semantic Summary {year}",
+        "",
+        f"- generated_at: {iso_utc_now()}",
+        f"- semantic_areas: {semantic_area_count}",
+        "",
+        "This summary aggregates semantic probe status into admissibility-facing gating signals.",
+    ]
     for row in area_summary_rows:
         if not row.get("semantic_area"):
             continue
-        lines.extend(["", f"## {row['semantic_area']}", f"- status: {row['status']}", f"- confidence: {row['confidence']}", f"- blocking_level: {row['blocking_level']}", f"- admissibility_impact: {row['admissibility_impact']}", f"- summary: {row['summary']}", f"- recommended_modules: {row['recommended_modules']}", f"- blocked_modules: {row['blocked_modules']}"])
+        lines.extend(
+            [
+                "",
+                f"## {row['semantic_area']}",
+                f"- status: {row['status']}",
+                f"- confidence: {row['confidence']}",
+                f"- blocking_level: {row['blocking_level']}",
+                f"- admissibility_impact: {row['admissibility_impact']}",
+                f"- summary: {row['summary']}",
+                f"- recommended_modules: {row['recommended_modules']}",
+                f"- blocked_modules: {row['blocked_modules']}",
+            ]
+        )
     lines.append("")
     lines.append("## Admissibility Bridge")
     for row in bridge_rows:
-        lines.append(f"- {row['semantic_area']} / {row['research_module']}: {row['final_research_status']}")
+        lines.append(
+            f"- {row['semantic_area']} / {row['research_module']}: "
+            f"{row['final_research_status']}"
+        )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> int:
     args = parse_args()
     if args.print_plan:
-        print_scaffold_plan(name="semantic_report", purpose="Aggregate semantic probe outputs into daily summary, yearly summary, and admissibility bridge tables.", responsibilities=["Read lifecycle, tradedir, ordertype, and session probe outputs.", "Merge them into unified summary tables.", "Expose admissibility-facing bridge artifacts and markdown notes."], inputs=["dqa/semantic/year=<year>/semantic_*_daily.parquet"], outputs=["dqa/semantic/year=<year>/semantic_daily_summary.parquet", "Research/Audits/semantic_<year>_summary.md"])
+        print_scaffold_plan(
+            name="semantic_report",
+            purpose=(
+                "Aggregate semantic probe outputs into daily summary, yearly summary, "
+                "and admissibility bridge tables."
+            ),
+            responsibilities=[
+                "Read lifecycle, tradedir, ordertype, and session probe outputs.",
+                "Merge them into unified summary tables.",
+                "Expose admissibility-facing bridge artifacts and markdown notes.",
+            ],
+            inputs=["dqa/semantic/year=<year>/semantic_*_daily.parquet"],
+            outputs=[
+                "dqa/semantic/year=<year>/semantic_daily_summary.parquet",
+                "Research/Audits/semantic_<year>_summary.md",
+            ],
+        )
         return 0
     if not args.year:
         raise SystemExit("--year is required unless --print-plan is used.")
     output_dir = args.input_root / "semantic" / f"year={args.year}"
     daily_rows = read_probe_rows(str(args.year), args.input_root)
-    area_summary_rows = [build_area_summary(area, str(args.year), [row for row in daily_rows if row["semantic_area"] == area]) for area in SEMANTIC_AREA_NAMES]
+    area_summary_rows = [
+        build_area_summary(
+            area,
+            str(args.year),
+            [row for row in daily_rows if row["semantic_area"] == area],
+        )
+        for area in SEMANTIC_AREA_NAMES
+    ]
     total_summary_rows = build_total_summary(area_summary_rows)
     bridge_rows = build_bridge_rows(str(args.year), area_summary_rows)
     write_parquet(daily_rows, output_dir / "semantic_daily_summary.parquet")
-    for area, row in zip(SEMANTIC_AREA_NAMES, area_summary_rows):
+    for area, row in zip(SEMANTIC_AREA_NAMES, area_summary_rows, strict=True):
         if row.get("semantic_area"):
             write_parquet([row], output_dir / SUMMARY_TABLE_BY_AREA[area])
     write_parquet(total_summary_rows, output_dir / "semantic_yearly_summary.parquet")
     write_parquet(bridge_rows, output_dir / "semantic_admissibility_bridge.parquet")
     report_path = args.research_root / f"semantic_{args.year}_summary.md"
-    write_markdown(report_path, year=str(args.year), area_summary_rows=area_summary_rows, bridge_rows=bridge_rows)
-    write_json(output_dir / "semantic_summary.json", {"pipeline": "semantic_report", "year": str(args.year), "artifacts": {"daily_summary": str(output_dir / 'semantic_daily_summary.parquet'), "yearly_summary": str(output_dir / 'semantic_yearly_summary.parquet'), "admissibility_bridge": str(output_dir / 'semantic_admissibility_bridge.parquet'), "report": str(report_path)}})
+    write_markdown(
+        report_path,
+        year=str(args.year),
+        area_summary_rows=area_summary_rows,
+        bridge_rows=bridge_rows,
+    )
+    write_json(
+        output_dir / "semantic_summary.json",
+        {
+            "pipeline": "semantic_report",
+            "year": str(args.year),
+            "artifacts": {
+                "daily_summary": str(output_dir / "semantic_daily_summary.parquet"),
+                "yearly_summary": str(output_dir / "semantic_yearly_summary.parquet"),
+                "admissibility_bridge": str(
+                    output_dir / "semantic_admissibility_bridge.parquet"
+                ),
+                "report": str(report_path),
+            },
+        },
+    )
     return 0
 
 

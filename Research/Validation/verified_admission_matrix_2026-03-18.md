@@ -20,6 +20,8 @@
 - [semantic_lifecycle_2026.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/semantic_lifecycle_2026.md)
 - [dqa_linkage_2025.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/dqa_linkage_2025.md)
 - [dqa_linkage_2026.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/dqa_linkage_2026.md)
+- [hshare_orderbook_reconstruction_probe_20260522.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md)
+- [orderbook_replay_semantic_release_2026-05-23.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_replay_semantic_release_2026-05-23.md)
 - [research_admissibility_matrix.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md)
 - [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/SEMANTIC_MATRIX.md)
 
@@ -39,6 +41,7 @@
   - `research_time_grade = fine_ok`
   - `full-year lifecycle = 48/48, 0 failed`
   - lifecycle 年度结果为 `pass`，可作为 verified admission 的强结构基线
+  - `2026-05-22` 7 票 bounded orderbook replay 显示 `Ext[0]` 为 side candidate 胜出，trade-to-active-order side match 为 `100%`，但 crossed book 仍未清零
 
 ## Matrix
 
@@ -51,13 +54,14 @@
 | `instrument_key` as project structural instrument key | source_file-derived and mechanically stable | source_file-derived and mechanically stable | `admit_now` | 默认进入 verified，避免下游继续从 `source_file` 正则拆代码；不等于 reference-enriched instrument master |
 | `SeqNum` / `Time` as project structural sequencing/time columns | `coarse_only` | `fine_ok` | `admit_now_with_year_caveat` | 两年都可进入 verified v1，但 `2025` 不得被当作 fine-grained timing anchor |
 | `SendTime` as project timestamp column | stage 中存在，但 `2025` time-anchor 仍未放行 | `time_anchor = pass`, `fine_ok` | `admit_now_with_year_caveat` | 默认 verified 仅先在 `2026` 暴露；`2025` 继续留在 stage，避免误导下游把它当 fine-grained truth |
-| `BidOrderID / AskOrderID` linkage columns | direct equality works, native meaning still unverified | direct equality works, native meaning still unverified | `keep_out_for_now` | 可继续服务 DQA / semantic / research admissibility；不进入 verified v1 默认表 |
+| `BidOrderID / AskOrderID` linkage columns | direct equality works, native meaning still unverified | direct equality works; bounded orderbook replay supports active-order side checks; native meaning still unverified | `admit_with_explicit_caveat_only` | 可服务 DQA / semantic / `orderbook_replay` 命名空间；不进入 verified v1 默认表，不宣称官方 native trade-field identity |
 | `verified_trade_order_linkage` table | too strong for v1 | too strong for v1 | `defer` | 等下一阶段 verified 扩容，而不是现在默认 materialize |
 | `OrderType` | vendor `1/2/3` 定义 + lifecycle 结构稳定 | `weak_pass` + raw 目录结构强一致 | `admit_with_explicit_caveat_only` | 可作为 `stable vendor event code` 暴露；不进 verified v1 默认表，不写成官方 event semantics |
 | `TradeDir / Dir` | vendor-derived aggressor proxy with `coarse_only` caveat | vendor-derived aggressor proxy with manual-review caveat | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；若后续暴露，必须写明 `Dir=1=sell`, `Dir=2=buy`, `Dir=0=other/special bucket`，且仍不得当 confirmed signed side 使用 |
 | `OrderSideVendor` (from `Ext.bit0`) | sampled trade-order joins support `0=buy / 1=sell` | sampled trade-order joins support `0=buy / 1=sell` | `admit_with_explicit_caveat_only` | 只放开派生字段，不等于整列 `Ext` 已完成语义验证 |
 | `BrokerNo` | blocked | blocked | `keep_out_for_now` | 只允许 reference lookup 语境，不进 verified |
-| `Level / VolumePre` | blocked | blocked | `keep_out_for_now` | queue/depth 语义未验证 |
+| `Level` | blocked | bounded replay level match remains imperfect | `keep_out_for_now` | 不得当可靠十档深度或 verified queue semantics |
+| `VolumePre` | modify consistency evidence only | bounded replay shows `VolumePre` matches prior active order volume on checked modify events | `admit_with_explicit_caveat_only` | 只允许作为 modify 前量一致性 DQA，不进入 verified v1 默认表，不宣称官方 native field identity |
 | `Type` | vendor public-trade-type bucket only | vendor public-trade-type bucket only | `admit_with_explicit_caveat_only` | 不进 verified v1 默认表；可用于特殊成交类型分桶 |
 | `Ext` (full field) | vendor bitfield only | vendor bitfield only | `admit_with_explicit_caveat_only` | 当前不建议整列暴露；优先只放开 `OrderSideVendor` |
 
@@ -87,6 +91,7 @@
 
 - `verified_orders__caveat_ordertype_ordersidevendor`
 - `verified_trades__caveat_dir`
+- `orderbook_replay__caveat_lifecycle_linkage`
 
 ## Build Rule
 
@@ -105,14 +110,16 @@ verified v1 的实现应满足：
 
 - `admission_rule = admit_now_plus_caveat_only`
 - `contains_caveat_fields = true`
+- `replay_depth_admission = blocked_until_crossed_book_residue_is_explained_or_bounded`
 
 ## What Changes Later
 
-如果以后要把这些对象纳入 verified：
+如果以后要把这些对象纳入 verified 默认表、建立正式 verified linkage table，或去掉 caveat-only 约束：
 
 - `BidOrderID / AskOrderID`
+- `BidVolume / AskVolume`
+- `Level / reconstructed_depth`
 - `verified_trade_order_linkage`
-- `OrderType`
 - `BrokerNo`
 
 那应该先更新：

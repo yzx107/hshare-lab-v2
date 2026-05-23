@@ -19,13 +19,13 @@
     },
     "OrderType": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["enum_stability", "lifecycle_shape", "weak_consistency_checks"],
+      "allowed_uses": ["enum_stability", "lifecycle_shape", "weak_consistency_checks", "active_orderbook_replay"],
       "forbidden_claims": ["official_event_semantics"]
     },
     "Ext": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["coverage", "enum_stats", "cross_field_consistency"],
-      "forbidden_claims": ["official_bitfield_mapping"]
+      "allowed_uses": ["coverage", "enum_stats", "cross_field_consistency", "ordersidevendor_bit0_derivation"],
+      "forbidden_claims": ["official_bitfield_mapping", "full_ext_semantics_verified"]
     },
     "Time": {
       "statuses": ["vendor-defined", "official-family-compatible"],
@@ -54,7 +54,7 @@
     },
     "VolumePre": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["conditional_presence_checks", "modify_event_completeness"],
+      "allowed_uses": ["conditional_presence_checks", "modify_event_completeness", "prior_active_order_volume_check"],
       "forbidden_claims": ["official_native_field_identity", "verified_remaining_quantity_semantics"]
     }
   },
@@ -96,7 +96,7 @@
     },
     "BidOrderID": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks"],
+      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks", "active_orderbook_replay_linkage", "side_match_checks"],
       "forbidden_claims": ["official_trade_native_field_identity"]
     },
     "BidVolume": {
@@ -106,7 +106,7 @@
     },
     "AskOrderID": {
       "statuses": ["vendor-defined", "unverified-semantic"],
-      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks"],
+      "allowed_uses": ["linkage_feasibility", "match_rate_checks", "lag_bucket_checks", "active_orderbook_replay_linkage", "side_match_checks"],
       "forbidden_claims": ["official_trade_native_field_identity"]
     },
     "AskVolume": {
