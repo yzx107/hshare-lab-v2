@@ -72,6 +72,18 @@ python -m Scripts.generate_field_release_dossier --object orderbook_replay__cave
 
 默认输出到 `Research/Validation/field_release_dossier_<object>.md`。
 
+## builder gating
+
+第二阶段开始，registry 不再只是说明文档；materialization builder 必须在执行前读取 registry。
+
+当前已接入：
+
+- `build_verified_layer.py`：禁止 non-`admit_now` release object 进入 `verified_orders / verified_trades` 默认表
+- `build_orderbook_replay_caveat.py`：物化 `orderbook_replay__caveat_lifecycle_linkage` 前检查 namespace、builder、dossier 与 evidence docs
+- `build_orderbook_top_of_book_only.py`：物化 `orderbook_replay__top_of_book_only` 前检查 top-of-book objects 与质量 gate objects
+
+如果 registry entry 缺失、bucket 不匹配、downstream namespace 不匹配、或 caveat namespace 缺少 builder / dossier / evidence docs，builder 必须 fail loudly，不允许 silent fallback。
+
 ## 当前 practical release wave
 
 本轮正式登记三组对象。
@@ -103,7 +115,7 @@ python -m Scripts.generate_field_release_dossier --object orderbook_replay__cave
 - `TradeInsideBestBookFlag`
 - `TopOfBookValidFlag`
 
-这些对象进入 `admit_top_of_book_only` 语境时仍必须满足 gating：`TopOfBookValidFlag=true`、crossed-book residue 被解释或被 contract-level 阈值约束、并且不得输出 full depth / queue semantics / fill realism 结论。
+这些对象现在由 `orderbook_replay__top_of_book_only` namespace 承载。进入 `admit_top_of_book_only` 语境时仍必须满足 gating：`TopOfBookValidFlag=true`、crossed-book residue 被显式标记、same-millisecond batch risk 被显式标记，并且不得输出 full depth / queue semantics / fill realism 结论。
 
 ## blocker
 

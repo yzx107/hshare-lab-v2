@@ -13,5 +13,6 @@
 - [instrument_universe_classification_boundary_2026-04-06.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/instrument_universe_classification_boundary_2026-04-06.md)
 - [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
+- [field_release_dossier_orderbook_replay__top_of_book_only.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md)
 - [information_theory_admissibility.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/information_theory_admissibility.md)
 - [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)

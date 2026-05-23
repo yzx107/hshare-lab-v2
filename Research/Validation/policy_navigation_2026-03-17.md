@@ -32,6 +32,7 @@
 - [verified_layer_v1_design.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_layer_v1_design.md)
 - [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
+- [field_release_dossier_orderbook_replay__top_of_book_only.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md)
 
 ## Method / Downstream Research Boundary
 

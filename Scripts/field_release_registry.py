@@ -69,6 +69,52 @@ def repo_path(path_text: str, repo_root: Path = REPO_ROOT) -> Path:
     return repo_root / path
 
 
+def release_dossier_path(object_name: str, repo_root: Path = REPO_ROOT) -> Path:
+    slug = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in object_name)
+    return repo_root / "Research" / "Validation" / f"field_release_dossier_{slug}.md"
+
+
+def assert_release_objects_for_namespace(
+    registry: dict[str, Any],
+    *,
+    object_names: list[str],
+    namespace: str,
+    allowed_buckets: set[str],
+    expected_builder: str | None = None,
+    require_dossier: bool = False,
+    repo_root: Path = REPO_ROOT,
+) -> None:
+    errors: list[str] = []
+    for object_name in object_names:
+        errors.extend(validate_registry(registry, object_name=object_name, repo_root=repo_root))
+        if errors:
+            continue
+        entry = find_object(registry, object_name)
+        bucket = str(entry["release_bucket"])
+        if bucket not in allowed_buckets:
+            errors.append(
+                f"{object_name}: release_bucket {bucket} is not allowed for namespace {namespace}"
+            )
+        if namespace in DEFAULT_VERIFIED_NAMESPACES and bucket != "admit_now":
+            errors.append(f"{object_name}: non-admit_now object cannot enter {namespace}")
+        elif namespace not in entry.get("downstream_namespaces", []):
+            errors.append(f"{object_name}: namespace {namespace} is not registered downstream")
+        if bucket == "keep_out_for_now":
+            errors.append(f"{object_name}: keep_out_for_now object cannot be materialized")
+        if entry.get("object_type") == "caveat_namespace":
+            builder = entry.get("builder")
+            if not builder:
+                errors.append(f"{object_name}: caveat_namespace must declare builder")
+            if expected_builder is not None and builder != expected_builder:
+                errors.append(
+                    f"{object_name}: builder mismatch; expected {expected_builder}, got {builder}"
+                )
+            if require_dossier and not release_dossier_path(object_name, repo_root).exists():
+                errors.append(f"{object_name}: missing release dossier")
+    if errors:
+        raise FieldReleaseRegistryError("; ".join(errors))
+
+
 def validate_registry(
     registry: dict[str, Any],
     *,

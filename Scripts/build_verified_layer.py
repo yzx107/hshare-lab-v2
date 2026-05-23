@@ -14,6 +14,12 @@ from typing import Any
 import polars as pl
 import pyarrow.parquet as pq
 
+from Scripts.field_release_registry import (
+    DEFAULT_REGISTRY_PATH,
+    FieldReleaseRegistryError,
+    assert_release_objects_for_namespace,
+    load_registry,
+)
 from Scripts.runtime import (
     DEFAULT_DATA_ROOT,
     DEFAULT_LOG_ROOT,
@@ -31,6 +37,20 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESEARCH_REPORTS_ROOT = REPO_ROOT / "Research" / "Reports"
 DEFAULT_POLICY_PATH = REPO_ROOT / "Research" / "Validation" / "verified_field_policy_2026-03-15.json"
 PROGRESS_EMIT_SECONDS = 5.0
+FIELD_RELEASE_OBJECT_BY_COLUMN = {
+    "OrderType": "OrderTypeLifecycleEventCode",
+    "OrderSideVendor": "OrderSideVendor",
+    "BidOrderID": "TradeToActiveOrderLinkageEvidence",
+    "AskOrderID": "TradeToActiveOrderLinkageEvidence",
+    "VolumePre": "PriorActiveVolumeCheck",
+    "BestBidReplay": "BestBidReplay",
+    "BestAskReplay": "BestAskReplay",
+    "ReplaySpread": "ReplaySpread",
+    "ReplayMid": "ReplayMid",
+    "TradeInsideBestBookFlag": "TradeInsideBestBookFlag",
+    "TopOfBookValidFlag": "TopOfBookValidFlag",
+    "FullReconstructedDepth": "FullReconstructedDepth",
+}
 
 
 @dataclass(frozen=True)
@@ -121,6 +141,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_POLICY_PATH,
         help="Path to the verified field policy JSON.",
+    )
+    parser.add_argument(
+        "--field-release-registry",
+        type=Path,
+        default=DEFAULT_REGISTRY_PATH,
+        help="Path to the field release registry JSON.",
     )
     parser.add_argument(
         "--include-caveat-columns",
@@ -264,6 +290,45 @@ def validate_requested_caveat_columns(policy: dict[str, Any], requested_columns:
             "Unsupported caveat columns requested: "
             f"{', '.join(unsupported)}. Supported values are admit_with_explicit_caveat_only fields plus OrderSideVendor."
         )
+
+
+def release_objects_for_task(task: VerifiedTask) -> list[str]:
+    columns = set(task.output_columns) | set(task.caveat_columns)
+    object_names = [
+        FIELD_RELEASE_OBJECT_BY_COLUMN[column]
+        for column in sorted(columns)
+        if column in FIELD_RELEASE_OBJECT_BY_COLUMN
+    ]
+    return sorted(set(object_names))
+
+
+def enforce_task_release_registry(task: VerifiedTask, registry: dict[str, Any]) -> None:
+    missing_release_objects = sorted(
+        column for column in task.caveat_columns if column not in FIELD_RELEASE_OBJECT_BY_COLUMN
+    )
+    if missing_release_objects:
+        raise FieldReleaseRegistryError(
+            "caveat columns missing field release registry mapping: "
+            f"{', '.join(missing_release_objects)}"
+        )
+    object_names = release_objects_for_task(task)
+    if not object_names:
+        return
+    if task.caveat_columns:
+        allowed_buckets = {"admit_with_explicit_caveat_only"}
+    else:
+        allowed_buckets = {"admit_now"}
+    assert_release_objects_for_namespace(
+        registry,
+        object_names=object_names,
+        namespace=task.verified_table_name,
+        allowed_buckets=allowed_buckets,
+    )
+
+
+def enforce_tasks_release_registry(tasks: list[VerifiedTask], registry: dict[str, Any]) -> None:
+    for task in tasks:
+        enforce_task_release_registry(task, registry)
 
 
 def variant_label_for_caveat_columns(caveat_columns: tuple[str, ...]) -> str:
@@ -1008,11 +1073,15 @@ def main() -> int:
         raise SystemExit("--year is required unless --print-plan is used.")
 
     policy = read_policy(args.policy_path)
+    registry = load_registry(args.field_release_registry)
     validate_requested_caveat_columns(policy, explicit_caveat_columns_from_args(args))
     try:
         tasks = discover_tasks(args, policy)
+        enforce_tasks_release_registry(tasks, registry)
     except ValueError as exc:
-        raise SystemExit(str(exc))
+        raise SystemExit(str(exc)) from exc
+    except FieldReleaseRegistryError as exc:
+        raise SystemExit(str(exc)) from exc
     if not tasks:
         raise SystemExit("No verified tasks matched the requested selection.")
 

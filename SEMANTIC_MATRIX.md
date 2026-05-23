@@ -43,6 +43,7 @@
 - `orderbook_replay__caveat_lifecycle_linkage`
 - replay quality flags
 - top-of-book-only preparation objects
+- `orderbook_replay__top_of_book_only`
 
 `FullReconstructedDepth` 仍为 `keep_out_for_now`。
 

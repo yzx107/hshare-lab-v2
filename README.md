@@ -46,6 +46,7 @@
 - `reference source registry`：当前已正式接入 `Tushare`、`HKEX curated REIT seed` 与 `OpenD secondary snapshot`；`southbound` 仍保持 time-bounded curated seed 入口，用于 sidecar enrichment，而不是 tick 语义证明
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 - `field release machinery`：新增 `manifests/field_release_registry.json`、validator 与 dossier generator；release 单位从 raw field 改为 research object / derived object / caveat namespace
+- `top-of-book-only namespace`：新增 `orderbook_replay__top_of_book_only` builder，只输出 best bid/ask、spread、mid、inside-book 与质量 gate，不输出 full depth
 
 ## 当前原则
 
@@ -136,6 +137,7 @@ Hshare_Lab_v2/
 - `python -m Scripts.build_stage_parquet --year 2025 --max-days 3`：真实 stage cleaning 入口，按 `date + table` task 构建 parquet
 - `python -m Scripts.validate_field_release --object OrderSideVendor`：校验 field release registry 中单个 release object 的证据与边界
 - `python -m Scripts.generate_field_release_dossier --object orderbook_replay__caveat_lifecycle_linkage`：生成中文 release dossier
+- `python -m Scripts.build_orderbook_top_of_book_only --print-plan`：查看 top-of-book-only 受限物化计划
 - `make raw-inventory-2025` / `make raw-inventory-2026`：轻量编排入口
 - `python -m pytest`：校验最小行为约束
 - `python -m ruff check .`：保持脚本与规范一致

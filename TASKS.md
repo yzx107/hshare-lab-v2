@@ -19,6 +19,7 @@
 - `information theory admissibility` 已作为轻量 policy 支线接入，不改变主线层级顺序
 - `instrument universe classification` 已接入 `instrument_profile` sidecar，不改变 verified 主表边界
 - `field release machinery` 已接入 registry / validator / dossier，不改变 stage 语义，也不扩大 verified 默认表
+- `orderbook_replay__top_of_book_only` 已作为受限 namespace 接入，不释放 full reconstructed depth
 - 看状态时请区分：
   - `架构前置是否完整`
   - `当前执行主线是否已向后推进`
@@ -144,6 +145,22 @@
   - 已登记 `orderbook_replay__caveat_lifecycle_linkage`
   - 已登记 replay quality flags 与 top-of-book-only preparation objects
   - `FullReconstructedDepth` 仍为 `keep_out_for_now`
+
+## T-R05B: Top-of-Book-Only Namespace
+- **阶段**: Stage 3 研究验证 + Stage 4 工程加固
+- **状态**: ✅ Phase 1 已完成
+- **目标**: 在不释放 full reconstructed depth 的前提下，提供最小可消费的 top-of-book-only replay 对象
+- **产物**:
+  - `Scripts/build_orderbook_top_of_book_only.py`
+  - `Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md`
+  - `orderbook_replay__top_of_book_only` registry entry
+- **验收门禁**:
+  - 输出 `BestBidReplay / BestAskReplay / ReplaySpread / ReplayMid / TradeInsideBestBookFlag / TopOfBookValidFlag`
+  - 输出并保留 `CrossedWindowFlag / ReplayResidueFlag / ReplayWindowExcludedFlag / SameMillisecondBatchRiskFlag`
+  - 不输出 `Level / BidVolume / AskVolume / FullReconstructedDepth`
+- **当前说明**:
+  - 该 namespace 仅支持 bounded top-of-book DQA / descriptive checks
+  - 不支持 queue semantics、execution realism、strict ordering-sensitive causality
 
 ## T-R06: Verified Layer v1
 - **阶段**: Stage 3 研究验证

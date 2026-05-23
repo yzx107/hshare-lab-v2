@@ -6,8 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from Scripts import build_verified_layer
 from Scripts.field_release_registry import (
     RELEASE_BUCKETS,
+    FieldReleaseRegistryError,
+    assert_release_objects_for_namespace,
     find_object,
     load_registry,
     objects_by_name,
@@ -29,6 +32,7 @@ class FieldReleaseMachineryTests(unittest.TestCase):
             "PriorActiveVolumeCheck",
             "orderbook_replay__caveat_lifecycle_linkage",
             "CrossedWindowFlag",
+            "orderbook_replay__top_of_book_only",
             "TopOfBookValidFlag",
             "FullReconstructedDepth",
         ):
@@ -95,6 +99,94 @@ class FieldReleaseMachineryTests(unittest.TestCase):
         )
         self.assertTrue(any("forbidden_claims" in error for error in errors), errors)
         self.assertTrue(any("downstream_namespaces" in error for error in errors), errors)
+
+    def test_verified_gate_rejects_caveat_object_in_default_namespace(self) -> None:
+        task = build_verified_layer.VerifiedTask(
+            year="2026",
+            table_name="orders",
+            date="2026-05-22",
+            input_paths=("orders.parquet",),
+            output_path="verified_orders.parquet",
+            input_columns=("Ext",),
+            output_columns=("OrderSideVendor",),
+            excluded_columns=(),
+        )
+        with self.assertRaises(FieldReleaseRegistryError):
+            build_verified_layer.enforce_task_release_registry(task, load_registry())
+
+    def test_verified_gate_rejects_top_of_book_object_in_default_namespace(self) -> None:
+        task = build_verified_layer.VerifiedTask(
+            year="2026",
+            table_name="trades",
+            date="2026-05-22",
+            input_paths=("trades.parquet",),
+            output_path="verified_trades.parquet",
+            input_columns=("Price",),
+            output_columns=("BestBidReplay",),
+            excluded_columns=(),
+        )
+        with self.assertRaises(FieldReleaseRegistryError):
+            build_verified_layer.enforce_task_release_registry(task, load_registry())
+
+    def test_verified_gate_allows_registered_explicit_caveat_namespace(self) -> None:
+        task = build_verified_layer.VerifiedTask(
+            year="2026",
+            table_name="orders",
+            date="2026-05-22",
+            input_paths=("orders.parquet",),
+            output_path="verified_orders__caveat_ordertype_ordersidevendor.parquet",
+            input_columns=("OrderType", "Ext"),
+            output_columns=("OrderType", "OrderSideVendor"),
+            excluded_columns=(),
+            caveat_columns=("OrderType", "OrderSideVendor"),
+            variant_label="caveat_ordertype_ordersidevendor",
+        )
+        build_verified_layer.enforce_task_release_registry(task, load_registry())
+
+    def test_verified_gate_fails_when_release_object_is_missing(self) -> None:
+        registry = copy.deepcopy(load_registry())
+        registry["objects"] = [
+            entry for entry in registry["objects"] if entry["object_name"] != "OrderSideVendor"
+        ]
+        task = build_verified_layer.VerifiedTask(
+            year="2026",
+            table_name="orders",
+            date="2026-05-22",
+            input_paths=("orders.parquet",),
+            output_path="verified_orders__caveat_ordersidevendor.parquet",
+            input_columns=("Ext",),
+            output_columns=("OrderSideVendor",),
+            excluded_columns=(),
+            caveat_columns=("OrderSideVendor",),
+            variant_label="caveat_ordersidevendor",
+        )
+        with self.assertRaises(FieldReleaseRegistryError):
+            build_verified_layer.enforce_task_release_registry(task, registry)
+
+    def test_verified_gate_fails_when_caveat_column_has_no_registry_mapping(self) -> None:
+        task = build_verified_layer.VerifiedTask(
+            year="2026",
+            table_name="trades",
+            date="2026-05-22",
+            input_paths=("trades.parquet",),
+            output_path="verified_trades__caveat_dir.parquet",
+            input_columns=("Dir",),
+            output_columns=("Dir",),
+            excluded_columns=(),
+            caveat_columns=("Dir",),
+            variant_label="caveat_dir",
+        )
+        with self.assertRaises(FieldReleaseRegistryError):
+            build_verified_layer.enforce_task_release_registry(task, load_registry())
+
+    def test_top_of_book_bucket_cannot_materialize_full_depth(self) -> None:
+        with self.assertRaises(FieldReleaseRegistryError):
+            assert_release_objects_for_namespace(
+                load_registry(),
+                object_names=["FullReconstructedDepth"],
+                namespace="orderbook_replay__top_of_book_only",
+                allowed_buckets={"admit_top_of_book_only"},
+            )
 
 
 if __name__ == "__main__":

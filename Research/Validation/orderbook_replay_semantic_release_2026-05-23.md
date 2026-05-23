@@ -77,11 +77,18 @@ Allowed follow-up namespace:
 
 - `orderbook_replay__caveat_lifecycle_linkage`
 - builder: `python -m Scripts.build_orderbook_replay_caveat`
+- `orderbook_replay__top_of_book_only`
+- builder: `python -m Scripts.build_orderbook_top_of_book_only`
 
 The namespace materializes two evidence tables:
 
 - `lifecycle_events`: order lifecycle rows with `OrderType`, derived `OrderSideVendor`, and `VolumePre` prior-active-volume checks
 - `trade_linkage`: trade rows with `BidOrderID / AskOrderID` active-order presence and side-match checks
+
+The top-of-book-only namespace materializes:
+
+- `top_of_book_events`: trade rows with `BestBidReplay / BestAskReplay / ReplaySpread / ReplayMid / TradeInsideBestBookFlag / TopOfBookValidFlag`
+- quality gates: `CrossedWindowFlag / ReplayResidueFlag / ReplayWindowExcludedFlag / SameMillisecondBatchRiskFlag`
 
 The namespace must carry explicit manifest metadata:
 

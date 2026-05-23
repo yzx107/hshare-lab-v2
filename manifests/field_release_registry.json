@@ -248,7 +248,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__quality_flags_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use as a DQA exclusion/risk flag only.",
@@ -287,7 +287,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__quality_flags_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use for DQA attribution and review routing only.",
@@ -360,7 +360,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__quality_flags_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Every exclusion rule must be report-visible and resumable.",
@@ -399,7 +399,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__quality_flags_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use as an ordering-risk flag only.",
@@ -410,6 +410,48 @@
       "contains_caveat_fields": true,
       "verified_default_admission": false,
       "caveat_level": "quality_caveat"
+    },
+    {
+      "object_name": "orderbook_replay__top_of_book_only",
+      "object_type": "caveat_namespace",
+      "source_layer": "candidate_cleaned.orders + candidate_cleaned.trades",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "OrderType",
+        "Ext[0]",
+        "Price",
+        "Volume"
+      ],
+      "builder": "python -m Scripts.build_orderbook_top_of_book_only",
+      "derived_logic": "Materializes top_of_book_events with best bid/ask, spread, mid, trade-inside-book flag, and explicit quality gates; does not output full depth.",
+      "allowed_uses": [
+        "top-of-book-only replay DQA",
+        "bounded spread and mid descriptive checks",
+        "trade-inside-best-book reporting with visible quality gates"
+      ],
+      "forbidden_claims": [
+        "full reconstructed depth is admitted",
+        "queue semantics or execution realism is released",
+        "Level, full Ext, BidVolume, or AskVolume semantics are verified"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_only"
+      ],
+      "downstream_boundary": [
+        "Allowed only as a top-of-book-only caveat namespace.",
+        "Every row must carry quality flags and full depth must remain blocked."
+      ],
+      "blocker": "Crossed-book residue and ordering risk still block full reconstructed depth; top-of-book use must remain gated.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
     },
     {
       "object_name": "BestBidReplay",
@@ -439,7 +481,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Consume only with TopOfBookValidFlag=true and visible quality flags.",
@@ -479,7 +521,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Consume only with TopOfBookValidFlag=true and visible quality flags.",
@@ -516,7 +558,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use only when TopOfBookValidFlag is true.",
@@ -553,7 +595,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use only under top-of-book gates and visible caveat metadata.",
@@ -592,7 +634,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Use as top-of-book sanity evidence only.",
@@ -631,7 +673,7 @@
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "orderbook_replay__top_of_book_candidate"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
         "Every downstream top-of-book object must carry this flag or equivalent metadata.",

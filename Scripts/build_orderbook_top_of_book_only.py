@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -16,13 +17,11 @@ from Scripts.field_release_registry import (
 )
 from Scripts.hshare_orderbook_replay import (
     SORT_MODES,
-    ActiveOrder,
     HshareOrderBookReplay,
     as_decimal,
     as_int,
     default_table_path,
     event_sort_key,
-    ext_side,
     source_suffix,
     stringify_time,
     symbol_code,
@@ -42,9 +41,22 @@ DEFAULT_STAGE_ROOT = DEFAULT_DATA_ROOT / "candidate_cleaned"
 DEFAULT_OUTPUT_ROOT = DEFAULT_DATA_ROOT / "caveat"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESEARCH_ROOT = REPO_ROOT / "Research" / "Reports"
-NAMESPACE = "orderbook_replay__caveat_lifecycle_linkage"
-SEMANTIC_RELEASE = "orderbook_replay_semantic_release_2026-05-23"
-REPLAY_DEPTH_ADMISSION = "blocked_until_crossed_book_residue_is_explained_or_bounded"
+NAMESPACE = "orderbook_replay__top_of_book_only"
+BUILDER = "python -m Scripts.build_orderbook_top_of_book_only"
+REPLAY_DEPTH_ADMISSION = "full_reconstructed_depth_blocked"
+RELEASE_OBJECTS = [
+    "orderbook_replay__top_of_book_only",
+    "BestBidReplay",
+    "BestAskReplay",
+    "ReplaySpread",
+    "ReplayMid",
+    "TradeInsideBestBookFlag",
+    "TopOfBookValidFlag",
+    "CrossedWindowFlag",
+    "ReplayResidueFlag",
+    "ReplayWindowExcludedFlag",
+    "SameMillisecondBatchRiskFlag",
+]
 
 ORDER_COLUMNS = [
     "SendTime",
@@ -55,8 +67,6 @@ ORDER_COLUMNS = [
     "Ext",
     "Price",
     "Volume",
-    "Level",
-    "VolumePre",
     "source_file",
 ]
 TRADE_COLUMNS = [
@@ -66,15 +76,13 @@ TRADE_COLUMNS = [
     "TickID",
     "Price",
     "Volume",
-    "BidOrderID",
-    "AskOrderID",
     "source_file",
 ]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Materialize caveat-only orderbook replay lifecycle/linkage tables."
+        description="Materialize top-of-book-only replay objects with quality gates."
     )
     parser.add_argument("--dates", help="Comma-separated trading dates, e.g. 2026-05-22.")
     parser.add_argument("--symbols", help="Comma-separated symbols, e.g. HK.01879,HK.01609.")
@@ -97,28 +105,26 @@ def main() -> int:
     args = parse_args()
     if args.print_plan:
         print_scaffold_plan(
-            name="build_orderbook_replay_caveat",
-            purpose="Materialize caveat-only lifecycle and trade-linkage replay evidence.",
+            name="build_orderbook_top_of_book_only",
+            purpose="Materialize gated top-of-book replay objects without full depth.",
             responsibilities=[
-                "Replay OrderType lifecycle with Ext[0] side candidate.",
-                "Write lifecycle_events and trade_linkage parquet tables.",
-                "Keep reconstructed depth blocked; only emit replay evidence fields.",
-                "Write resumable manifests and optional research summary.",
+                "Replay active orders with released Ext[0] side proxy.",
+                "Emit only best bid/ask, spread, mid, inside-book flag, and quality gates.",
+                "Keep full depth, queue semantics, Level, and execution realism blocked.",
             ],
             inputs=[
                 "candidate_cleaned/orders/date=YYYY-MM-DD/*.parquet",
                 "candidate_cleaned/trades/date=YYYY-MM-DD/*.parquet",
             ],
             outputs=[
-                "caveat/orderbook_replay__caveat_lifecycle_linkage/lifecycle_events/...",
-                "caveat/orderbook_replay__caveat_lifecycle_linkage/trade_linkage/...",
-                "caveat/orderbook_replay__caveat_lifecycle_linkage/manifests/...",
+                "caveat/orderbook_replay__top_of_book_only/top_of_book_events/...",
+                "caveat/orderbook_replay__top_of_book_only/manifests/...",
             ],
         )
         return 0
 
     if args.side_bit != 0:
-        raise SystemExit("Only side-bit 0 is released for caveat materialization.")
+        raise SystemExit("Only side-bit 0 is released for top-of-book-only materialization.")
     enforce_release_registry(args.field_release_registry)
     dates = parse_values(args.dates)
     symbols = [symbol_code(value) for value in parse_values(args.symbols)]
@@ -126,7 +132,7 @@ def main() -> int:
         raise SystemExit("--dates and --symbols are required")
 
     logger = configure_logger(
-        "build_orderbook_replay_caveat",
+        "build_orderbook_top_of_book_only",
         args.log_root / NAMESPACE / "last_run.log",
     )
     manifest_dir = args.output_root / NAMESPACE / "manifests"
@@ -141,67 +147,42 @@ def main() -> int:
     rows: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     completed = 0
-    for date in dates:
+    for trade_date in dates:
         for symbol in symbols:
-            task_key = f"{date}:HK.{symbol}"
-            lifecycle_path = output_path(
-                args.output_root,
-                table="lifecycle_events",
-                date=date,
-                symbol=symbol,
-            )
-            linkage_path = output_path(
-                args.output_root,
-                table="trade_linkage",
-                date=date,
-                symbol=symbol,
-            )
-            if args.resume and not args.overwrite_existing:
-                if lifecycle_path.exists() and linkage_path.exists():
-                    rows.append(
-                        partition_row(date, symbol, lifecycle_path, linkage_path, resumed=True)
-                    )
-                    completed += 1
-                    write_heartbeat(heartbeat_path, total_tasks, completed, failures)
-                    continue
+            path = output_path(args.output_root, date=trade_date, symbol=symbol)
+            if args.resume and not args.overwrite_existing and path.exists():
+                rows.append(partition_row(trade_date, symbol, path, resumed=True))
+                completed += 1
+                write_heartbeat(heartbeat_path, total_tasks, completed, failures)
+                continue
             try:
                 order_rows, trade_rows = read_symbol_rows(
                     args.stage_root,
-                    date,
+                    trade_date,
                     symbol,
                     args.limit_rows,
                 )
-                lifecycle_rows, linkage_rows = materialize_rows(
-                    date=date,
+                output_rows = materialize_rows(
+                    date=trade_date,
                     symbol=symbol,
                     order_rows=order_rows,
                     trade_rows=trade_rows,
                     sort_mode=args.sort_mode,
                     side_bit=args.side_bit,
                 )
-                write_parquet(lifecycle_rows, lifecycle_path)
-                write_parquet(linkage_rows, linkage_path)
+                write_parquet(output_rows, path)
                 row = partition_row(
-                    date,
-                    symbol,
-                    lifecycle_path,
-                    linkage_path,
-                    lifecycle_rows=len(lifecycle_rows),
-                    linkage_rows=len(linkage_rows),
-                    resumed=False,
+                    trade_date, symbol, path, output_rows=len(output_rows), resumed=False
                 )
                 append_jsonl(partitions_path, row)
                 rows.append(row)
                 logger.info(
-                    "completed %s lifecycle_rows=%s linkage_rows=%s",
-                    task_key,
-                    len(lifecycle_rows),
-                    len(linkage_rows),
+                    "completed %s:HK.%s top_of_book_rows=%s", trade_date, symbol, len(output_rows)
                 )
             except Exception as exc:  # pragma: no cover - operational guardrail
-                failure = {"date": date, "symbol": f"HK.{symbol}", "error": repr(exc)}
+                failure = {"date": trade_date, "symbol": f"HK.{symbol}", "error": repr(exc)}
                 failures.append(failure)
-                logger.exception("failed %s", task_key)
+                logger.exception("failed %s:HK.%s", trade_date, symbol)
             completed += 1
             write_heartbeat(heartbeat_path, total_tasks, completed, failures)
 
@@ -220,11 +201,17 @@ def enforce_release_registry(registry_path: Path) -> None:
     try:
         assert_release_objects_for_namespace(
             registry,
-            object_names=[NAMESPACE],
+            object_names=["orderbook_replay__top_of_book_only"],
             namespace=NAMESPACE,
-            allowed_buckets={"admit_with_explicit_caveat_only"},
-            expected_builder="python -m Scripts.build_orderbook_replay_caveat",
+            allowed_buckets={"admit_top_of_book_only"},
+            expected_builder=BUILDER,
             require_dossier=True,
+        )
+        assert_release_objects_for_namespace(
+            registry,
+            object_names=RELEASE_OBJECTS[1:],
+            namespace=NAMESPACE,
+            allowed_buckets={"admit_top_of_book_only", "admit_with_explicit_caveat_only"},
         )
     except FieldReleaseRegistryError as exc:
         raise SystemExit(str(exc)) from exc
@@ -247,24 +234,18 @@ def read_symbol_rows(
             default_table_path(stage_root, table="orders", date=date),
             symbol,
             ORDER_COLUMNS,
-            limit_rows=limit_rows,
+            limit_rows,
         ),
         read_rows(
             default_table_path(stage_root, table="trades", date=date),
             symbol,
             TRADE_COLUMNS,
-            limit_rows=limit_rows,
+            limit_rows,
         ),
     )
 
 
-def read_rows(
-    path: Path,
-    symbol: str,
-    columns: list[str],
-    *,
-    limit_rows: int,
-) -> list[dict[str, Any]]:
+def read_rows(path: Path, symbol: str, columns: list[str], limit_rows: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     frame = pl.scan_parquet(str(path))
@@ -286,134 +267,82 @@ def materialize_rows(
     trade_rows: list[dict[str, Any]],
     sort_mode: str,
     side_bit: int,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> list[dict[str, Any]]:
     events = [("order", row) for row in order_rows] + [("trade", row) for row in trade_rows]
+    event_time_counts = Counter(event_time(row) for _, row in events)
     events.sort(key=lambda item: event_sort_key(item[0], item[1], sort_mode=sort_mode))
     replay = HshareOrderBookReplay(side_bit=side_bit, sort_mode=sort_mode)
-    lifecycle_rows: list[dict[str, Any]] = []
-    linkage_rows: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     for kind, row in events:
         if kind == "order":
-            lifecycle_rows.append(lifecycle_row(date, symbol, replay, row, sort_mode, side_bit))
             replay.apply_order(row)
         else:
-            linkage_rows.append(linkage_row(date, symbol, replay, row, sort_mode, side_bit))
+            rows.append(
+                top_of_book_row(date, symbol, replay, row, sort_mode, side_bit, event_time_counts)
+            )
             replay.apply_trade_probe(row)
-    return lifecycle_rows, linkage_rows
+    return rows
 
 
-def lifecycle_row(
+def top_of_book_row(
     date: str,
     symbol: str,
     replay: HshareOrderBookReplay,
     row: dict[str, Any],
     sort_mode: str,
     side_bit: int,
+    event_time_counts: Counter[str],
 ) -> dict[str, Any]:
-    order_id = as_int(row.get("OrderId"))
-    before = replay.active_orders.get(order_id) if order_id is not None else None
-    volume_pre = as_int(row.get("VolumePre"))
-    return {
-        **base_metadata(date, symbol, sort_mode, side_bit),
-        "event_kind": "order",
-        "SendTime": stringify_time(row.get("SendTime")),
-        "Time": row.get("Time"),
-        "SeqNum": as_int(row.get("SeqNum")),
-        "OrderId": order_id,
-        "OrderType": as_int(row.get("OrderType")),
-        "Ext": row.get("Ext"),
-        "OrderSideVendor": ext_side(row.get("Ext"), side_bit=side_bit),
-        "Price": decimal_to_float(as_decimal(row.get("Price"))),
-        "Volume": as_int(row.get("Volume")),
-        "Level": as_int(row.get("Level")),
-        "VolumePre": volume_pre,
-        "active_order_side_before": active_side(before),
-        "active_order_price_before": active_price(before),
-        "active_order_volume_before": active_volume(before),
-        "volume_pre_matches_prior_active_order": (
-            bool(before is not None and volume_pre == before.volume)
-            if volume_pre is not None and volume_pre > 0
-            else None
-        ),
-    }
-
-
-def linkage_row(
-    date: str,
-    symbol: str,
-    replay: HshareOrderBookReplay,
-    row: dict[str, Any],
-    sort_mode: str,
-    side_bit: int,
-) -> dict[str, Any]:
-    bid_id = as_int(row.get("BidOrderID"))
-    ask_id = as_int(row.get("AskOrderID"))
-    bid_present = bid_id is not None and bid_id > 0
-    ask_present = ask_id is not None and ask_id > 0
-    bid_order = replay.active_orders.get(bid_id) if bid_present else None
-    ask_order = replay.active_orders.get(ask_id) if ask_present else None
     best_bid, best_ask = replay.best_bid_ask()
     trade_price = as_decimal(row.get("Price"))
-    inside_book = None
-    if trade_price is not None and best_bid is not None and best_ask is not None:
-        inside_book = best_bid <= best_ask and best_bid <= trade_price <= best_ask
-    return {
-        **base_metadata(date, symbol, sort_mode, side_bit),
-        "event_kind": "trade",
-        "SendTime": stringify_time(row.get("SendTime")),
-        "Time": row.get("Time"),
-        "SeqNum": as_int(row.get("SeqNum")),
-        "TickID": as_int(row.get("TickID")),
-        "Price": decimal_to_float(trade_price),
-        "Volume": as_int(row.get("Volume")),
-        "BidOrderID": bid_id,
-        "AskOrderID": ask_id,
-        "bid_orderid_present": bid_present,
-        "bid_order_active": bid_order is not None,
-        "bid_order_side": active_side(bid_order),
-        "bid_order_price": active_price(bid_order),
-        "bid_order_volume": active_volume(bid_order),
-        "bid_order_side_matches": bid_order.side == "BID" if bid_order else None,
-        "ask_orderid_present": ask_present,
-        "ask_order_active": ask_order is not None,
-        "ask_order_side": active_side(ask_order),
-        "ask_order_price": active_price(ask_order),
-        "ask_order_volume": active_volume(ask_order),
-        "ask_order_side_matches": ask_order.side == "ASK" if ask_order else None,
-        "best_bid": decimal_to_float(best_bid),
-        "best_ask": decimal_to_float(best_ask),
-        "crossed_book_at_trade": (
-            best_bid > best_ask if best_bid is not None and best_ask is not None else None
-        ),
-        "trade_price_inside_book": inside_book,
-    }
-
-
-def base_metadata(date: str, symbol: str, sort_mode: str, side_bit: int) -> dict[str, Any]:
+    crossed = best_bid is not None and best_ask is not None and best_bid > best_ask
+    same_ms_risk = event_time_counts[event_time(row)] > 1
+    residue = crossed
+    excluded = crossed
+    valid = (
+        best_bid is not None
+        and best_ask is not None
+        and not crossed
+        and not residue
+        and not same_ms_risk
+    )
+    spread = best_ask - best_bid if valid else None
+    mid = (best_bid + best_ask) / Decimal("2") if valid else None
+    inside = None
+    if valid and trade_price is not None:
+        inside = bool(best_bid <= trade_price <= best_ask)
     return {
         "date": date,
         "symbol": f"HK.{symbol}",
         "namespace": NAMESPACE,
         "source_layer": "candidate_cleaned",
-        "admission_rule": "admit_now_plus_caveat_only",
+        "release_bucket": "admit_top_of_book_only",
+        "admission_rule": "top_of_book_only_with_quality_gates",
         "contains_caveat_fields": True,
-        "semantic_release": SEMANTIC_RELEASE,
         "replay_depth_admission": REPLAY_DEPTH_ADMISSION,
         "sort_mode": sort_mode,
         "side_bit": side_bit,
+        "SendTime": stringify_time(row.get("SendTime")),
+        "Time": row.get("Time"),
+        "SeqNum": as_int(row.get("SeqNum")),
+        "TickID": as_int(row.get("TickID")),
+        "TradePrice": decimal_to_float(trade_price),
+        "TradeVolume": as_int(row.get("Volume")),
+        "BestBidReplay": decimal_to_float(best_bid),
+        "BestAskReplay": decimal_to_float(best_ask),
+        "ReplaySpread": decimal_to_float(spread),
+        "ReplayMid": decimal_to_float(mid),
+        "CrossedWindowFlag": bool(crossed),
+        "ReplayResidueFlag": bool(residue),
+        "ReplayWindowExcludedFlag": bool(excluded),
+        "SameMillisecondBatchRiskFlag": bool(same_ms_risk),
+        "TopOfBookValidFlag": bool(valid),
+        "TradeInsideBestBookFlag": inside,
     }
 
 
-def active_side(order: ActiveOrder | None) -> str | None:
-    return order.side if order else None
-
-
-def active_price(order: ActiveOrder | None) -> float | None:
-    return decimal_to_float(order.price) if order else None
-
-
-def active_volume(order: ActiveOrder | None) -> int | None:
-    return order.volume if order else None
+def event_time(row: dict[str, Any]) -> str:
+    return stringify_time(row.get("SendTime") or row.get("Time"))
 
 
 def decimal_to_float(value: Decimal | None) -> float | None:
@@ -428,13 +357,12 @@ def write_parquet(rows: list[dict[str, Any]], path: Path) -> None:
         pl.DataFrame().write_parquet(path)
 
 
-def output_path(output_root: Path, *, table: str, date: str, symbol: str) -> Path:
-    year = date[:4]
+def output_path(output_root: Path, *, date: str, symbol: str) -> Path:
     return (
         output_root
         / NAMESPACE
-        / table
-        / f"year={year}"
+        / "top_of_book_events"
+        / f"year={date[:4]}"
         / f"date={date}"
         / f"symbol={symbol}"
         / "part-00000.parquet"
@@ -444,27 +372,22 @@ def output_path(output_root: Path, *, table: str, date: str, symbol: str) -> Pat
 def partition_row(
     date: str,
     symbol: str,
-    lifecycle_path: Path,
-    linkage_path: Path,
+    output_path: Path,
     *,
-    lifecycle_rows: int | None = None,
-    linkage_rows: int | None = None,
+    output_rows: int | None = None,
     resumed: bool,
 ) -> dict[str, Any]:
-    if lifecycle_rows is None and lifecycle_path.exists():
-        lifecycle_rows = pl.read_parquet(lifecycle_path).height
-    if linkage_rows is None and linkage_path.exists():
-        linkage_rows = pl.read_parquet(linkage_path).height
+    if output_rows is None and output_path.exists():
+        output_rows = pl.read_parquet(output_path).height
     return {
         "generated_at": iso_utc_now(),
         "date": date,
         "symbol": f"HK.{symbol}",
         "namespace": NAMESPACE,
-        "lifecycle_path": str(lifecycle_path),
-        "trade_linkage_path": str(linkage_path),
-        "lifecycle_rows": lifecycle_rows or 0,
-        "trade_linkage_rows": linkage_rows or 0,
-        "admission_rule": "admit_now_plus_caveat_only",
+        "top_of_book_path": str(output_path),
+        "top_of_book_rows": output_rows or 0,
+        "release_bucket": "admit_top_of_book_only",
+        "admission_rule": "top_of_book_only_with_quality_gates",
         "contains_caveat_fields": True,
         "replay_depth_admission": REPLAY_DEPTH_ADMISSION,
         "resumed": resumed,
@@ -497,7 +420,7 @@ def build_summary(
 ) -> dict[str, Any]:
     return {
         "generated_at": iso_utc_now(),
-        "pipeline": "build_orderbook_replay_caveat",
+        "pipeline": "build_orderbook_top_of_book_only",
         "namespace": NAMESPACE,
         "source_layer": "candidate_cleaned",
         "output_root": str(args.output_root / NAMESPACE),
@@ -506,11 +429,10 @@ def build_summary(
         "partition_count": len(rows),
         "failure_count": len(failures),
         "failures": failures,
-        "lifecycle_rows": sum(int(row["lifecycle_rows"]) for row in rows),
-        "trade_linkage_rows": sum(int(row["trade_linkage_rows"]) for row in rows),
-        "admission_rule": "admit_now_plus_caveat_only",
+        "top_of_book_rows": sum(int(row["top_of_book_rows"]) for row in rows),
+        "release_bucket": "admit_top_of_book_only",
+        "admission_rule": "top_of_book_only_with_quality_gates",
         "contains_caveat_fields": True,
-        "semantic_release": SEMANTIC_RELEASE,
         "replay_depth_admission": REPLAY_DEPTH_ADMISSION,
     }
 
@@ -518,27 +440,27 @@ def build_summary(
 def write_research_report(args: argparse.Namespace, summary: dict[str, Any]) -> Path:
     dates = summary["dates"] or parse_values(args.dates)
     stem = dates[0].replace("-", "") if len(dates) == 1 else "multi_date"
-    path = args.research_root / f"orderbook_replay_caveat_{stem}.md"
+    path = args.research_root / f"orderbook_top_of_book_only_{stem}.md"
     ensure_dir(path.parent)
     lines = [
-        f"# Orderbook Replay Caveat Materialization {', '.join(dates)}",
+        f"# Top-of-Book Only Replay Materialization {', '.join(dates)}",
         "",
         f"- generated_at: {summary['generated_at']}",
         f"- namespace: `{summary['namespace']}`",
         f"- source_layer: `{summary['source_layer']}`",
         f"- output_root: `{summary['output_root']}`",
         f"- partition_count: {summary['partition_count']}",
-        f"- lifecycle_rows: {summary['lifecycle_rows']}",
-        f"- trade_linkage_rows: {summary['trade_linkage_rows']}",
+        f"- top_of_book_rows: {summary['top_of_book_rows']}",
+        f"- release_bucket: `{summary['release_bucket']}`",
         f"- admission_rule: `{summary['admission_rule']}`",
         f"- contains_caveat_fields: `{summary['contains_caveat_fields']}`",
         f"- replay_depth_admission: `{summary['replay_depth_admission']}`",
         "",
         "## Boundary",
         "",
-        "- This materialization is caveat-only DQA/replay evidence.",
-        "- It does not admit reconstructed depth into strategy or production replay.",
-        "- `Level`, full `Ext`, and broker semantics remain vendor-defined / unverified.",
+        "- This materialization emits top-of-book-only replay objects.",
+        "- It does not emit full depth, queue position, Level semantics, or execution realism.",
+        "- Downstream consumption must keep all quality flags visible.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
@@ -549,8 +471,7 @@ def compact_stdout_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "namespace": summary["namespace"],
         "partition_count": summary["partition_count"],
         "failure_count": summary["failure_count"],
-        "lifecycle_rows": summary["lifecycle_rows"],
-        "trade_linkage_rows": summary["trade_linkage_rows"],
+        "top_of_book_rows": summary["top_of_book_rows"],
         "output_root": summary["output_root"],
         "research_report": summary.get("research_report"),
     }

@@ -51,6 +51,7 @@
 - `run_semantic_ordertype.py`：`OrderType` probe
 - `run_hshare_orderbook_probe.py`：按 `OrderId` 维护 active order book，对比 `Ext[0] / Ext[1]` side candidate，并输出 crossed book / linkage / `VolumePre` / `Level` 复核指标
 - `build_orderbook_replay_caveat.py`：物化 `orderbook_replay__caveat_lifecycle_linkage`，输出 lifecycle events 与 trade linkage 证据表，不输出 reconstructed depth
+- `build_orderbook_top_of_book_only.py`：物化 `orderbook_replay__top_of_book_only`，只输出 best bid/ask、spread、mid、inside-book 与质量 gate，不输出 full depth
 - `validate_field_release.py`：校验 `manifests/field_release_registry.json`，确保 caveat / blocked / top-of-book objects 不会静默进入 verified 默认表
 - `generate_field_release_dossier.py`：按 registry 生成中文 release dossier，供下游消费前复核边界
 - `run_semantic_session.py`：`Session` probe
@@ -134,6 +135,7 @@
 - `python -m Scripts.run_semantic_ordertype --year 2026 --resume`
 - `python -m Scripts.run_hshare_orderbook_probe --print-plan`
 - `python -m Scripts.build_orderbook_replay_caveat --print-plan`
+- `python -m Scripts.build_orderbook_top_of_book_only --print-plan`
 - `python -m Scripts.validate_field_release --object OrderSideVendor`
 - `python -m Scripts.generate_field_release_dossier --object orderbook_replay__caveat_lifecycle_linkage`
 - `python -m Scripts.run_semantic_session --year 2026`
