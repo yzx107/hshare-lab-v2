@@ -1,0 +1,62 @@
+{
+  "version": "2026-05-24",
+  "namespace": "orderbook_replay__top_of_book_only",
+  "table": "top_of_book_events",
+  "builder": "python -m Scripts.build_orderbook_top_of_book_only",
+  "source_layer": [
+    "candidate_cleaned.orders",
+    "candidate_cleaned.trades"
+  ],
+  "release_bucket": "admit_top_of_book_only",
+  "default_verified_admission": false,
+  "allowed_objects": [
+    "BestBidReplay",
+    "BestAskReplay",
+    "ReplaySpread",
+    "ReplayMid",
+    "TradeInsideBestBookFlag",
+    "TopOfBookValidFlag",
+    "ReplayQualityScore"
+  ],
+  "required_gating_columns": [
+    "CrossedWindowFlag",
+    "ReplayResidueFlag",
+    "ReplayWindowExcludedFlag",
+    "SameMillisecondBatchRiskFlag",
+    "TopOfBookValidFlag",
+    "ReplayQualityScore"
+  ],
+  "default_consumption_filter": {
+    "TopOfBookValidFlag": true,
+    "ReplayQualityScore": 1.0,
+    "CrossedWindowFlag": false,
+    "ReplayResidueFlag": false,
+    "ReplayWindowExcludedFlag": false,
+    "SameMillisecondBatchRiskFlag": false
+  },
+  "manual_review_lane": [
+    "CrossedWindowFlag=true",
+    "ReplayResidueFlag=true",
+    "ReplayWindowExcludedFlag=true",
+    "SameMillisecondBatchRiskFlag=true",
+    "TopOfBookValidFlag=false",
+    "ReplayQualityScore=0.0"
+  ],
+  "forbidden_objects": [
+    "FullReconstructedDepth",
+    "Level",
+    "BidVolume",
+    "AskVolume",
+    "BrokerNo",
+    "full Ext",
+    "queue semantics",
+    "execution realism",
+    "strict ordering-sensitive causality"
+  ],
+  "release_docs": [
+    "Research/Validation/orderbook_top_of_book_only_release_2026-05.md",
+    "Research/Validation/orderbook_research_handoff_2026-05.md",
+    "Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md"
+  ],
+  "registry": "manifests/field_release_registry.json"
+}

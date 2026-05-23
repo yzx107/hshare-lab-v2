@@ -52,6 +52,7 @@ RELEASE_OBJECTS = [
     "ReplayMid",
     "TradeInsideBestBookFlag",
     "TopOfBookValidFlag",
+    "ReplayQualityScore",
     "CrossedWindowFlag",
     "ReplayResidueFlag",
     "ReplayWindowExcludedFlag",
@@ -311,6 +312,7 @@ def top_of_book_row(
     inside = None
     if valid and trade_price is not None:
         inside = bool(best_bid <= trade_price <= best_ask)
+    quality_score = 1.0 if valid else 0.0
     return {
         "date": date,
         "symbol": f"HK.{symbol}",
@@ -337,6 +339,7 @@ def top_of_book_row(
         "ReplayWindowExcludedFlag": bool(excluded),
         "SameMillisecondBatchRiskFlag": bool(same_ms_risk),
         "TopOfBookValidFlag": bool(valid),
+        "ReplayQualityScore": quality_score,
         "TradeInsideBestBookFlag": inside,
     }
 
@@ -443,7 +446,7 @@ def write_research_report(args: argparse.Namespace, summary: dict[str, Any]) -> 
     path = args.research_root / f"orderbook_top_of_book_only_{stem}.md"
     ensure_dir(path.parent)
     lines = [
-        f"# Top-of-Book Only Replay Materialization {', '.join(dates)}",
+        f"# Top-of-Book Only Replay 物化报告 {', '.join(dates)}",
         "",
         f"- generated_at: {summary['generated_at']}",
         f"- namespace: `{summary['namespace']}`",
@@ -456,11 +459,13 @@ def write_research_report(args: argparse.Namespace, summary: dict[str, Any]) -> 
         f"- contains_caveat_fields: `{summary['contains_caveat_fields']}`",
         f"- replay_depth_admission: `{summary['replay_depth_admission']}`",
         "",
-        "## Boundary",
+        "## 边界",
         "",
-        "- This materialization emits top-of-book-only replay objects.",
-        "- It does not emit full depth, queue position, Level semantics, or execution realism.",
-        "- Downstream consumption must keep all quality flags visible.",
+        "- 本物化只输出 top-of-book-only replay objects。",
+        "- `ReplayQualityScore` 只是 bounded gate：`1.0` 表示 "
+        "`TopOfBookValidFlag=true`，`0.0` 表示该行不能作为默认样本消费。",
+        "- 不输出 full depth、queue position、Level semantics 或 execution realism。",
+        "- 下游消费必须保留所有 quality flags。",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path

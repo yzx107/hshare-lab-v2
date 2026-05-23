@@ -46,7 +46,8 @@
 - `reference source registry`：当前已正式接入 `Tushare`、`HKEX curated REIT seed` 与 `OpenD secondary snapshot`；`southbound` 仍保持 time-bounded curated seed 入口，用于 sidecar enrichment，而不是 tick 语义证明
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
 - `field release machinery`：新增 `manifests/field_release_registry.json`、validator 与 dossier generator；release 单位从 raw field 改为 research object / derived object / caveat namespace
-- `top-of-book-only namespace`：新增 `orderbook_replay__top_of_book_only` builder，只输出 best bid/ask、spread、mid、inside-book 与质量 gate，不输出 full depth
+- `top-of-book-only namespace`：新增 `orderbook_replay__top_of_book_only` builder，只输出 best bid/ask、spread、mid、inside-book、`ReplayQualityScore` 与质量 gate，不输出 full depth
+- `orderbook research handoff`：新增中文 boundary / handoff contract 与 machine-readable handoff manifest，要求下游显式过滤 replay quality flags 后再消费
 
 ## 当前原则
 
@@ -96,6 +97,8 @@
 - [DQA_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DQA_SPEC.md)
 - [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/SEMANTIC_MATRIX.md)
 - [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
+- [orderbook_top_of_book_only_release_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_top_of_book_only_release_2026-05.md)
+- [orderbook_research_handoff_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_research_handoff_2026-05.md)
 - [LEGACY_STATUS.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/LEGACY_STATUS.md)
 
 ## 新目录约定

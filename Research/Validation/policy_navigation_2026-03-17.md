@@ -33,10 +33,13 @@
 - [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
 - [field_release_dossier_orderbook_replay__top_of_book_only.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md)
+- [orderbook_top_of_book_only_release_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_top_of_book_only_release_2026-05.md)
+- [orderbook_research_handoff_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_research_handoff_2026-05.md)
 
 ## Method / Downstream Research Boundary
 
 - [information_theory_admissibility.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/information_theory_admissibility.md)
+- [orderbook_research_handoff_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_research_handoff_2026-05.md)
 - [research_admissibility_matrix.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md)
 
 ## Inventory / Samples
@@ -51,3 +54,4 @@
 - [reference_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/reference_policy_2026-03-15.json)
 - [verified_field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_field_policy_2026-03-15.json)
 - [field_release_registry.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/field_release_registry.json)
+- [orderbook_research_handoff.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/orderbook_research_handoff.json)

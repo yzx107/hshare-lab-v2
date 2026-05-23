@@ -19,7 +19,9 @@
   "policy_docs": [
     "Research/Validation/field_release_mechanism_2026-05.md",
     "Research/Validation/verified_admission_matrix_2026-03-18.md",
-    "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md"
+    "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+    "Research/Validation/orderbook_top_of_book_only_release_2026-05.md",
+    "Research/Validation/orderbook_research_handoff_2026-05.md"
   ],
   "objects": [
     {
@@ -302,38 +304,44 @@
     {
       "object_name": "ReplayQualityScore",
       "object_type": "derived_field",
-      "source_layer": "orderbook_replay quality summary",
-      "release_bucket": "keep_out_for_now",
+      "source_layer": "orderbook_replay__top_of_book_only.top_of_book_events",
+      "release_bucket": "admit_with_explicit_caveat_only",
       "raw_fields": [
         "CrossedWindowFlag",
-        "TradeInsideBestBookFlag",
-        "ReplayResidueFlag"
+        "ReplayResidueFlag",
+        "ReplayWindowExcludedFlag",
+        "SameMillisecondBatchRiskFlag",
+        "TopOfBookValidFlag"
       ],
-      "derived_logic": "Planned bounded quality score over replay windows; formula and threshold are not frozen.",
+      "derived_logic": "Minimal bounded gate emitted by the top-of-book builder: 1.0 only when TopOfBookValidFlag=true; 0.0 otherwise.",
       "allowed_uses": [
-        "registry planning",
-        "quality metric design review"
+        "top-of-book DQA denominator control",
+        "default research filtering inside the explicit top-of-book namespace",
+        "manual review prioritization for invalid replay windows"
       ],
       "forbidden_claims": [
-        "a numeric replay quality score is already released",
         "the score is sufficient for strategy admission",
-        "the score can replace crossed-book residue analysis"
+        "the score can replace crossed-book residue analysis",
+        "the score proves full reconstructed depth or queue semantics"
       ],
       "evidence_docs": [
         "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_top_of_book_only_release_2026-05.md",
+        "Research/Validation/orderbook_research_handoff_2026-05.md",
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],
       "downstream_namespaces": [
-        "blocked_registry_only"
+        "orderbook_replay__top_of_book_only"
       ],
       "downstream_boundary": [
-        "Do not consume until formula, threshold, and exclusion policy are registered."
+        "Consume only with the full top-of-book flag set visible.",
+        "Treat 0.0 as not default-consumable, not as a negative alpha signal."
       ],
-      "blocker": "Quality score formula and contract thresholds are not yet defined.",
+      "blocker": "Only the minimal 0/1 quality gate is released; richer scoring and thresholds remain blocked.",
       "manual_review_required": true,
       "contains_caveat_fields": true,
       "verified_default_admission": false,
-      "caveat_level": "blocked"
+      "caveat_level": "quality_caveat"
     },
     {
       "object_name": "ReplayWindowExcludedFlag",
@@ -437,6 +445,8 @@
       "evidence_docs": [
         "Research/Validation/field_release_mechanism_2026-05.md",
         "Research/Validation/field_release_dossier_orderbook_replay__top_of_book_only.md",
+        "Research/Validation/orderbook_top_of_book_only_release_2026-05.md",
+        "Research/Validation/orderbook_research_handoff_2026-05.md",
         "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
         "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
       ],

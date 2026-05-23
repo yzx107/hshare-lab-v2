@@ -25,6 +25,7 @@
 - `ReplayMid`
 - `TradeInsideBestBookFlag`
 - `TopOfBookValidFlag`
+- `ReplayQualityScore`
 
 同时输出质量 gate：
 
@@ -32,6 +33,8 @@
 - `ReplayResidueFlag`
 - `ReplayWindowExcludedFlag`
 - `SameMillisecondBatchRiskFlag`
+
+其中 `ReplayQualityScore` 只是 bounded gate：`1.0` 表示 `TopOfBookValidFlag=true`，`0.0` 表示该行不能作为默认 top-of-book 样本消费。
 
 ## 证据材料
 
@@ -61,6 +64,7 @@ crossed-book residue 仍未被解释或被 contract-level 阈值约束；same-mi
 - 下游只能消费 `orderbook_replay__top_of_book_only`
 - `TopOfBookValidFlag=false` 的行不能作为正常 top-of-book 样本使用
 - 报告必须保留 `CrossedWindowFlag / ReplayResidueFlag / ReplayWindowExcludedFlag / SameMillisecondBatchRiskFlag`
+- 默认研究过滤必须显式要求 `TopOfBookValidFlag=true` 且 `ReplayQualityScore=1.0`
 - 该 namespace 不是 strategy-ready depth feed
 
 ## verified default 边界

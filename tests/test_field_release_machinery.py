@@ -34,10 +34,17 @@ class FieldReleaseMachineryTests(unittest.TestCase):
             "CrossedWindowFlag",
             "orderbook_replay__top_of_book_only",
             "TopOfBookValidFlag",
+            "ReplayQualityScore",
             "FullReconstructedDepth",
         ):
             self.assertIn(object_name, objects)
         self.assertEqual(validate_registry(registry), [])
+        quality_score = objects["ReplayQualityScore"]
+        self.assertEqual(quality_score["release_bucket"], "admit_with_explicit_caveat_only")
+        self.assertEqual(
+            quality_score["downstream_namespaces"],
+            ["orderbook_replay__top_of_book_only"],
+        )
 
     def test_dossier_generation_outputs_chinese_markdown(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -33,6 +33,8 @@
 - 正式 registry: [field_release_registry.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/field_release_registry.json)
 - 机制说明: [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - dossier 示例: [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
+- top-of-book boundary: [orderbook_top_of_book_only_release_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_top_of_book_only_release_2026-05.md)
+- research handoff: [orderbook_research_handoff_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_research_handoff_2026-05.md)
 
 当前已正式登记但不进入 verified 默认表的对象：
 
@@ -44,6 +46,7 @@
 - replay quality flags
 - top-of-book-only preparation objects
 - `orderbook_replay__top_of_book_only`
+- `ReplayQualityScore` 只作为 `TopOfBookValidFlag` 绑定的 bounded quality gate
 
 `FullReconstructedDepth` 仍为 `keep_out_for_now`。
 
@@ -60,5 +63,7 @@
 - [verified_admission_boundary_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_boundary_2026-03-15.md)
 - [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
 - [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
+- [orderbook_top_of_book_only_release_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_top_of_book_only_release_2026-05.md)
+- [orderbook_research_handoff_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_research_handoff_2026-05.md)
 - [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
 - [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)

@@ -8,3 +8,4 @@
 当前仓库内保留的轻量 release registry：
 
 - `field_release_registry.json`：research object / derived field / caveat namespace 的 machine-readable release registry
+- `orderbook_research_handoff.json`：`orderbook_replay__top_of_book_only` 给下游研究消费的 machine-readable handoff contract

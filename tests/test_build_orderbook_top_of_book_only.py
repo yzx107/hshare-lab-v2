@@ -8,6 +8,8 @@ from pathlib import Path
 
 import polars as pl
 
+from Scripts.build_orderbook_top_of_book_only import materialize_rows
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -87,6 +89,7 @@ class BuildOrderbookTopOfBookOnlyTests(unittest.TestCase):
             self.assertEqual(row["ReplayMid"], 10.5)
             self.assertTrue(row["TradeInsideBestBookFlag"])
             self.assertTrue(row["TopOfBookValidFlag"])
+            self.assertEqual(row["ReplayQualityScore"], 1.0)
             self.assertFalse(row["CrossedWindowFlag"])
             self.assertFalse(row["ReplayResidueFlag"])
             self.assertFalse(row["ReplayWindowExcludedFlag"])
@@ -98,6 +101,38 @@ class BuildOrderbookTopOfBookOnlyTests(unittest.TestCase):
             self.assertEqual(summary["release_bucket"], "admit_top_of_book_only")
             self.assertEqual(summary["top_of_book_rows"], 1)
             self.assertTrue((research_root / "orderbook_top_of_book_only_20260522.md").exists())
+
+    def test_invalid_same_millisecond_window_is_explicitly_flagged(self) -> None:
+        trade_date = "2026-05-22"
+        rows = materialize_rows(
+            date=trade_date,
+            symbol="00001",
+            order_rows=[
+                order("09:30:00.000", 1, "000", 1, 10.0, 100),
+                order("09:30:00.000", 2, "100", 1, 11.0, 100),
+            ],
+            trade_rows=[
+                {
+                    "SendTime": f"{trade_date}T09:30:00.000",
+                    "Time": "093000000",
+                    "SeqNum": 5,
+                    "TickID": 5001,
+                    "Price": 10.5,
+                    "Volume": 20,
+                    "source_file": "trade/00001.csv",
+                }
+            ],
+            sort_mode="send_seq_order_first",
+            side_bit=0,
+        )
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertFalse(row["TopOfBookValidFlag"])
+        self.assertEqual(row["ReplayQualityScore"], 0.0)
+        self.assertTrue(row["SameMillisecondBatchRiskFlag"])
+        self.assertIsNone(row["ReplaySpread"])
+        self.assertIsNone(row["ReplayMid"])
+        self.assertIsNone(row["TradeInsideBestBookFlag"])
 
     def test_missing_registry_entry_fails_loudly(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -135,6 +170,65 @@ class BuildOrderbookTopOfBookOnlyTests(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("unknown release object", result.stderr)
+
+    def test_missing_gating_object_fails_loudly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            registry = json.loads(
+                (REPO_ROOT / "manifests" / "field_release_registry.json").read_text()
+            )
+            registry["objects"] = [
+                entry
+                for entry in registry["objects"]
+                if entry["object_name"] != "ReplayQualityScore"
+            ]
+            bad_registry = root / "field_release_registry.json"
+            bad_registry.write_text(json.dumps(registry), encoding="utf-8")
+            result = run_builder_with_registry(root, bad_registry)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("unknown release object: ReplayQualityScore", result.stderr)
+
+    def test_keep_out_object_fails_before_materialization(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            registry = json.loads(
+                (REPO_ROOT / "manifests" / "field_release_registry.json").read_text()
+            )
+            for entry in registry["objects"]:
+                if entry["object_name"] == "BestBidReplay":
+                    entry["release_bucket"] = "keep_out_for_now"
+            bad_registry = root / "field_release_registry.json"
+            bad_registry.write_text(json.dumps(registry), encoding="utf-8")
+            result = run_builder_with_registry(root, bad_registry)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("keep_out_for_now object cannot be materialized", result.stderr)
+
+
+def run_builder_with_registry(
+    root: Path,
+    registry_path: Path,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            "python3",
+            "-m",
+            "Scripts.build_orderbook_top_of_book_only",
+            "--dates",
+            "2026-05-22",
+            "--symbols",
+            "HK.00001",
+            "--stage-root",
+            str(root / "candidate_cleaned"),
+            "--output-root",
+            str(root / "caveat"),
+            "--field-release-registry",
+            str(registry_path),
+        ],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
 
 
 def order(
