@@ -1,0 +1,364 @@
+{
+  "allowed_research_uses": [
+    "reference lookup enrichment",
+    "coverage and ambiguity analysis",
+    "descriptive seat-summary style query outputs"
+  ],
+  "blocked_research_uses": [
+    "official broker identity claims",
+    "BrokerNo=0 universal semantic claims",
+    "direct broker alpha production without extra validation"
+  ],
+  "decision": "reference_lookup_only",
+  "decision_rationale": "BrokerNo is suitable for lookup enrichment and ambiguity tracking, but not for direct broker-alpha semantics.",
+  "doc_evidence": {
+    "field_status_contains_official_claim_text": true,
+    "field_status_vendor_defined": true,
+    "query_safe_unattributed": true,
+    "readonly_boundary_lookup_only": true,
+    "reference_code_count": 2908,
+    "reference_path": "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/References/normalized/brokerno.utf8.csv",
+    "zero_not_global_fact": true
+  },
+  "generated_at": "2026-03-25T18:43:39+00:00",
+  "manual_review_required": true,
+  "selected_dates": [
+    "2026-03-18",
+    "2026-03-19",
+    "2026-03-20"
+  ],
+  "smoke_rows": [
+    {
+      "date": "2026-03-18",
+      "distinct_codes": 1582,
+      "matched_distinct_codes": 1293,
+      "matched_distinct_rate": 0.8173198482932996,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 126283770,
+      "table_name": "orders",
+      "tested_rows": 126283770,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 59719413
+        },
+        {
+          "broker_code": "1058",
+          "row_count": 574867
+        },
+        {
+          "broker_code": "0736",
+          "row_count": 573344
+        },
+        {
+          "broker_code": "0735",
+          "row_count": 571352
+        },
+        {
+          "broker_code": "0734",
+          "row_count": 570257
+        },
+        {
+          "broker_code": "0732",
+          "row_count": 568553
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 566321
+        },
+        {
+          "broker_code": "0733",
+          "row_count": 560136
+        },
+        {
+          "broker_code": "1059",
+          "row_count": 558033
+        },
+        {
+          "broker_code": "0738",
+          "row_count": 510454
+        }
+      ],
+      "unmatched_distinct_codes": 289,
+      "zero_rate": 0.47289856012375936,
+      "zero_rows": 59719413
+    },
+    {
+      "date": "2026-03-18",
+      "distinct_codes": 1513,
+      "matched_distinct_codes": 1235,
+      "matched_distinct_rate": 0.8162590879048248,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 3912794,
+      "table_name": "trades",
+      "tested_rows": 3912794,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 456015
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 133230
+        },
+        {
+          "broker_code": "3436",
+          "row_count": 73323
+        },
+        {
+          "broker_code": "2453",
+          "row_count": 70864
+        },
+        {
+          "broker_code": "0757",
+          "row_count": 60450
+        },
+        {
+          "broker_code": "5460",
+          "row_count": 48746
+        },
+        {
+          "broker_code": "3079",
+          "row_count": 42368
+        },
+        {
+          "broker_code": "4107",
+          "row_count": 39576
+        },
+        {
+          "broker_code": "2414",
+          "row_count": 26353
+        },
+        {
+          "broker_code": "2452",
+          "row_count": 23189
+        }
+      ],
+      "unmatched_distinct_codes": 278,
+      "zero_rate": 0.11654459703219745,
+      "zero_rows": 456015
+    },
+    {
+      "date": "2026-03-19",
+      "distinct_codes": 1570,
+      "matched_distinct_codes": 1286,
+      "matched_distinct_rate": 0.8191082802547771,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 130746823,
+      "table_name": "orders",
+      "tested_rows": 130746823,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 62880987
+        },
+        {
+          "broker_code": "9788",
+          "row_count": 591809
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 586414
+        },
+        {
+          "broker_code": "1058",
+          "row_count": 566362
+        },
+        {
+          "broker_code": "0736",
+          "row_count": 564012
+        },
+        {
+          "broker_code": "0735",
+          "row_count": 563265
+        },
+        {
+          "broker_code": "0734",
+          "row_count": 561078
+        },
+        {
+          "broker_code": "0732",
+          "row_count": 560664
+        },
+        {
+          "broker_code": "0733",
+          "row_count": 551848
+        },
+        {
+          "broker_code": "1059",
+          "row_count": 551152
+        }
+      ],
+      "unmatched_distinct_codes": 284,
+      "zero_rate": 0.48093701672582895,
+      "zero_rows": 62880987
+    },
+    {
+      "date": "2026-03-19",
+      "distinct_codes": 1508,
+      "matched_distinct_codes": 1236,
+      "matched_distinct_rate": 0.8196286472148541,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 4445504,
+      "table_name": "trades",
+      "tested_rows": 4445504,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 552461
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 151736
+        },
+        {
+          "broker_code": "3436",
+          "row_count": 82855
+        },
+        {
+          "broker_code": "2453",
+          "row_count": 73420
+        },
+        {
+          "broker_code": "0757",
+          "row_count": 56078
+        },
+        {
+          "broker_code": "5460",
+          "row_count": 55691
+        },
+        {
+          "broker_code": "3079",
+          "row_count": 46563
+        },
+        {
+          "broker_code": "2845",
+          "row_count": 38133
+        },
+        {
+          "broker_code": "2414",
+          "row_count": 35482
+        },
+        {
+          "broker_code": "4107",
+          "row_count": 30130
+        }
+      ],
+      "unmatched_distinct_codes": 272,
+      "zero_rate": 0.12427409805502368,
+      "zero_rows": 552461
+    },
+    {
+      "date": "2026-03-20",
+      "distinct_codes": 1568,
+      "matched_distinct_codes": 1285,
+      "matched_distinct_rate": 0.8195153061224489,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 133373852,
+      "table_name": "orders",
+      "tested_rows": 133373852,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 63076365
+        },
+        {
+          "broker_code": "9788",
+          "row_count": 601439
+        },
+        {
+          "broker_code": "1058",
+          "row_count": 587428
+        },
+        {
+          "broker_code": "0736",
+          "row_count": 584643
+        },
+        {
+          "broker_code": "0735",
+          "row_count": 583610
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 582179
+        },
+        {
+          "broker_code": "0734",
+          "row_count": 580759
+        },
+        {
+          "broker_code": "0732",
+          "row_count": 580684
+        },
+        {
+          "broker_code": "0733",
+          "row_count": 573283
+        },
+        {
+          "broker_code": "1059",
+          "row_count": 570543
+        }
+      ],
+      "unmatched_distinct_codes": 283,
+      "zero_rate": 0.4729290191003856,
+      "zero_rows": 63076365
+    },
+    {
+      "date": "2026-03-20",
+      "distinct_codes": 1502,
+      "matched_distinct_codes": 1231,
+      "matched_distinct_rate": 0.8195739014647138,
+      "nonnull_rate": 1.0,
+      "nonnull_rows": 4323557,
+      "table_name": "trades",
+      "tested_rows": 4323557,
+      "top_unmatched_codes": [
+        {
+          "broker_code": "0000",
+          "row_count": 633996
+        },
+        {
+          "broker_code": "3187",
+          "row_count": 136721
+        },
+        {
+          "broker_code": "3436",
+          "row_count": 82148
+        },
+        {
+          "broker_code": "0757",
+          "row_count": 76263
+        },
+        {
+          "broker_code": "2453",
+          "row_count": 69771
+        },
+        {
+          "broker_code": "5460",
+          "row_count": 52897
+        },
+        {
+          "broker_code": "3079",
+          "row_count": 48662
+        },
+        {
+          "broker_code": "4107",
+          "row_count": 31727
+        },
+        {
+          "broker_code": "2414",
+          "row_count": 24805
+        },
+        {
+          "broker_code": "2452",
+          "row_count": 22631
+        }
+      ],
+      "unmatched_distinct_codes": 271,
+      "zero_rate": 0.14663759492473444,
+      "zero_rows": 633996
+    }
+  ],
+  "verified_default_admission": "blocked",
+  "year": "2026"
+}

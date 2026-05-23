@@ -1,0 +1,50 @@
+{
+  "aggressor_side_status": "blocked",
+  "allowed_research_uses": [
+    "descriptive distribution checks",
+    "candidate directional signal exploration with explicit caveat",
+    "manual-review-gated feature ideation"
+  ],
+  "blocked_research_uses": [
+    "signed flow factor production",
+    "aggressor-side truth labeling",
+    "verified-layer default admission"
+  ],
+  "contrast_probe": {
+    "admissibility_impact": null,
+    "days_run": null,
+    "dir0_specialness_score": null,
+    "dir1_vs_dir2_bucket_uptick_consistent_day_count": null,
+    "dir1_vs_dir2_linkage_gap_avg": null,
+    "dir1_vs_dir2_uptick_gap_avg": null,
+    "dir1_vs_dir2_uptick_gap_sign_consistent_flag": null,
+    "observed_dir_values": null,
+    "report_path": "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/semantic_tradedir_contrast_2025.md",
+    "status": null,
+    "summary_path": "/Volumes/Data/港股Tick数据/dqa/semantic/year=2025/semantic_tradedir_contrast_summary.parquet"
+  },
+  "decision": "stable_code_structure_only",
+  "decision_rationale": "TradeDir is structurally stable enough for descriptive checks, but not ready for directional truth claims.",
+  "doc_evidence": {
+    "no_aggressor_truth_flag": true,
+    "note_path": "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Notes/vendor_hkex_doc_analysis_2026-03-15.md",
+    "vendor_defined_flag": true,
+    "vendor_export_field_flag": true
+  },
+  "generated_at": "2026-03-25T18:40:44+00:00",
+  "manual_review_required": true,
+  "semantic_probe": {
+    "admissibility_impact": "requires_manual_review",
+    "days_run": 246,
+    "distinct_tradedir_values": 3,
+    "linked_side_consistency_rate_avg": 1.0,
+    "report_path": "/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/semantic_tradedir_2025.md",
+    "status": "weak_pass",
+    "summary_path": "/Volumes/Data/港股Tick数据/dqa/semantic/year=2025/semantic_tradedir_summary.parquet",
+    "tested_rows_total": 926544356,
+    "tradedir_nonnull_rate_avg": 1.0
+  },
+  "signed_flow_status": "blocked",
+  "witness_dates": [],
+  "year": "2025"
+}
