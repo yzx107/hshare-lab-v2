@@ -1,14 +1,14 @@
 # DQA Linkage 2026
 
-- generated_at: 2026-05-17T13:13:23+00:00
-- completed_count: 69
+- generated_at: 2026-05-23T09:31:50+00:00
+- completed_count: 74
 - failed_count: 0
 - pending_count: 0
 
-- pass_days: 69
+- pass_days: 74
 - warn_days: 0
 - fail_days: 0
-- id_equality_pass_days: 69
+- id_equality_pass_days: 74
 - time_anchor_unavailable_days: 0
 - lag_not_verifiable_days: 0
 
