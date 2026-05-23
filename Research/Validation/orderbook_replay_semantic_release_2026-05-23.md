@@ -53,6 +53,12 @@ Aggregate `Ext[1]` replay result:
 
 ## Policy Decision
 
+Machine-readable release entries are now registered in:
+
+- `manifests/field_release_registry.json`
+
+The release unit is the object / namespace, not the raw field alone.
+
 Update `verified_field_policy_2026-03-15.json` as follows:
 
 - `VolumePre`: `admit_with_explicit_caveat_only`

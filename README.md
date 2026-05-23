@@ -16,7 +16,7 @@
 - legacy evidence repo: `/Users/yxin/AI_Workstation/Hshare_Lab`
 - GitHub: [yzx107/hshare-lab-v2](https://github.com/yzx107/hshare-lab-v2)
 - 切换 session 时优先从 `README.md`、`PROGRESS.md`、`TASKS.md`、`CHANGELOG.md` 进入
-- 当前最关心的下一步：继续推进 `2025/2026` full-year DQA、`OrderId lifecycle` semantic verification 与 verified layer 实装
+- 当前最关心的下一步：继续推进 `verified admission / implementation`，并用 field release machinery 管住 caveat / derived / top-of-book 对象的下游边界
 
 ## 当前主线
 
@@ -45,6 +45,7 @@
 - `cross-security role split`：默认 `equity target` 主线不回滚；`non-equity` 只允许作为显式 `source lane` 进入 dependence / TE 扩展研究
 - `reference source registry`：当前已正式接入 `Tushare`、`HKEX curated REIT seed` 与 `OpenD secondary snapshot`；`southbound` 仍保持 time-bounded curated seed 入口，用于 sidecar enrichment，而不是 tick 语义证明
 - `raw inventory`：`2025/2026` 全年 manifest 已完成，当前进入已闭合 baseline 状态
+- `field release machinery`：新增 `manifests/field_release_registry.json`、validator 与 dossier generator；release 单位从 raw field 改为 research object / derived object / caveat namespace
 
 ## 当前原则
 
@@ -93,6 +94,7 @@
 - [STAGE_SCHEMA.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/STAGE_SCHEMA.md)
 - [DQA_SPEC.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/DQA_SPEC.md)
 - [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/SEMANTIC_MATRIX.md)
+- [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [LEGACY_STATUS.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/LEGACY_STATUS.md)
 
 ## 新目录约定
@@ -132,6 +134,8 @@ Hshare_Lab_v2/
 
 - `python -m Scripts.build_raw_inventory --year 2025`：首个正式 CLI，负责 raw inventory manifest
 - `python -m Scripts.build_stage_parquet --year 2025 --max-days 3`：真实 stage cleaning 入口，按 `date + table` task 构建 parquet
+- `python -m Scripts.validate_field_release --object OrderSideVendor`：校验 field release registry 中单个 release object 的证据与边界
+- `python -m Scripts.generate_field_release_dossier --object orderbook_replay__caveat_lifecycle_linkage`：生成中文 release dossier
 - `make raw-inventory-2025` / `make raw-inventory-2026`：轻量编排入口
 - `python -m pytest`：校验最小行为约束
 - `python -m ruff check .`：保持脚本与规范一致
@@ -141,7 +145,7 @@ Hshare_Lab_v2/
 1. 对 `2025/2026` 的 full-year stage 产物跑 `coverage / schema / linkage` DQA
 2. 继续推进 `2026` second-stage semantic verification 与 `2025` coarse-valid 研究边界
 3. 按已定义准入 policy 实装 verified layer
-4. 让 Query / report / verified 实现逐步接入新的 field/reference policy
+4. 让 Query / report / verified 实现逐步接入新的 field/reference/release object policy
 5. 对 `coverage / schema / linkage` 的 full-year DQA 结果做正式收口
 
 ## Policy Navigation
@@ -149,5 +153,6 @@ Hshare_Lab_v2/
 - [policy_navigation_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/policy_navigation_2026-03-17.md)
 - [instrument_universe_classification_boundary_2026-04-06.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/instrument_universe_classification_boundary_2026-04-06.md)
 - [information_theory_admissibility.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/information_theory_admissibility.md)
+- [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
 - [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)

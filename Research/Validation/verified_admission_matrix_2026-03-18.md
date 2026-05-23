@@ -22,6 +22,8 @@
 - [dqa_linkage_2026.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/dqa_linkage_2026.md)
 - [hshare_orderbook_reconstruction_probe_20260522.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md)
 - [orderbook_replay_semantic_release_2026-05-23.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/orderbook_replay_semantic_release_2026-05-23.md)
+- [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
+- [field_release_registry.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/field_release_registry.json)
 - [research_admissibility_matrix.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Audits/research_admissibility_matrix.md)
 - [SEMANTIC_MATRIX.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/SEMANTIC_MATRIX.md)
 

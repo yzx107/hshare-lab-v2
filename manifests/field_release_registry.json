@@ -1,0 +1,687 @@
+{
+  "version": "2026-05-23",
+  "purpose": "Machine-readable release registry for research objects, derived fields, and caveat namespaces.",
+  "release_buckets": {
+    "admit_now": "May enter formal default research surfaces when source/provenance is preserved.",
+    "admit_with_explicit_caveat_only": "May be consumed only through explicit caveat metadata or a caveat namespace.",
+    "admit_top_of_book_only": "May be consumed only as bounded top-of-book replay objects, never as full reconstructed depth.",
+    "keep_out_for_now": "Not released for downstream research consumption; tracked only as a blocked object."
+  },
+  "object_types": {
+    "raw_field": "A raw stage field released only under a precise semantic boundary.",
+    "derived_field": "A derived object produced from stage fields, replay state, or DQA state.",
+    "caveat_namespace": "A materialized namespace whose tables carry explicit caveat metadata."
+  },
+  "default_verified_namespaces": [
+    "verified_orders",
+    "verified_trades"
+  ],
+  "policy_docs": [
+    "Research/Validation/field_release_mechanism_2026-05.md",
+    "Research/Validation/verified_admission_matrix_2026-03-18.md",
+    "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md"
+  ],
+  "objects": [
+    {
+      "object_name": "OrderTypeLifecycleEventCode",
+      "object_type": "raw_field",
+      "source_layer": "candidate_cleaned.orders",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "OrderType"
+      ],
+      "derived_logic": "Interpret only as vendor lifecycle event code in replay: 1=Add, 2=Modify, 3=Delete.",
+      "allowed_uses": [
+        "order lifecycle replay skeleton",
+        "modify/delete consistency DQA",
+        "caveat-only lifecycle event profiling"
+      ],
+      "forbidden_claims": [
+        "official native message semantics are fully confirmed",
+        "queue depletion or fill realism can be inferred from OrderType alone",
+        "OrderType may enter verified default tables without caveat metadata"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__caveat_lifecycle_linkage",
+        "verified_orders__caveat_ordertype_ordersidevendor"
+      ],
+      "downstream_boundary": [
+        "Use only with explicit caveat metadata.",
+        "Do not treat the event code as official native event semantics."
+      ],
+      "blocker": "event_semantics_inference remains blocked; official native message identity has not been proven.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "explicit_caveat"
+    },
+    {
+      "object_name": "OrderSideVendor",
+      "object_type": "derived_field",
+      "source_layer": "candidate_cleaned.orders.Ext",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "Ext[0]"
+      ],
+      "derived_logic": "Derive from Ext[0]: 0=BID, 1=ASK. No other Ext bits are released.",
+      "allowed_uses": [
+        "order side proxy in orderbook replay DQA",
+        "active-order bid/ask linkage side checks",
+        "caveat-only lifecycle profiling"
+      ],
+      "forbidden_claims": [
+        "full Ext semantics are verified",
+        "OrderSideVendor is an official native side field",
+        "OrderSideVendor may enter verified default tables without caveat metadata"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__caveat_lifecycle_linkage",
+        "verified_orders__caveat_ordertype_ordersidevendor"
+      ],
+      "downstream_boundary": [
+        "Only Ext[0] is released.",
+        "Ext[1], full Ext, Level, and queue semantics remain outside this object."
+      ],
+      "blocker": "Need larger multi-day confirmation before upgrading from vendor side proxy to stronger semantics.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "explicit_caveat"
+    },
+    {
+      "object_name": "TradeToActiveOrderLinkageEvidence",
+      "object_type": "derived_field",
+      "source_layer": "candidate_cleaned.trades + active order replay state",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "BidOrderID",
+        "AskOrderID",
+        "OrderId",
+        "OrderSideVendor"
+      ],
+      "derived_logic": "For each trade, check whether non-zero BidOrderID / AskOrderID refers to an active replay order with expected side.",
+      "allowed_uses": [
+        "trade-to-active-order linkage DQA",
+        "bid/ask active-rate and side-match reporting",
+        "replay caveat namespace evidence"
+      ],
+      "forbidden_claims": [
+        "BidOrderID / AskOrderID native meaning is fully confirmed",
+        "verified_trade_order_linkage is released as a default table",
+        "execution fill simulation is supported"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md",
+        "Research/Reports/orderbook_replay_caveat_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__caveat_lifecycle_linkage"
+      ],
+      "downstream_boundary": [
+        "Only consume as DQA evidence or replay caveat evidence.",
+        "Do not publish as official trade-to-order native linkage truth."
+      ],
+      "blocker": "Native trade-field identity and full depth semantics remain unverified.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "explicit_caveat"
+    },
+    {
+      "object_name": "PriorActiveVolumeCheck",
+      "object_type": "derived_field",
+      "source_layer": "candidate_cleaned.orders + active order replay state",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "VolumePre",
+        "Volume",
+        "OrderType",
+        "OrderId"
+      ],
+      "derived_logic": "On modify events, compare VolumePre with the prior active replay volume for the same OrderId.",
+      "allowed_uses": [
+        "modify-event consistency DQA",
+        "lifecycle replay sanity checks",
+        "caveat-only evidence table columns"
+      ],
+      "forbidden_claims": [
+        "VolumePre is a verified queue-ahead field",
+        "VolumePre supports queue-position alpha",
+        "VolumePre may enter verified default tables"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md",
+        "Research/Reports/orderbook_replay_caveat_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__caveat_lifecycle_linkage"
+      ],
+      "downstream_boundary": [
+        "Use as prior-active-volume consistency evidence only.",
+        "Do not use as queue position or depth truth."
+      ],
+      "blocker": "VolumePre native semantics are not fully confirmed and queue semantics remain blocked.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "explicit_caveat"
+    },
+    {
+      "object_name": "orderbook_replay__caveat_lifecycle_linkage",
+      "object_type": "caveat_namespace",
+      "source_layer": "candidate_cleaned.orders + candidate_cleaned.trades",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "OrderType",
+        "Ext[0]",
+        "BidOrderID",
+        "AskOrderID",
+        "VolumePre"
+      ],
+      "builder": "python -m Scripts.build_orderbook_replay_caveat",
+      "derived_logic": "Materializes lifecycle_events and trade_linkage evidence tables with explicit caveat metadata; does not output reconstructed depth.",
+      "allowed_uses": [
+        "orderbook replay lifecycle/linkage DQA",
+        "active-order presence and side-match evidence",
+        "input evidence for crossed-book residue investigation"
+      ],
+      "forbidden_claims": [
+        "reconstructed depth is admitted",
+        "top-of-book or full book replay is strategy-ready",
+        "Level, full Ext, BrokerNo, BidVolume, or AskVolume semantics are released"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md",
+        "Research/Reports/orderbook_replay_caveat_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__caveat_lifecycle_linkage"
+      ],
+      "downstream_boundary": [
+        "Allowed as caveat-only DQA materialization.",
+        "Not a verified default table and not a reconstructed-depth feed."
+      ],
+      "blocker": "Reconstructed depth remains blocked until crossed-book residue is explained or bounded by contract-level thresholds.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "caveat_namespace"
+    },
+    {
+      "object_name": "CrossedWindowFlag",
+      "object_type": "derived_field",
+      "source_layer": "orderbook_replay probe state",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "BestBidReplay",
+        "BestAskReplay"
+      ],
+      "derived_logic": "Flag replay windows where replay best bid is greater than replay best ask.",
+      "allowed_uses": [
+        "replay DQA window filtering",
+        "crossed-book residue diagnosis",
+        "quality gate inputs for top-of-book experiments"
+      ],
+      "forbidden_claims": [
+        "crossed windows are harmless without threshold evidence",
+        "full reconstructed depth is admitted",
+        "strategy replay may ignore crossed residue"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__quality_flags_candidate"
+      ],
+      "downstream_boundary": [
+        "Use as a DQA exclusion/risk flag only.",
+        "Do not convert into a pass condition without contract thresholds."
+      ],
+      "blocker": "Contract-level crossed-window threshold is not frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "quality_caveat"
+    },
+    {
+      "object_name": "ReplayResidueFlag",
+      "object_type": "derived_field",
+      "source_layer": "orderbook_replay probe state",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "OrderType",
+        "Ext[0]",
+        "BidOrderID",
+        "AskOrderID"
+      ],
+      "derived_logic": "Flag replay records or windows that contribute to unexplained crossed-book or linkage residue.",
+      "allowed_uses": [
+        "residue attribution",
+        "representative-sample DQA summaries",
+        "manual review queue construction"
+      ],
+      "forbidden_claims": [
+        "residue source is fully explained",
+        "residue-free depth reconstruction has been proven",
+        "flagged windows can be silently dropped in strategy backtests"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__quality_flags_candidate"
+      ],
+      "downstream_boundary": [
+        "Use for DQA attribution and review routing only.",
+        "Excluded-window policy must be separately documented before backtest use."
+      ],
+      "blocker": "Residue taxonomy and exclusion contract are not yet frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "quality_caveat"
+    },
+    {
+      "object_name": "ReplayQualityScore",
+      "object_type": "derived_field",
+      "source_layer": "orderbook_replay quality summary",
+      "release_bucket": "keep_out_for_now",
+      "raw_fields": [
+        "CrossedWindowFlag",
+        "TradeInsideBestBookFlag",
+        "ReplayResidueFlag"
+      ],
+      "derived_logic": "Planned bounded quality score over replay windows; formula and threshold are not frozen.",
+      "allowed_uses": [
+        "registry planning",
+        "quality metric design review"
+      ],
+      "forbidden_claims": [
+        "a numeric replay quality score is already released",
+        "the score is sufficient for strategy admission",
+        "the score can replace crossed-book residue analysis"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "blocked_registry_only"
+      ],
+      "downstream_boundary": [
+        "Do not consume until formula, threshold, and exclusion policy are registered."
+      ],
+      "blocker": "Quality score formula and contract thresholds are not yet defined.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "blocked"
+    },
+    {
+      "object_name": "ReplayWindowExcludedFlag",
+      "object_type": "derived_field",
+      "source_layer": "orderbook_replay quality policy",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "CrossedWindowFlag",
+        "ReplayResidueFlag"
+      ],
+      "derived_logic": "Flag replay windows excluded from bounded top-of-book experiments after an explicit exclusion rule is chosen.",
+      "allowed_uses": [
+        "DQA exclusion bookkeeping",
+        "top-of-book experiment gating",
+        "manual audit traceability"
+      ],
+      "forbidden_claims": [
+        "excluded windows can be hidden from reports",
+        "exclusion makes full depth valid",
+        "exclusion policy is frozen without a dossier"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__quality_flags_candidate"
+      ],
+      "downstream_boundary": [
+        "Every exclusion rule must be report-visible and resumable.",
+        "Exclusions cannot be used to hide failed full-depth semantics."
+      ],
+      "blocker": "Specific exclusion rule and threshold need contract review.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "quality_caveat"
+    },
+    {
+      "object_name": "SameMillisecondBatchRiskFlag",
+      "object_type": "derived_field",
+      "source_layer": "candidate_cleaned SendTime/SeqNum/TickID ordering diagnostics",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "raw_fields": [
+        "SendTime",
+        "SeqNum",
+        "TickID",
+        "OrderType"
+      ],
+      "derived_logic": "Flag same-millisecond event clusters where order/trade ordering may affect replay state.",
+      "allowed_uses": [
+        "ordering-risk DQA",
+        "crossed-book residue attribution",
+        "manual review of vendor batch behavior"
+      ],
+      "forbidden_claims": [
+        "same-millisecond ordering is solved",
+        "SeqNum/TickID ordering alone is sufficient for all replay windows",
+        "strict causality or fill realism is released"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__quality_flags_candidate"
+      ],
+      "downstream_boundary": [
+        "Use as an ordering-risk flag only.",
+        "Do not collapse the flag into a final event-ordering proof."
+      ],
+      "blocker": "Need representative multi-day ordering study and contract-level tie-break rule.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "quality_caveat"
+    },
+    {
+      "object_name": "BestBidReplay",
+      "object_type": "derived_field",
+      "source_layer": "active order replay state",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "OrderType",
+        "Ext[0]",
+        "Price",
+        "Volume"
+      ],
+      "derived_logic": "Best active bid from caveat replay state after top-of-book validity gates.",
+      "allowed_uses": [
+        "top-of-book-only replay experiments",
+        "spread/mid candidate computation",
+        "trade-inside-best-book checks when TopOfBookValidFlag is true"
+      ],
+      "forbidden_claims": [
+        "full reconstructed depth is released",
+        "queue position or fill priority is known",
+        "strategy-ready replay exists without crossed-residue gating"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Consume only with TopOfBookValidFlag=true and visible quality flags.",
+        "Do not derive depth ladder or queue metrics from this object."
+      ],
+      "blocker": "Top-of-book contract thresholds and crossed-residue policy are not frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "BestAskReplay",
+      "object_type": "derived_field",
+      "source_layer": "active order replay state",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "OrderType",
+        "Ext[0]",
+        "Price",
+        "Volume"
+      ],
+      "derived_logic": "Best active ask from caveat replay state after top-of-book validity gates.",
+      "allowed_uses": [
+        "top-of-book-only replay experiments",
+        "spread/mid candidate computation",
+        "trade-inside-best-book checks when TopOfBookValidFlag is true"
+      ],
+      "forbidden_claims": [
+        "full reconstructed depth is released",
+        "queue position or fill priority is known",
+        "strategy-ready replay exists without crossed-residue gating"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Consume only with TopOfBookValidFlag=true and visible quality flags.",
+        "Do not derive depth ladder or queue metrics from this object."
+      ],
+      "blocker": "Top-of-book contract thresholds and crossed-residue policy are not frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "ReplaySpread",
+      "object_type": "derived_field",
+      "source_layer": "BestBidReplay + BestAskReplay",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "BestBidReplay",
+        "BestAskReplay"
+      ],
+      "derived_logic": "ReplaySpread = BestAskReplay - BestBidReplay when top-of-book gates pass.",
+      "allowed_uses": [
+        "top-of-book-only spread diagnostics",
+        "candidate microstructure DQA",
+        "trade-inside-best-book denominator checks"
+      ],
+      "forbidden_claims": [
+        "negative or crossed spread is acceptable without flagging",
+        "spread proves full order book correctness",
+        "spread can be used for execution realism without caveat"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Use only when TopOfBookValidFlag is true.",
+        "Persist crossed/invalid spread metrics in reports."
+      ],
+      "blocker": "Crossed spread threshold and exclusion policy are not frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "ReplayMid",
+      "object_type": "derived_field",
+      "source_layer": "BestBidReplay + BestAskReplay",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "BestBidReplay",
+        "BestAskReplay"
+      ],
+      "derived_logic": "ReplayMid = (BestBidReplay + BestAskReplay) / 2 when top-of-book gates pass.",
+      "allowed_uses": [
+        "top-of-book-only mid-price diagnostics",
+        "candidate trade-inside-book reporting",
+        "bounded microstructure descriptive checks"
+      ],
+      "forbidden_claims": [
+        "mid-price is a production replay reference price",
+        "mid-price can support alpha without replay quality caveats",
+        "full depth has been reconstructed"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Use only under top-of-book gates and visible caveat metadata.",
+        "Do not treat as a production reference price."
+      ],
+      "blocker": "Top-of-book validity contract is not frozen.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "TradeInsideBestBookFlag",
+      "object_type": "derived_field",
+      "source_layer": "candidate_cleaned.trades + top-of-book replay state",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "Price",
+        "BestBidReplay",
+        "BestAskReplay"
+      ],
+      "derived_logic": "Flag whether trade Price falls inside [BestBidReplay, BestAskReplay] when top-of-book state is valid.",
+      "allowed_uses": [
+        "top-of-book sanity checks",
+        "replay quality reporting",
+        "candidate bounded top-of-book DQA"
+      ],
+      "forbidden_claims": [
+        "inside-book flag proves full book correctness",
+        "outside-book trades can be hidden without residue accounting",
+        "trade execution realism is released"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Use as top-of-book sanity evidence only.",
+        "Always report numerator, denominator, excluded windows, and caveat flags."
+      ],
+      "blocker": "Need formal denominator/exclusion policy for invalid top-of-book windows.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "TopOfBookValidFlag",
+      "object_type": "derived_field",
+      "source_layer": "top-of-book replay quality policy",
+      "release_bucket": "admit_top_of_book_only",
+      "raw_fields": [
+        "BestBidReplay",
+        "BestAskReplay",
+        "CrossedWindowFlag",
+        "ReplayWindowExcludedFlag"
+      ],
+      "derived_logic": "Boolean gate for using top-of-book replay objects; true only when best bid/ask are present and quality flags allow consumption.",
+      "allowed_uses": [
+        "top-of-book object gating",
+        "candidate replay window selection",
+        "DQA denominator control"
+      ],
+      "forbidden_claims": [
+        "TopOfBookValidFlag releases full depth",
+        "top-of-book validity implies queue validity",
+        "invalid windows may be silently excluded"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "orderbook_replay__top_of_book_candidate"
+      ],
+      "downstream_boundary": [
+        "Every downstream top-of-book object must carry this flag or equivalent metadata.",
+        "False or missing values cannot be used as a default pass."
+      ],
+      "blocker": "Validity thresholds and same-millisecond ordering policy need contract review.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "top_of_book_only"
+    },
+    {
+      "object_name": "FullReconstructedDepth",
+      "object_type": "derived_field",
+      "source_layer": "active order replay state",
+      "release_bucket": "keep_out_for_now",
+      "raw_fields": [
+        "OrderType",
+        "Ext",
+        "Level",
+        "BidVolume",
+        "AskVolume"
+      ],
+      "derived_logic": "Full depth ladder reconstruction is intentionally not released.",
+      "allowed_uses": [
+        "blocked-object tracking",
+        "future contract design only"
+      ],
+      "forbidden_claims": [
+        "reconstructed depth is verified",
+        "Level is a reliable ten-depth field",
+        "queue position, fill simulation, or execution realism is admitted"
+      ],
+      "evidence_docs": [
+        "Research/Validation/field_release_mechanism_2026-05.md",
+        "Research/Validation/orderbook_replay_semantic_release_2026-05-23.md",
+        "Research/Audits/hshare_orderbook_reconstruction_probe_20260522.md"
+      ],
+      "downstream_namespaces": [
+        "blocked_registry_only"
+      ],
+      "downstream_boundary": [
+        "Do not consume as a research object.",
+        "Use this entry only to keep the blocker explicit."
+      ],
+      "blocker": "Crossed-book residue remains non-zero and Level/full-depth semantics are not verified.",
+      "manual_review_required": true,
+      "contains_caveat_fields": true,
+      "verified_default_admission": false,
+      "caveat_level": "blocked"
+    }
+  ]
+}

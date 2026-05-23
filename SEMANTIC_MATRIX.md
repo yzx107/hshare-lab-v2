@@ -23,8 +23,28 @@
 | `Session` | session tag | `unknown` | `partial` | 研究切分依赖 |
 | `TickID` | trade identity / event key | `unknown` | `partial` | 候选唯一键待验证 |
 | `Level` | depth / level indicator | `unknown` | `yes` | 禁止直接用于 book depth |
-| `VolumePre` | queue-ahead proxy | `unknown` | `yes` | 禁止直接用于 queue analysis |
+| `VolumePre` | prior-active-volume check candidate | `weak_pass` | `partial` | 只允许通过 `PriorActiveVolumeCheck` 进入 caveat-only DQA；仍禁止 queue analysis |
 | `Type` | message subtype | `unknown` | `partial` | 语义未确认 |
+
+## Release Object Boundary
+
+从 `2026-05` 起，字段放开以 release object 为准，不再只看 raw field open/closed。
+
+- 正式 registry: [field_release_registry.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/field_release_registry.json)
+- 机制说明: [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
+- dossier 示例: [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
+
+当前已正式登记但不进入 verified 默认表的对象：
+
+- `OrderTypeLifecycleEventCode`
+- `OrderSideVendor`
+- `TradeToActiveOrderLinkageEvidence`
+- `PriorActiveVolumeCheck`
+- `orderbook_replay__caveat_lifecycle_linkage`
+- replay quality flags
+- top-of-book-only preparation objects
+
+`FullReconstructedDepth` 仍为 `keep_out_for_now`。
 
 ## 状态定义
 
@@ -38,5 +58,6 @@
 
 - [verified_admission_boundary_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_boundary_2026-03-15.md)
 - [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
+- [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
 - [query_report_policy_bridge_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/query_report_policy_bridge_2026-03-17.md)
 - [broker_reference_readonly_boundary_2026-03-17.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/broker_reference_readonly_boundary_2026-03-17.md)

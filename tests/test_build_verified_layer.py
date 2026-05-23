@@ -5,13 +5,12 @@ import json
 import subprocess
 import tempfile
 import unittest
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import polars as pl
 
 from Scripts import build_verified_layer as verified_layer
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,7 +53,9 @@ class BuildVerifiedLayerTests(unittest.TestCase):
     def test_prepare_task_inputs_reuses_existing_scratch_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            source_path = root / "candidate_cleaned" / "orders" / "date=2026-03-13" / "orders.parquet"
+            source_path = (
+                root / "candidate_cleaned" / "orders" / "date=2026-03-13" / "orders.parquet"
+            )
             write_parquet(
                 source_path,
                 [
@@ -62,11 +63,12 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat("2026-03-13"),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                     }
@@ -78,8 +80,15 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 table_name="orders",
                 date="2026-03-13",
                 input_paths=(str(source_path),),
-                output_path=str(root / "verified_orders" / "year=2026" / "date=2026-03-13" / "part-00000.parquet"),
-                allowed_columns=("date",),
+                output_path=str(
+                    root
+                    / "verified_orders"
+                    / "year=2026"
+                    / "date=2026-03-13"
+                    / "part-00000.parquet"
+                ),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
                 scratch_root=str(root / "scratch"),
                 input_read_mode="scratch_prefetch",
@@ -92,7 +101,9 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             self.assertEqual(first_prefetch.prefetch_reused_files, 0)
             self.assertEqual(second_prefetch.prefetch_copied_files, 0)
             self.assertEqual(second_prefetch.prefetch_reused_files, 1)
-            self.assertEqual(first_prefetch.effective_input_paths, second_prefetch.effective_input_paths)
+            self.assertEqual(
+                first_prefetch.effective_input_paths, second_prefetch.effective_input_paths
+            )
             self.assertTrue(Path(first_prefetch.effective_input_paths[0]).exists())
 
     def test_interleave_tasks_by_table_keeps_trades_from_starving(self) -> None:
@@ -103,7 +114,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-01-02",
                 input_paths=("orders-1.parquet",),
                 output_path="verified-orders-1.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
             ),
             verified_layer.VerifiedTask(
@@ -112,7 +124,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-02-09",
                 input_paths=("orders-2.parquet",),
                 output_path="verified-orders-2.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
             ),
             verified_layer.VerifiedTask(
@@ -121,7 +134,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-01-02",
                 input_paths=("trades-1.parquet",),
                 output_path="verified-trades-1.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
             ),
             verified_layer.VerifiedTask(
@@ -130,19 +144,22 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-02-09",
                 input_paths=("trades-2.parquet",),
                 output_path="verified-trades-2.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
             ),
         ]
 
-        ordered_task_keys = [task.task_key for task in verified_layer.interleave_tasks_by_table(tasks)]
+        ordered_task_keys = [
+            task.task_key for task in verified_layer.interleave_tasks_by_table(tasks)
+        ]
         self.assertEqual(
             ordered_task_keys,
             [
-                "2026-01-02:orders",
-                "2026-01-02:trades",
-                "2026-02-09:orders",
-                "2026-02-09:trades",
+                "2026-01-02:verified_orders",
+                "2026-01-02:verified_trades",
+                "2026-02-09:verified_orders",
+                "2026-02-09:verified_trades",
             ],
         )
 
@@ -154,7 +171,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-01-02",
                 input_paths=("orders-1.parquet",),
                 output_path="verified-orders-1.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
                 input_bytes=100,
             ),
@@ -164,7 +182,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-02-09",
                 input_paths=("orders-2.parquet",),
                 output_path="verified-orders-2.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
                 input_bytes=300,
             ),
@@ -174,7 +193,8 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-01-02",
                 input_paths=("trades-1.parquet",),
                 output_path="verified-trades-1.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
                 input_bytes=50,
             ),
@@ -184,20 +204,23 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 date="2026-02-09",
                 input_paths=("trades-2.parquet",),
                 output_path="verified-trades-2.parquet",
-                allowed_columns=("date",),
+                input_columns=("date",),
+                output_columns=("date",),
                 excluded_columns=(),
                 input_bytes=200,
             ),
         ]
 
-        ordered_task_keys = [task.task_key for task in verified_layer.interleave_tasks_by_table(tasks)]
+        ordered_task_keys = [
+            task.task_key for task in verified_layer.interleave_tasks_by_table(tasks)
+        ]
         self.assertEqual(
             ordered_task_keys,
             [
-                "2026-02-09:orders",
-                "2026-02-09:trades",
-                "2026-01-02:orders",
-                "2026-01-02:trades",
+                "2026-02-09:verified_orders",
+                "2026-02-09:verified_trades",
+                "2026-01-02:verified_orders",
+                "2026-01-02:verified_trades",
             ],
         )
 
@@ -217,11 +240,12 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                         "OrderType": 2,
@@ -236,10 +260,11 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "trades",
                         "source_file": "b.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "TickID": 9001,
                         "Time": "093001",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, 1, tzinfo=UTC),
                         "Price": 12.4,
                         "Volume": 300,
                         "Dir": 1,
@@ -274,8 +299,20 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 check=True,
             )
 
-            orders_out = output_root / "verified_orders" / "year=2026" / f"date={trade_date}" / "part-00000.parquet"
-            trades_out = output_root / "verified_trades" / "year=2026" / f"date={trade_date}" / "part-00000.parquet"
+            orders_out = (
+                output_root
+                / "verified_orders"
+                / "year=2026"
+                / f"date={trade_date}"
+                / "part-00000.parquet"
+            )
+            trades_out = (
+                output_root
+                / "verified_trades"
+                / "year=2026"
+                / f"date={trade_date}"
+                / "part-00000.parquet"
+            )
             self.assertTrue(orders_out.exists())
             self.assertTrue(trades_out.exists())
 
@@ -283,14 +320,41 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             trades_df = pl.read_parquet(trades_out)
             self.assertEqual(
                 orders_df.columns,
-                ["date", "table_name", "source_file", "ingest_ts", "row_num_in_file", "SeqNum", "OrderId", "Time", "Price", "Volume"],
+                [
+                    "date",
+                    "table_name",
+                    "source_file",
+                    "ingest_ts",
+                    "row_num_in_file",
+                    "SeqNum",
+                    "OrderId",
+                    "Time",
+                    "SendTime",
+                    "Price",
+                    "Volume",
+                    "instrument_key",
+                ],
             )
             self.assertEqual(
                 trades_df.columns,
-                ["date", "table_name", "source_file", "ingest_ts", "row_num_in_file", "TickID", "Time", "Price", "Volume"],
+                [
+                    "date",
+                    "table_name",
+                    "source_file",
+                    "ingest_ts",
+                    "row_num_in_file",
+                    "TickID",
+                    "Time",
+                    "SendTime",
+                    "Price",
+                    "Volume",
+                    "instrument_key",
+                ],
             )
 
-            summary = json.loads((output_root / "manifests" / "year=2026" / "summary.json").read_text())
+            summary = json.loads(
+                (output_root / "manifests" / "year=2026" / "summary.json").read_text()
+            )
             self.assertEqual(summary["completed_count"], 2)
             self.assertEqual(summary["failed_count"], 0)
             self.assertIn("verified_orders", summary["tables"])
@@ -313,11 +377,12 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                     }
@@ -330,10 +395,11 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "trades",
                         "source_file": "b.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "TickID": 9001,
                         "Time": "093001",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, 1, tzinfo=UTC),
                         "Price": 12.4,
                         "Volume": 300,
                     }
@@ -390,10 +456,14 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             self.assertFalse(scratch_trades.exists())
 
             parts_path = output_root / "manifests" / "year=2026" / "verified_partitions.jsonl"
-            rows = [json.loads(line) for line in parts_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            rows = [
+                json.loads(line)
+                for line in parts_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
             rows_by_task = {row["task_key"]: row for row in rows}
 
-            orders_row = rows_by_task[f"{trade_date}:orders"]
+            orders_row = rows_by_task[f"{trade_date}:verified_orders"]
             self.assertEqual(orders_row["input_read_mode"], "scratch_prefetch")
             self.assertEqual(orders_row["prefetch_copied_files"], 1)
             self.assertEqual(orders_row["prefetch_reused_files"], 0)
@@ -401,9 +471,11 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             self.assertEqual(orders_row["effective_input_paths"], [str(scratch_orders)])
             self.assertGreaterEqual(orders_row["prefetch_seconds"], 0.0)
             self.assertGreaterEqual(orders_row["materialize_seconds"], 0.0)
-            self.assertGreaterEqual(orders_row["total_task_seconds"], orders_row["materialize_seconds"])
+            self.assertGreaterEqual(
+                orders_row["total_task_seconds"], orders_row["materialize_seconds"]
+            )
 
-            trades_row = rows_by_task[f"{trade_date}:trades"]
+            trades_row = rows_by_task[f"{trade_date}:verified_trades"]
             self.assertEqual(trades_row["input_read_mode"], "direct_stage")
             self.assertEqual(trades_row["scratch_input_paths"], [])
             self.assertEqual(trades_row["effective_input_paths"], trades_row["input_paths"])
@@ -430,7 +502,7 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                             "date": date.fromisoformat(trade_date),
                             "table_name": "orders",
                             "source_file": "a.csv",
-                            "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                            "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                             "row_num_in_file": 1,
                             "SeqNum": seq_num,
                             "OrderId": 1000 + seq_num,
@@ -475,26 +547,50 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 check=True,
             )
 
-            selected_output = output_root / "verified_orders" / "year=2025" / "date=2025-01-07" / "part-00000.parquet"
-            skipped_output = output_root / "verified_orders" / "year=2025" / "date=2025-01-05" / "part-00000.parquet"
+            selected_output = (
+                output_root
+                / "verified_orders"
+                / "year=2025"
+                / "date=2025-01-07"
+                / "part-00000.parquet"
+            )
+            skipped_output = (
+                output_root
+                / "verified_orders"
+                / "year=2025"
+                / "date=2025-01-05"
+                / "part-00000.parquet"
+            )
             self.assertTrue(selected_output.exists())
             self.assertFalse(skipped_output.exists())
 
-            summary = json.loads((output_root / "manifests" / "year=2025" / "summary.json").read_text(encoding="utf-8"))
+            summary = json.loads(
+                (output_root / "manifests" / "year=2025" / "summary.json").read_text(
+                    encoding="utf-8"
+                )
+            )
             self.assertEqual(summary["completed_count"], 1)
             self.assertEqual(summary["pending_count"], 0)
-            self.assertEqual(summary["selection"]["label"], "orders__from_2025-01-05__to_2025-01-07__batch_2_of_size_2")
+            self.assertEqual(
+                summary["selection"]["label"],
+                "orders__from_2025-01-05__to_2025-01-07__batch_2_of_size_2",
+            )
             self.assertEqual(summary["selection"]["selected_date_count"], 1)
             self.assertEqual(summary["tables"]["verified_orders"]["dates"], ["2025-01-07"])
             self.assertEqual(summary["tables"]["verified_orders"]["partitions"], 1)
 
             report_path = (
                 research_root
-                / "verified_layer_2025__orders__from_2025-01-05__to_2025-01-07__batch_2_of_size_2.md"
+                / (
+                    "verified_layer_2025__orders__from_2025-01-05__to_2025-01-07"
+                    "__batch_2_of_size_2.md"
+                )
             )
             self.assertTrue(report_path.exists())
             report_text = report_path.read_text(encoding="utf-8")
-            self.assertIn("label: orders__from_2025-01-05__to_2025-01-07__batch_2_of_size_2", report_text)
+            self.assertIn(
+                "label: orders__from_2025-01-05__to_2025-01-07__batch_2_of_size_2", report_text
+            )
             self.assertIn("selected_date_count: 1", report_text)
 
     def test_resume_skips_existing_output(self) -> None:
@@ -513,11 +609,12 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                     }
@@ -551,9 +648,11 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             subprocess.run([*cmd, "--resume"], cwd=str(REPO_ROOT), check=True)
 
             parts_path = output_root / "manifests" / "year=2025" / "verified_partitions.jsonl"
-            rows = [json.loads(line) for line in parts_path.read_text().splitlines() if line.strip()]
+            rows = [
+                json.loads(line) for line in parts_path.read_text().splitlines() if line.strip()
+            ]
             self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]["task_key"], f"{trade_date}:orders")
+            self.assertEqual(rows[0]["task_key"], f"{trade_date}:verified_orders")
 
     def test_resume_rebuilds_when_manifest_row_is_stale(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -564,7 +663,7 @@ class BuildVerifiedLayerTests(unittest.TestCase):
             log_root = root / "logs"
 
             trade_date = "2026-03-13"
-            task_key = f"{trade_date}:orders"
+            task_key = f"{trade_date}:verified_orders"
             write_parquet(
                 stage_root / "orders" / f"date={trade_date}" / "orders.parquet",
                 [
@@ -572,11 +671,12 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                     }
@@ -585,7 +685,13 @@ class BuildVerifiedLayerTests(unittest.TestCase):
 
             manifest_root = output_root / "manifests" / "year=2026"
             manifest_root.mkdir(parents=True, exist_ok=True)
-            output_path = output_root / "verified_orders" / "year=2026" / f"date={trade_date}" / "part-00000.parquet"
+            output_path = (
+                output_root
+                / "verified_orders"
+                / "year=2026"
+                / f"date={trade_date}"
+                / "part-00000.parquet"
+            )
             stale_row = {
                 "task_key": task_key,
                 "date": trade_date,
@@ -593,7 +699,9 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 "table_name": "orders",
                 "verified_table_name": "verified_orders",
                 "output_path": str(output_path),
-                "input_paths": [str(stage_root / "orders" / f"date={trade_date}" / "orders.parquet")],
+                "input_paths": [
+                    str(stage_root / "orders" / f"date={trade_date}" / "orders.parquet")
+                ],
                 "input_row_count": 1,
                 "output_row_count": 1,
                 "output_bytes": 1,
@@ -607,7 +715,9 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                 "research_time_grade": "fine_ok",
                 "generated_at": "2026-03-18T00:00:00Z",
             }
-            (manifest_root / "verified_partitions.jsonl").write_text(json.dumps(stale_row) + "\n", encoding="utf-8")
+            (manifest_root / "verified_partitions.jsonl").write_text(
+                json.dumps(stale_row) + "\n", encoding="utf-8"
+            )
             (manifest_root / "checkpoint.json").write_text(
                 json.dumps(
                     {
@@ -660,7 +770,9 @@ class BuildVerifiedLayerTests(unittest.TestCase):
 
             rows = [
                 json.loads(line)
-                for line in (manifest_root / "verified_partitions.jsonl").read_text(encoding="utf-8").splitlines()
+                for line in (manifest_root / "verified_partitions.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
                 if line.strip()
             ]
             self.assertEqual(len(rows), 1)
@@ -686,24 +798,29 @@ class BuildVerifiedLayerTests(unittest.TestCase):
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,
                         "Time": "093000",
+                        "SendTime": datetime(2026, 3, 13, 9, 30, tzinfo=UTC),
                         "Price": 12.3,
                         "Volume": 1000,
                     }
                 ],
             )
             write_parquet(
-                output_root / "verified_orders" / "year=2026" / f"date={trade_date}" / "part-00000.parquet",
+                output_root
+                / "verified_orders"
+                / "year=2026"
+                / f"date={trade_date}"
+                / "part-00000.parquet",
                 [
                     {
                         "date": date.fromisoformat(trade_date),
                         "table_name": "orders",
                         "source_file": "a.csv",
-                        "ingest_ts": datetime(2026, 3, 18, tzinfo=timezone.utc),
+                        "ingest_ts": datetime(2026, 3, 18, tzinfo=UTC),
                         "row_num_in_file": 1,
                         "SeqNum": 100,
                         "OrderId": 1001,

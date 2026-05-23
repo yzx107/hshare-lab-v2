@@ -30,6 +30,8 @@
 - [verified_admission_boundary_2026-03-15.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_boundary_2026-03-15.md)
 - [verified_admission_matrix_2026-03-18.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_admission_matrix_2026-03-18.md)
 - [verified_layer_v1_design.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_layer_v1_design.md)
+- [field_release_mechanism_2026-05.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_mechanism_2026-05.md)
+- [field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_release_dossier_orderbook_replay__caveat_lifecycle_linkage.md)
 
 ## Method / Downstream Research Boundary
 
@@ -47,3 +49,4 @@
 - [field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/field_policy_2026-03-15.json)
 - [reference_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/reference_policy_2026-03-15.json)
 - [verified_field_policy_2026-03-15.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/Research/Validation/verified_field_policy_2026-03-15.json)
+- [field_release_registry.json](/Users/yxin/AI_Workstation/Hshare_Lab_v2/manifests/field_release_registry.json)

@@ -18,6 +18,7 @@
 - `T-R01 / T-R02` 仍有未补基础项，但 `T-R03 / T-R04 / T-R05` 已经在 sample-year 层面并行推进
 - `information theory admissibility` 已作为轻量 policy 支线接入，不改变主线层级顺序
 - `instrument universe classification` 已接入 `instrument_profile` sidecar，不改变 verified 主表边界
+- `field release machinery` 已接入 registry / validator / dossier，不改变 stage 语义，也不扩大 verified 默认表
 - 看状态时请区分：
   - `架构前置是否完整`
   - `当前执行主线是否已向后推进`
@@ -124,6 +125,25 @@
   - `2026`：`research_time_grade = fine_ok`
   - linkage 相关研究从现在开始拆年，不混年推进
   - `2026` 表内排序默认 `SeqNum` 优先
+
+## T-R05A: Field Release Machinery
+- **阶段**: Stage 3 研究验证 + Stage 4 工程加固
+- **状态**: ✅ Phase 1 已完成
+- **目标**: 把字段放开从 raw field open/closed 改成 research object / derived object / caveat namespace release
+- **产物**:
+  - `Research/Validation/field_release_mechanism_2026-05.md`
+  - `manifests/field_release_registry.json`
+  - `Scripts/validate_field_release.py`
+  - `Scripts/generate_field_release_dossier.py`
+- **验收门禁**:
+  - registry 固定 `admit_now / admit_with_explicit_caveat_only / admit_top_of_book_only / keep_out_for_now`
+  - caveat namespace 必须声明 `forbidden_claims`、`downstream_namespaces` 与 builder
+  - blocked / caveat / top-of-book objects 不得静默进入 `verified_orders / verified_trades`
+- **当前说明**:
+  - 已登记 `OrderTypeLifecycleEventCode / OrderSideVendor / TradeToActiveOrderLinkageEvidence / PriorActiveVolumeCheck`
+  - 已登记 `orderbook_replay__caveat_lifecycle_linkage`
+  - 已登记 replay quality flags 与 top-of-book-only preparation objects
+  - `FullReconstructedDepth` 仍为 `keep_out_for_now`
 
 ## T-R06: Verified Layer v1
 - **阶段**: Stage 3 研究验证
