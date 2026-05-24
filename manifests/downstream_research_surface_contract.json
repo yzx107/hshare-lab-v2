@@ -1,0 +1,242 @@
+{
+  "version": "2026-05-24",
+  "purpose": "Machine-readable contract for downstream research surfaces in Hshare Lab v2.",
+  "source_policy_docs": [
+    "Research/Validation/verified_field_policy_2026-03-15.json",
+    "Research/Validation/verified_admission_matrix_2026-03-18.md",
+    "manifests/field_release_registry.json",
+    "Research/Validation/field_release_mechanism_2026-05.md",
+    "Research/Validation/orderbook_research_handoff_2026-05.md",
+    "Research/Validation/information_theory_admissibility.md",
+    "Research/Validation/l2_field_semantics_evidence_matrix_2026-05-24.md"
+  ],
+  "year_boundary": {
+    "2025": {
+      "raw_layout": [
+        "OrderAdd",
+        "OrderModifyDelete",
+        "TradeResumes"
+      ],
+      "research_time_grade": "coarse_only",
+      "default_sendtime_admission": false,
+      "allowed_scope": [
+        "verified default structural research",
+        "coarse lifecycle/event-count research",
+        "explicit caveat linkage and trade direction proxy research"
+      ],
+      "blocked_scope": [
+        "fine lead-lag",
+        "latency-like research",
+        "queue or fill realism"
+      ]
+    },
+    "2026": {
+      "raw_layout": [
+        "order",
+        "trade"
+      ],
+      "research_time_grade": "fine_ok",
+      "default_sendtime_admission": true,
+      "allowed_scope": [
+        "verified default structural research",
+        "fine timing research with admitted fields",
+        "explicit caveat lifecycle/linkage research",
+        "top-of-book bounded research with quality gates"
+      ],
+      "blocked_scope": [
+        "full reconstructed depth",
+        "queue or fill realism without future release",
+        "broker alpha"
+      ]
+    }
+  },
+  "surfaces": [
+    {
+      "surface": "verified_default",
+      "release_bucket": "admit_now",
+      "default_verified_admission": true,
+      "namespaces": [
+        "verified_orders",
+        "verified_trades"
+      ],
+      "fields_by_table": {
+        "verified_orders_2025": [
+          "date",
+          "table_name",
+          "source_file",
+          "ingest_ts",
+          "row_num_in_file",
+          "SeqNum",
+          "OrderId",
+          "Time",
+          "Price",
+          "Volume",
+          "instrument_key"
+        ],
+        "verified_orders_2026": [
+          "date",
+          "table_name",
+          "source_file",
+          "ingest_ts",
+          "row_num_in_file",
+          "SeqNum",
+          "OrderId",
+          "Time",
+          "SendTime",
+          "Price",
+          "Volume",
+          "instrument_key"
+        ],
+        "verified_trades_2025": [
+          "date",
+          "table_name",
+          "source_file",
+          "ingest_ts",
+          "row_num_in_file",
+          "TickID",
+          "Time",
+          "Price",
+          "Volume",
+          "instrument_key"
+        ],
+        "verified_trades_2026": [
+          "date",
+          "table_name",
+          "source_file",
+          "ingest_ts",
+          "row_num_in_file",
+          "TickID",
+          "Time",
+          "SendTime",
+          "Price",
+          "Volume",
+          "instrument_key"
+        ]
+      },
+      "allowed_research": [
+        "price and volume descriptive research",
+        "event-count and arrival-count research",
+        "instrument-level grouping",
+        "entropy and mutual-information baseline research",
+        "2026 fine timing research using SendTime when policy conditions pass"
+      ],
+      "forbidden_claims": [
+        "official native dictionary is fully confirmed",
+        "2025 has fine timing admission",
+        "caveat fields are included by default"
+      ]
+    },
+    {
+      "surface": "explicit_caveat_research",
+      "release_bucket": "admit_with_explicit_caveat_only",
+      "default_verified_admission": false,
+      "namespaces": [
+        "verified_orders__caveat_ordertype_ordersidevendor",
+        "verified_trades__caveat_dir",
+        "orderbook_replay__caveat_lifecycle_linkage"
+      ],
+      "objects": [
+        "OrderTypeLifecycleEventCode",
+        "OrderSideVendor",
+        "Dir",
+        "Type",
+        "TradeToActiveOrderLinkageEvidence",
+        "PriorActiveVolumeCheck"
+      ],
+      "required_metadata": {
+        "contains_caveat_fields": true,
+        "year_boundary_required": true,
+        "native_semantics_confirmed": false
+      },
+      "allowed_research": [
+        "order lifecycle intensity by event count",
+        "vendor-side order flow proxy",
+        "trade direction proxy with special buckets separated",
+        "active-order linkage DQA",
+        "modify-event consistency DQA",
+        "caveat entropy/MI/TE under information-theory policy"
+      ],
+      "forbidden_claims": [
+        "HKEX native event semantics are confirmed",
+        "Dir is confirmed signed-side truth",
+        "BidOrderID or AskOrderID is official Trade(50) native field",
+        "VolumePre is queue-ahead truth"
+      ]
+    },
+    {
+      "surface": "top_of_book_bounded",
+      "release_bucket": "admit_top_of_book_only",
+      "default_verified_admission": false,
+      "namespace": "orderbook_replay__top_of_book_only",
+      "table": "top_of_book_events",
+      "objects": [
+        "BestBidReplay",
+        "BestAskReplay",
+        "ReplaySpread",
+        "ReplayMid",
+        "TradeInsideBestBookFlag",
+        "TopOfBookValidFlag",
+        "ReplayQualityScore",
+        "CrossedWindowFlag",
+        "ReplayResidueFlag",
+        "ReplayWindowExcludedFlag",
+        "SameMillisecondBatchRiskFlag"
+      ],
+      "default_consumption_filter": {
+        "TopOfBookValidFlag": true,
+        "ReplayQualityScore": 1.0,
+        "CrossedWindowFlag": false,
+        "ReplayResidueFlag": false,
+        "ReplayWindowExcludedFlag": false,
+        "SameMillisecondBatchRiskFlag": false
+      },
+      "allowed_research": [
+        "bounded spread and mid diagnostics",
+        "trade-inside-best-book reporting",
+        "filter-aware top-of-book sample construction",
+        "manual review routing for replay quality flags"
+      ],
+      "forbidden_claims": [
+        "full reconstructed depth is admitted",
+        "ReplayQualityScore is alpha",
+        "queue or fill realism is supported"
+      ]
+    },
+    {
+      "surface": "stage_internal",
+      "release_bucket": "internal_only",
+      "default_verified_admission": false,
+      "namespaces": [
+        "candidate_cleaned.orders",
+        "candidate_cleaned.trades"
+      ],
+      "allowed_research": [
+        "DQA",
+        "semantic verification",
+        "future admission probes"
+      ],
+      "forbidden_claims": [
+        "stage is a downstream formal research layer",
+        "stage field names alone prove verified semantics"
+      ]
+    }
+  ],
+  "blocked_objects": [
+    "BrokerNo",
+    "Level",
+    "full Ext",
+    "BidVolume",
+    "AskVolume",
+    "FullReconstructedDepth",
+    "queue position",
+    "queue depletion",
+    "fill priority",
+    "execution realism",
+    "broker alpha"
+  ],
+  "validators": [
+    "python3 -m Scripts.validate_field_release --json",
+    "python3 -m Scripts.report_field_policy_check --report Research/Validation/downstream_research_surface_contract_2026-05-24.md",
+    "python3 -m json.tool manifests/downstream_research_surface_contract.json"
+  ]
+}
