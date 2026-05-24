@@ -83,7 +83,7 @@ OUTPUT_SCHEMA: dict[str, pl.DataType] = {
     "ReplayWindowExcludedFlag": pl.Boolean,
     "SameMillisecondBatchRiskFlag": pl.Boolean,
     "SizeSemanticsCaveat": pl.Utf8,
-    "StrategyHandoffEligibleFlag": pl.Boolean,
+    "CaveatHandoffReadyFlag": pl.Boolean,
 }
 
 
@@ -92,7 +92,7 @@ def parse_args() -> argparse.Namespace:
         description="Build bounded top-of-book with size caveat handoff for OpenD agent replay."
     )
     parser.add_argument("--universe-path", type=Path, required=True)
-    parser.add_argument("--dates", help="Comma-separated trading dates.")
+    parser.add_argument("--dates", help="Comma-separated market dates.")
     parser.add_argument("--date-from")
     parser.add_argument("--date-to")
     parser.add_argument("--symbols", help="Optional comma-separated symbols.")
@@ -122,7 +122,7 @@ def main() -> int:
         raise SystemExit("No included universe symbols matched the requested filter.")
 
     logger = configure_logger(
-        "build_opend_agent_strategy_handoff",
+        "build_opend_agent_caveat_handoff",
         args.log_root / NAMESPACE / "last_run.log",
     )
     manifest_dir = args.output_root / NAMESPACE / "manifests"
@@ -372,7 +372,7 @@ def handoff_row(
     )
     mid = (best_bid + best_ask) / Decimal("2") if spread is not None else None
     quality_score = 1.0 if valid else 0.0
-    eligible = (
+    ready = (
         valid
         and quality_score == 1.0
         and has_positive_sizes
@@ -403,7 +403,7 @@ def handoff_row(
         "ReplayWindowExcludedFlag": bool(excluded),
         "SameMillisecondBatchRiskFlag": bool(same_ms_risk),
         "SizeSemanticsCaveat": size_caveat(crossed, same_ms_risk, has_positive_sizes),
-        "StrategyHandoffEligibleFlag": bool(eligible),
+        "CaveatHandoffReadyFlag": bool(ready),
     }
 
 
@@ -424,9 +424,9 @@ def best_book_with_size(
 
 def size_caveat(crossed: bool, same_ms_risk: bool, has_positive_sizes: bool) -> str:
     if crossed:
-        return "blocked_crossed_window_size_not_strategy_ready"
+        return "blocked_crossed_window_size_not_caveat_ready"
     if same_ms_risk:
-        return "blocked_same_millisecond_batch_ordering_size_not_strategy_ready"
+        return "blocked_same_millisecond_batch_ordering_size_not_caveat_ready"
     if not has_positive_sizes:
         return "blocked_missing_best_bid_or_ask_size"
     return SIZE_CAVEAT
@@ -484,7 +484,7 @@ def partition_row(
         "namespace": NAMESPACE,
         "path": str(output),
         "rows": output_rows,
-        "eligible_rows": stats["eligible_rows"],
+        "ready_rows": stats["ready_rows"],
         "crossed_rows": stats["crossed_rows"],
         "same_ms_risk_rows": stats["same_ms_risk_rows"],
         "residue_rows": stats["residue_rows"],
@@ -502,7 +502,7 @@ def partition_stats(path: Path) -> dict[str, int]:
     row = (
         frame.select(
             pl.len().alias("total_rows"),
-            pl.col("StrategyHandoffEligibleFlag").fill_null(False).sum().alias("eligible_rows"),
+            pl.col("CaveatHandoffReadyFlag").fill_null(False).sum().alias("ready_rows"),
             pl.col("CrossedWindowFlag").fill_null(False).sum().alias("crossed_rows"),
             pl.col("SameMillisecondBatchRiskFlag")
             .fill_null(False)
@@ -525,7 +525,7 @@ def partition_stats(path: Path) -> dict[str, int]:
 def empty_stats() -> dict[str, int]:
     return {
         "total_rows": 0,
-        "eligible_rows": 0,
+        "ready_rows": 0,
         "crossed_rows": 0,
         "same_ms_risk_rows": 0,
         "residue_rows": 0,
@@ -591,7 +591,7 @@ def build_summary(
     failures: list[dict[str, Any]],
 ) -> dict[str, Any]:
     total_rows = sum(int(row["rows"]) for row in partitions)
-    eligible_rows = sum(int(row["eligible_rows"]) for row in partitions)
+    ready_rows = sum(int(row["ready_rows"]) for row in partitions)
     crossed_rows = sum(int(row["crossed_rows"]) for row in partitions)
     same_ms_rows = sum(int(row["same_ms_risk_rows"]) for row in partitions)
     residue_rows = sum(int(row["residue_rows"]) for row in partitions)
@@ -599,8 +599,8 @@ def build_summary(
     per_symbol = aggregate(partitions, "symbol")
     per_date = aggregate(partitions, "date")
     blockers = []
-    if eligible_rows == 0:
-        blockers.append("no_strategy_handoff_eligible_rows_after_quality_gates")
+    if ready_rows == 0:
+        blockers.append("no_caveat_handoff_ready_rows_after_quality_gates")
     if same_ms_rows:
         blockers.append("same_millisecond_batch_ordering_present")
     if crossed_rows:
@@ -609,7 +609,7 @@ def build_summary(
         blockers.append("missing_or_non_positive_best_bid_ask_size_present")
     return {
         "generated_at": iso_utc_now(),
-        "pipeline": "build_opend_agent_strategy_handoff",
+        "pipeline": "build_opend_agent_caveat_handoff",
         "namespace": NAMESPACE,
         "source_layer": "candidate_cleaned",
         "output_root": str(args.output_root / NAMESPACE),
@@ -620,8 +620,8 @@ def build_summary(
         "failure_count": len(failures),
         "failures": failures,
         "total_rows": total_rows,
-        "eligible_rows": eligible_rows,
-        "eligible_ratio": rate(eligible_rows, total_rows),
+        "ready_rows": ready_rows,
+        "ready_ratio": rate(ready_rows, total_rows),
         "crossed_ratio": rate(crossed_rows, total_rows),
         "same_ms_risk_ratio": rate(same_ms_rows, total_rows),
         "residue_ratio": rate(residue_rows, total_rows),
@@ -638,7 +638,7 @@ def aggregate(partitions: list[dict[str, Any]], key: str) -> list[dict[str, Any]
     for row in partitions:
         item = totals[str(row[key])]
         item["rows"] += int(row["rows"])
-        item["eligible_rows"] += int(row["eligible_rows"])
+        item["ready_rows"] += int(row["ready_rows"])
         item["crossed_rows"] += int(row["crossed_rows"])
         item["same_ms_risk_rows"] += int(row["same_ms_risk_rows"])
         item["residue_rows"] += int(row["residue_rows"])
@@ -650,8 +650,8 @@ def aggregate(partitions: list[dict[str, Any]], key: str) -> list[dict[str, Any]
             {
                 key: value,
                 "rows": rows,
-                "eligible_rows": int(counter["eligible_rows"]),
-                "eligible_ratio": rate(counter["eligible_rows"], rows),
+                "ready_rows": int(counter["ready_rows"]),
+                "ready_ratio": rate(counter["ready_rows"], rows),
                 "crossed_ratio": rate(counter["crossed_rows"], rows),
                 "same_ms_risk_ratio": rate(counter["same_ms_risk_rows"], rows),
                 "residue_ratio": rate(counter["residue_rows"], rows),
@@ -668,10 +668,10 @@ def rate(numerator: int | float, denominator: int | float) -> float | None:
 
 
 def write_handoff_report(research_root: Path, summary: dict[str, Any]) -> Path:
-    path = research_root / "Reports" / f"opend_agent_strategy_handoff_{datetime.now():%Y%m%d}.md"
+    path = research_root / "Reports" / f"opend_agent_caveat_handoff_{datetime.now():%Y%m%d}.md"
     ensure_dir(path.parent)
     lines = [
-        "# OpenD Agent Strategy Handoff",
+        "# OpenD Agent Caveat Handoff",
         "",
         f"- generated_at: {summary['generated_at']}",
         f"- namespace: `{summary['namespace']}`",
@@ -679,38 +679,38 @@ def write_handoff_report(research_root: Path, summary: dict[str, Any]) -> Path:
         f"- processed_symbols: {len(summary['symbols'])}",
         f"- processed_dates: {len(summary['dates'])}",
         f"- total_rows: {summary['total_rows']}",
-        f"- eligible_rows: {summary['eligible_rows']}",
-        f"- eligible_ratio: {summary['eligible_ratio']}",
+        f"- ready_rows: {summary['ready_rows']}",
+        f"- ready_ratio: {summary['ready_ratio']}",
         f"- crossed_ratio: {summary['crossed_ratio']}",
         f"- same_ms_risk_ratio: {summary['same_ms_risk_ratio']}",
         f"- residue_ratio: {summary['residue_ratio']}",
         f"- no_size_ratio: {summary['no_size_ratio']}",
         f"- blockers: {', '.join(summary['blockers']) if summary['blockers'] else 'none'}",
         "",
-        "## Per Symbol Eligibility",
+        "## Per Symbol Readiness",
         "",
-        "| symbol | rows | eligible | eligible_ratio | crossed_ratio | "
+        "| symbol | rows | ready | ready_ratio | crossed_ratio | "
         "same_ms_risk_ratio | residue_ratio | no_size_ratio |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in summary["per_symbol"]:
         lines.append(
-            f"| {row['symbol']} | {row['rows']} | {row['eligible_rows']} | "
-            f"{row['eligible_ratio']} | {row['crossed_ratio']} | "
+            f"| {row['symbol']} | {row['rows']} | {row['ready_rows']} | "
+            f"{row['ready_ratio']} | {row['crossed_ratio']} | "
             f"{row['same_ms_risk_ratio']} | {row['residue_ratio']} | "
             f"{row['no_size_ratio']} |"
         )
     lines += [
         "",
-        "## Per Date Eligibility",
+        "## Per Date Readiness",
         "",
-        "| date | rows | eligible | eligible_ratio | crossed_ratio | "
+        "| date | rows | ready | ready_ratio | crossed_ratio | "
         "same_ms_risk_ratio | residue_ratio | no_size_ratio |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in summary["per_date"]:
         lines.append(
-            f"| {row['date']} | {row['rows']} | {row['eligible_rows']} | {row['eligible_ratio']} | "
+            f"| {row['date']} | {row['rows']} | {row['ready_rows']} | {row['ready_ratio']} | "
             f"{row['crossed_ratio']} | {row['same_ms_risk_ratio']} | "
             f"{row['residue_ratio']} | {row['no_size_ratio']} |"
         )
@@ -718,7 +718,7 @@ def write_handoff_report(research_root: Path, summary: dict[str, Any]) -> Path:
         "",
         "## Boundary",
         "",
-        "- Downstream must filter `StrategyHandoffEligibleFlag == true` and "
+        "- Downstream must filter `CaveatHandoffReadyFlag == true` and "
         "retain every quality flag.",
         "- Size is active-order replay volume at the best price, not verified "
         "executable queue size.",
@@ -733,7 +733,7 @@ def write_json_summary(research_root: Path, summary: dict[str, Any]) -> Path:
     path = (
         research_root
         / "Reports"
-        / f"opend_agent_strategy_handoff_summary_{datetime.now():%Y%m%d}.json"
+        / f"opend_agent_caveat_handoff_summary_{datetime.now():%Y%m%d}.json"
     )
     write_json(path, summary)
     return path
@@ -744,8 +744,8 @@ def compact_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "namespace": summary["namespace"],
         "partition_count": summary["partition_count"],
         "total_rows": summary["total_rows"],
-        "eligible_rows": summary["eligible_rows"],
-        "eligible_ratio": summary["eligible_ratio"],
+        "ready_rows": summary["ready_rows"],
+        "ready_ratio": summary["ready_ratio"],
         "blockers": summary["blockers"],
         "output_root": summary["output_root"],
     }

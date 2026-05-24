@@ -1,4 +1,4 @@
-# OpenD Agent Strategy Handoff
+# OpenD Agent Caveat Handoff
 
 - generated_at: 2026-05-24T03:12:35+00:00
 - namespace: `orderbook_replay__top_of_book_with_size_caveat`
@@ -6,17 +6,17 @@
 - processed_symbols: 54
 - processed_dates: 15
 - total_rows: 3067538
-- eligible_rows: 33703
-- eligible_ratio: 0.010986986958270769
+- ready_rows: 33703
+- ready_ratio: 0.010986986958270769
 - crossed_ratio: 0.22097525768221943
 - same_ms_risk_ratio: 0.9536993510756835
 - residue_ratio: 0.22097525768221943
 - no_size_ratio: 0.04254063030352028
 - blockers: same_millisecond_batch_ordering_present, crossed_book_windows_present, missing_or_non_positive_best_bid_ask_size_present
 
-## Per Symbol Eligibility
+## Per Symbol Readiness
 
-| symbol | rows | eligible | eligible_ratio | crossed_ratio | same_ms_risk_ratio | residue_ratio | no_size_ratio |
+| symbol | rows | ready | ready_ratio | crossed_ratio | same_ms_risk_ratio | residue_ratio | no_size_ratio |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | HK.00068 | 91934 | 669 | 0.007276959557943742 | 0.22008179781147344 | 0.9927230404420563 | 0.22008179781147344 | 0.004046381099484413 |
 | HK.00100 | 330082 | 6695 | 0.020282838809750306 | 0.21172617713174302 | 0.9793899697650886 | 0.21172617713174302 | 0.0054198653667876465 |
@@ -73,9 +73,9 @@
 | HK.09980 | 10520 | 375 | 0.03564638783269962 | 0.10598859315589354 | 0.9639733840304182 | 0.10598859315589354 | 0.0025665399239543727 |
 | HK.09981 | 24613 | 84 | 0.0034128306179661153 | 0.1183520903587535 | 0.9965465404461057 | 0.1183520903587535 | 0.005078616991021005 |
 
-## Per Date Eligibility
+## Per Date Readiness
 
-| date | rows | eligible | eligible_ratio | crossed_ratio | same_ms_risk_ratio | residue_ratio | no_size_ratio |
+| date | rows | ready | ready_ratio | crossed_ratio | same_ms_risk_ratio | residue_ratio | no_size_ratio |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | 2026-05-04 | 146609 | 3290 | 0.022440641434018374 | 0.1904930802338192 | 0.9775388959750083 | 0.1904930802338192 | 0.007182369431617431 |
 | 2026-05-05 | 124391 | 1250 | 0.010048958525938371 | 0.16001157640022187 | 0.8520954088318287 | 0.16001157640022187 | 0.1486602728493219 |
@@ -95,6 +95,6 @@
 
 ## Boundary
 
-- Downstream must filter `StrategyHandoffEligibleFlag == true` and retain every quality flag.
+- Downstream must filter `CaveatHandoffReadyFlag == true` and retain every quality flag.
 - Size is active-order replay volume at the best price, not verified executable queue size.
 - Any crossed, same-millisecond, residue, missing-size, or non-positive price row is fail-closed.

@@ -8,13 +8,13 @@ from pathlib import Path
 
 import polars as pl
 
-from Scripts.build_opend_agent_strategy_handoff import materialize_rows
+from Scripts.build_opend_agent_caveat_handoff import materialize_rows
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
-    def test_materializes_best_bid_ask_with_size_and_eligible_gate(self) -> None:
+class BuildOpenDAgentCaveatHandoffTests(unittest.TestCase):
+    def test_materializes_best_bid_ask_with_size_and_ready_gate(self) -> None:
         rows = materialize_rows(
             date="2026-05-22",
             symbol="00001",
@@ -34,9 +34,9 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
         self.assertEqual(row["BestAskSizeReplay"], 200)
         self.assertTrue(row["TopOfBookValidFlag"])
         self.assertEqual(row["ReplayQualityScore"], 1.0)
-        self.assertTrue(row["StrategyHandoffEligibleFlag"])
+        self.assertTrue(row["CaveatHandoffReadyFlag"])
 
-    def test_crossed_book_blocks_strategy_handoff(self) -> None:
+    def test_crossed_book_blocks_caveat_handoff(self) -> None:
         row = materialize_rows(
             date="2026-05-22",
             symbol="00001",
@@ -51,9 +51,9 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
         self.assertTrue(row["CrossedWindowFlag"])
         self.assertTrue(row["ReplayWindowExcludedFlag"])
         self.assertFalse(row["TopOfBookValidFlag"])
-        self.assertFalse(row["StrategyHandoffEligibleFlag"])
+        self.assertFalse(row["CaveatHandoffReadyFlag"])
 
-    def test_same_millisecond_batch_blocks_strategy_handoff(self) -> None:
+    def test_same_millisecond_batch_blocks_caveat_handoff(self) -> None:
         row = materialize_rows(
             date="2026-05-22",
             symbol="00001",
@@ -67,9 +67,9 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
         )[0]
         self.assertTrue(row["SameMillisecondBatchRiskFlag"])
         self.assertFalse(row["TopOfBookValidFlag"])
-        self.assertFalse(row["StrategyHandoffEligibleFlag"])
+        self.assertFalse(row["CaveatHandoffReadyFlag"])
 
-    def test_missing_size_blocks_strategy_handoff(self) -> None:
+    def test_missing_size_blocks_caveat_handoff(self) -> None:
         row = materialize_rows(
             date="2026-05-22",
             symbol="00001",
@@ -80,7 +80,7 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
         )[0]
         self.assertIsNone(row["BestAskSizeReplay"])
         self.assertFalse(row["TopOfBookValidFlag"])
-        self.assertFalse(row["StrategyHandoffEligibleFlag"])
+        self.assertFalse(row["CaveatHandoffReadyFlag"])
 
     def test_resume_does_not_duplicate_completed_partitions(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -103,7 +103,7 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
             command = [
                 "python3",
                 "-m",
-                "Scripts.build_opend_agent_strategy_handoff",
+                "Scripts.build_opend_agent_caveat_handoff",
                 "--universe-path",
                 str(universe_path),
                 "--dates",
@@ -129,7 +129,7 @@ class BuildOpenDAgentStrategyHandoffTests(unittest.TestCase):
             self.assertEqual(len(partition_lines), 1)
             summary = json.loads((namespace / "manifests" / "summary.json").read_text())
             self.assertEqual(summary["total_rows"], 1)
-            self.assertEqual(summary["eligible_rows"], 1)
+            self.assertEqual(summary["ready_rows"], 1)
 
 
 def order(
