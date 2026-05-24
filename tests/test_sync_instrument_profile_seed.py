@@ -4,7 +4,7 @@ import unittest
 
 import polars as pl
 
-from Scripts.sync_instrument_profile_seed import merge_seed, normalize_seed_frame, opend_seed_from_basicinfo
+from Scripts.sync_instrument_profile_seed import merge_seed, normalize_seed_frame, opend_seed_from_basicinfo, parse_number
 
 
 class SyncInstrumentProfileSeedTest(unittest.TestCase):
@@ -39,6 +39,39 @@ class SyncInstrumentProfileSeedTest(unittest.TestCase):
         self.assertEqual(rows[1]["listing_date"], "2005-11-25")
         self.assertEqual(rows[1]["instrument_family"], "reit_or_unit_trust_non_etf")
         self.assertEqual(rows[1]["source_label"], "manual_seed")
+
+    def test_merge_seed_can_replace_time_variant_fields_with_null(self) -> None:
+        base = normalize_seed_frame(
+            pl.DataFrame(
+                {
+                    "instrument_key": ["00001"],
+                    "southbound_eligible": ["true"],
+                    "southbound_source_label": ["old_snapshot"],
+                }
+            )
+        )
+        incoming = normalize_seed_frame(
+            pl.DataFrame(
+                {
+                    "instrument_key": ["00001"],
+                    "southbound_eligible": [None],
+                    "southbound_source_label": ["current_official_snapshot"],
+                }
+            )
+        )
+
+        merged = merge_seed(
+            base,
+            incoming,
+            replace_columns={"southbound_eligible", "southbound_source_label"},
+        ).to_dicts()
+
+        self.assertIsNone(merged[0]["southbound_eligible"])
+        self.assertEqual(merged[0]["southbound_source_label"], "current_official_snapshot")
+
+    def test_parse_number_accepts_market_cap_strings(self) -> None:
+        self.assertEqual(parse_number("1,234.50"), 1234.5)
+        self.assertIsNone(parse_number("-"))
 
     def test_opend_seed_from_basicinfo_maps_etf_and_clears_placeholder_listing_date(self) -> None:
         frame = pl.DataFrame(

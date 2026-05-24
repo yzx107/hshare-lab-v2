@@ -36,3 +36,4 @@ full_run.log
 Research/Reports/verified_layer_*__*.md
 !Research/References/normalized/hkex_reit_seed.csv
 !Research/References/normalized/hkex_southbound_seed.csv
+!Research/References/normalized/hk_market_snapshot_seed.csv

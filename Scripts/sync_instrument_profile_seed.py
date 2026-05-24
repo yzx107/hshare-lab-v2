@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import re
+import time
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 import polars as pl
+import requests
 
 from Scripts.reference_sources import (
     DEFAULT_LOCAL_SOURCE_CONFIG_PATH,
@@ -22,6 +26,8 @@ from Scripts.runtime import DEFAULT_LOG_ROOT, configure_logger, iso_utc_now, pri
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SEED_PATH = REPO_ROOT / "Research" / "References" / "normalized" / "instrument_profile_seed.csv"
+DEFAULT_SOUTHBOUND_SEED_PATH = REPO_ROOT / "Research" / "References" / "normalized" / "hkex_southbound_seed.csv"
+DEFAULT_MARKET_CAP_SEED_PATH = REPO_ROOT / "Research" / "References" / "normalized" / "hk_market_snapshot_seed.csv"
 DEFAULT_FUTU_HOME = REPO_ROOT / ".tmp" / "futu_home"
 
 
@@ -29,13 +35,104 @@ SEED_SCHEMA: dict[str, pl.DataType] = {
     "instrument_key": pl.Utf8,
     "listing_date": pl.Utf8,
     "float_mktcap_hkd": pl.Utf8,
+    "total_mktcap_hkd": pl.Utf8,
+    "circulating_mktcap_hkd": pl.Utf8,
+    "market_cap_field_name": pl.Utf8,
+    "market_cap_as_of_date": pl.Utf8,
+    "market_cap_source_label": pl.Utf8,
+    "market_cap_currency": pl.Utf8,
+    "market_cap_admissibility_note": pl.Utf8,
+    "latest_turnover_hkd": pl.Utf8,
+    "latest_volume_shares": pl.Utf8,
+    "liquidity_field_name": pl.Utf8,
+    "liquidity_as_of_date": pl.Utf8,
+    "liquidity_source_label": pl.Utf8,
+    "liquidity_currency": pl.Utf8,
     "southbound_eligible": pl.Utf8,
+    "southbound_as_of_date": pl.Utf8,
+    "southbound_source_label": pl.Utf8,
     "instrument_family": pl.Utf8,
     "instrument_family_source": pl.Utf8,
     "instrument_family_note": pl.Utf8,
     "as_of_date": pl.Utf8,
     "source_label": pl.Utf8,
 }
+
+SOUTHBOUND_SEED_COLUMNS = ["instrument_key", "southbound_eligible", "as_of_date", "source_label"]
+
+MARKET_SNAPSHOT_COLUMNS = [
+    "instrument_key",
+    "float_mktcap_hkd",
+    "total_mktcap_hkd",
+    "circulating_mktcap_hkd",
+    "market_cap_field_name",
+    "market_cap_as_of_date",
+    "market_cap_source_label",
+    "market_cap_currency",
+    "market_cap_admissibility_note",
+    "latest_turnover_hkd",
+    "latest_volume_shares",
+    "liquidity_field_name",
+    "liquidity_as_of_date",
+    "liquidity_source_label",
+    "liquidity_currency",
+    "as_of_date",
+    "source_label",
+]
+
+SOUTHBOUND_REPLACE_COLUMNS = {
+    "southbound_eligible",
+    "southbound_as_of_date",
+    "southbound_source_label",
+}
+
+MARKET_SNAPSHOT_REPLACE_COLUMNS = {
+    "float_mktcap_hkd",
+    "total_mktcap_hkd",
+    "circulating_mktcap_hkd",
+    "market_cap_field_name",
+    "market_cap_as_of_date",
+    "market_cap_source_label",
+    "market_cap_currency",
+    "market_cap_admissibility_note",
+    "latest_turnover_hkd",
+    "latest_volume_shares",
+    "liquidity_field_name",
+    "liquidity_as_of_date",
+    "liquidity_source_label",
+    "liquidity_currency",
+}
+
+
+def normalize_instrument_key_expr(column_name: str = "instrument_key") -> pl.Expr:
+    return pl.col(column_name).cast(pl.Utf8).str.strip_chars().str.zfill(5).alias(column_name)
+
+
+def normalize_instrument_key_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text.zfill(5)
+
+
+def parse_number(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip().replace(",", "")
+    if not text or text in {"-", "NA", "N/A", "NULL", "null"}:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def ensure_parent(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -91,9 +188,7 @@ def normalize_seed_frame(frame: pl.DataFrame | None) -> pl.DataFrame:
             normalized = normalized.with_columns(pl.col(column_name).cast(dtype, strict=False).alias(column_name))
     normalized = normalized.select(list(SEED_SCHEMA))
     if "instrument_key" in normalized.columns:
-        normalized = normalized.with_columns(
-            pl.col("instrument_key").cast(pl.Utf8).str.strip_chars().str.zfill(5).alias("instrument_key")
-        )
+        normalized = normalized.with_columns(normalize_instrument_key_expr())
     return normalized
 
 
@@ -103,17 +198,33 @@ def load_existing_seed(seed_path: Path) -> pl.DataFrame:
     return normalize_seed_frame(pl.read_csv(seed_path, null_values=["", "NA", "N/A", "NULL", "null"]))
 
 
-def merge_seed(base: pl.DataFrame, incoming: pl.DataFrame) -> pl.DataFrame:
+def merge_seed(
+    base: pl.DataFrame,
+    incoming: pl.DataFrame,
+    *,
+    replace_columns: set[str] | None = None,
+) -> pl.DataFrame:
     if incoming.height == 0:
         return base
+    replace_columns = set() if replace_columns is None else replace_columns
     left = base.rename({column: f"base__{column}" for column in base.columns if column != "instrument_key"})
-    right = incoming.rename({column: f"incoming__{column}" for column in incoming.columns if column != "instrument_key"})
+    right = incoming.with_columns(pl.lit(True).alias("_incoming_present")).rename(
+        {column: f"incoming__{column}" for column in incoming.columns if column != "instrument_key"}
+    )
     joined = left.join(right, on="instrument_key", how="full", coalesce=True)
     expressions = [pl.col("instrument_key")]
     for column_name in SEED_SCHEMA:
         if column_name == "instrument_key":
             continue
-        expressions.append(pl.coalesce(f"base__{column_name}", f"incoming__{column_name}").alias(column_name))
+        if column_name in replace_columns:
+            expressions.append(
+                pl.when(pl.col("_incoming_present") == True)
+                .then(pl.col(f"incoming__{column_name}"))
+                .otherwise(pl.col(f"base__{column_name}"))
+                .alias(column_name)
+            )
+        else:
+            expressions.append(pl.coalesce(f"base__{column_name}", f"incoming__{column_name}").alias(column_name))
     return normalize_seed_frame(joined.select(expressions)).unique(subset=["instrument_key"], keep="first").sort("instrument_key")
 
 
@@ -145,7 +256,22 @@ def fetch_tushare_hk_basic(token: str, as_of_date: str) -> pl.DataFrame:
             "instrument_key",
             "listing_date",
             pl.lit(None, dtype=pl.Utf8).alias("float_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("total_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("circulating_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_field_name"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_source_label"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_currency"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_admissibility_note"),
+            pl.lit(None, dtype=pl.Utf8).alias("latest_turnover_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("latest_volume_shares"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_field_name"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_source_label"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_currency"),
             pl.lit(None, dtype=pl.Utf8).alias("southbound_eligible"),
+            pl.lit(None, dtype=pl.Utf8).alias("southbound_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("southbound_source_label"),
             pl.lit(None, dtype=pl.Utf8).alias("instrument_family"),
             pl.lit(None, dtype=pl.Utf8).alias("instrument_family_source"),
             pl.lit(None, dtype=pl.Utf8).alias("instrument_family_note"),
@@ -217,7 +343,22 @@ def opend_seed_from_basicinfo(frame: pl.DataFrame, as_of_date: str) -> pl.DataFr
             "instrument_key",
             "listing_date",
             pl.lit(None, dtype=pl.Utf8).alias("float_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("total_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("circulating_mktcap_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_field_name"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_source_label"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_currency"),
+            pl.lit(None, dtype=pl.Utf8).alias("market_cap_admissibility_note"),
+            pl.lit(None, dtype=pl.Utf8).alias("latest_turnover_hkd"),
+            pl.lit(None, dtype=pl.Utf8).alias("latest_volume_shares"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_field_name"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_source_label"),
+            pl.lit(None, dtype=pl.Utf8).alias("liquidity_currency"),
             pl.lit(None, dtype=pl.Utf8).alias("southbound_eligible"),
+            pl.lit(None, dtype=pl.Utf8).alias("southbound_as_of_date"),
+            pl.lit(None, dtype=pl.Utf8).alias("southbound_source_label"),
             "instrument_family",
             "instrument_family_source",
             "instrument_family_note",
@@ -236,7 +377,7 @@ def fetch_opend_security_snapshot(host: str, port: int, as_of_date: str) -> pl.D
         import pandas as pd
         from futu import Market, OpenQuoteContext, RET_OK, SecurityType
     except ImportError as exc:
-        raise SystemExit("OpenD dependencies are missing. Install the optional reference dependencies first.") from exc
+        raise RuntimeError("OpenD dependencies are missing. Install the optional reference dependencies first.") from exc
     try:
         context = OpenQuoteContext(host=host, port=port)
         frames: list[pl.DataFrame] = []
@@ -280,6 +421,259 @@ def fetch_opend_security_snapshot(host: str, port: int, as_of_date: str) -> pl.D
             os.environ["HOME"] = previous_home
 
 
+def parse_jsonp_payload(text: str) -> dict[str, Any]:
+    match = re.match(r"^[^(]+\((.*)\)\s*$", text, re.S)
+    return json.loads(match.group(1) if match else text)
+
+
+def get_with_retries(
+    url: str,
+    *,
+    params: dict[str, Any],
+    headers: dict[str, str],
+    timeout_seconds: int,
+    attempts: int = 4,
+) -> requests.Response:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            session = requests.Session()
+            session.trust_env = False
+            response = session.get(url, params=params, timeout=timeout_seconds, headers=headers)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as exc:
+            last_error = exc
+            time.sleep(0.5 * (attempt + 1))
+    raise RuntimeError(f"GET failed after {attempts} attempts: {url}") from last_error
+
+
+def fetch_sse_southbound_rows(timeout_seconds: int = 8) -> tuple[list[dict[str, Any]], str | None]:
+    params = {
+        "jsonCallBack": "jsonpCallback",
+        "isPagination": "true",
+        "sqlId": "COMMON_SSE_JYFW_HGT_XXPL_BDZQQD_L",
+        "pageHelp.pageSize": "5000",
+        "pageHelp.pageNo": "1",
+        "pageHelp.beginPage": "1",
+        "pageHelp.cacheSize": "1",
+        "pageHelp.endPage": "1",
+        "keyword": "",
+    }
+    response = get_with_retries(
+        "http://query.sse.com.cn/commonQuery.do",
+        params=params,
+        timeout_seconds=timeout_seconds,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "http://www.sse.com.cn/services/hkexsc/disclo/eligible/",
+        },
+        attempts=2,
+    )
+    payload = parse_jsonp_payload(response.text)
+    rows = payload.get("result") or payload.get("pageHelp", {}).get("data") or []
+    update_dates = sorted({str(row.get("UPDATE_DATE", "")).strip() for row in rows if row.get("UPDATE_DATE")})
+    return rows, update_dates[-1] if update_dates else None
+
+
+def fetch_szse_southbound_rows(timeout_seconds: int = 8) -> tuple[list[dict[str, Any]], str | None]:
+    rows: list[dict[str, Any]] = []
+    as_of_date: str | None = None
+    page_no = 1
+    page_count = 1
+    while page_no <= page_count:
+        response = get_with_retries(
+            "https://www.szse.cn/api/report/ShowReport/data",
+            params={
+                "CATALOGID": "SGT_GGTBDQD",
+                "TABKEY": "tab1",
+                "PAGENO": str(page_no),
+                "random": str(time.time()),
+            },
+            timeout_seconds=timeout_seconds,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://www.szse.cn/szhk/hkbussiness/underlylist/",
+            },
+            attempts=2,
+        )
+        payload = response.json()
+        table = payload[0]
+        metadata = table.get("metadata", {})
+        as_of_date = as_of_date or str(metadata.get("subname") or "").strip() or None
+        page_count = int(metadata.get("pagecount") or 1)
+        rows.extend(table.get("data") or [])
+        page_no += 1
+    return rows, as_of_date
+
+
+def southbound_frame_from_seed(seed: pl.DataFrame) -> pl.DataFrame:
+    return normalize_seed_frame(
+        seed.with_columns(
+            pl.col("as_of_date").alias("southbound_as_of_date"),
+            pl.col("source_label").alias("southbound_source_label"),
+            pl.lit(None, dtype=pl.Utf8).alias("float_mktcap_hkd"),
+        )
+    )
+
+
+def stock_connect_southbound_seed(as_of_date: str, output_path: Path, logger) -> pl.DataFrame:
+    try:
+        sse_rows, sse_as_of = fetch_sse_southbound_rows()
+        szse_rows, szse_as_of = fetch_szse_southbound_rows()
+    except Exception as exc:
+        if output_path.exists() and output_path.stat().st_size > 0:
+            cached = pl.read_csv(output_path, null_values=["", "NA", "N/A", "NULL", "null"])
+            logger.warning("Southbound official fetch failed; reusing cached seed path=%s reason=%s", output_path, exc)
+            return southbound_frame_from_seed(cached)
+        raise
+    merged: dict[str, dict[str, Any]] = {}
+    for row in sse_rows:
+        key = normalize_instrument_key_value(row.get("SECURITY_CODE"))
+        if not key:
+            continue
+        merged.setdefault(key, {"instrument_key": key, "source_labels": set(), "as_of_dates": set()})
+        merged[key]["source_labels"].add("sse_southbound_eligible")
+        if sse_as_of:
+            merged[key]["as_of_dates"].add(sse_as_of)
+    for row in szse_rows:
+        key = normalize_instrument_key_value(row.get("zqdm"))
+        if not key:
+            continue
+        merged.setdefault(key, {"instrument_key": key, "source_labels": set(), "as_of_dates": set()})
+        merged[key]["source_labels"].add("szse_southbound_eligible")
+        if szse_as_of:
+            merged[key]["as_of_dates"].add(szse_as_of)
+
+    rows = []
+    for key, row in sorted(merged.items()):
+        as_of_dates = sorted(row["as_of_dates"])
+        source_labels = sorted(row["source_labels"])
+        rows.append(
+            {
+                "instrument_key": key,
+                "southbound_eligible": "true",
+                "as_of_date": as_of_dates[-1] if as_of_dates else as_of_date,
+                "source_label": ";".join(source_labels),
+            }
+        )
+    seed = pl.DataFrame(rows, schema={column: pl.Utf8 for column in SOUTHBOUND_SEED_COLUMNS})
+    ensure_parent(output_path)
+    seed.select(SOUTHBOUND_SEED_COLUMNS).write_csv(output_path)
+    logger.info(
+        "Southbound official seed refreshed: rows=%s sse_rows=%s szse_rows=%s output=%s",
+        seed.height,
+        len(sse_rows),
+        len(szse_rows),
+        output_path,
+    )
+    return southbound_frame_from_seed(seed)
+
+
+def fetch_eastmoney_hk_snapshot_rows(timeout_seconds: int = 8) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    page_no = 1
+    page_size = 500
+    total = None
+    while total is None or len(rows) < total:
+        params = {
+            "pn": str(page_no),
+            "pz": str(page_size),
+            "po": "1",
+            "np": "1",
+            "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+            "fltt": "2",
+            "fid": "f12",
+            "fs": "m:128 t:3,m:128 t:4,m:128 t:1,m:128 t:2",
+            "fields": "f12,f14,f2,f3,f5,f6,f20,f21,f26,f100,f152",
+        }
+        last_error: Exception | None = None
+        response = None
+        for host in ("https://33.push2.eastmoney.com", "https://push2.eastmoney.com"):
+            for attempt in range(2):
+                try:
+                    session = requests.Session()
+                    session.trust_env = False
+                    response = session.get(
+                        f"{host}/api/qt/clist/get",
+                        params=params,
+                        timeout=timeout_seconds,
+                        headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                    response.raise_for_status()
+                    break
+                except requests.RequestException as exc:
+                    last_error = exc
+                    response = None
+                    time.sleep(0.5 * (attempt + 1))
+            if response is not None:
+                break
+        if response is None:
+            raise RuntimeError(f"Eastmoney HK snapshot page {page_no} failed after retries: {last_error}") from last_error
+        payload = response.json().get("data") or {}
+        total = int(payload.get("total") or 0)
+        batch = payload.get("diff") or []
+        if not batch:
+            break
+        rows.extend(batch)
+        page_no += 1
+    return rows
+
+
+def eastmoney_market_snapshot_seed(as_of_date: str, output_path: Path, logger) -> pl.DataFrame:
+    rows = []
+    try:
+        source_rows = fetch_eastmoney_hk_snapshot_rows()
+    except Exception as exc:
+        if output_path.exists() and output_path.stat().st_size > 0:
+            cached = pl.read_csv(output_path, null_values=["", "NA", "N/A", "NULL", "null"])
+            logger.warning("Market snapshot fetch failed; reusing cached seed path=%s reason=%s", output_path, exc)
+            return normalize_seed_frame(cached)
+        raise
+    for row in source_rows:
+        key = normalize_instrument_key_value(row.get("f12"))
+        if not key:
+            continue
+        code_int = int(key)
+        if code_int >= 10000:
+            continue
+        total_mktcap = parse_number(row.get("f20"))
+        circulating_mktcap = parse_number(row.get("f21"))
+        turnover = parse_number(row.get("f6"))
+        volume = parse_number(row.get("f5"))
+        if total_mktcap is None and circulating_mktcap is None and turnover is None and volume is None:
+            continue
+        rows.append(
+            {
+                "instrument_key": key,
+                "float_mktcap_hkd": None,
+                "total_mktcap_hkd": f"{total_mktcap:.6f}" if total_mktcap is not None else None,
+                "circulating_mktcap_hkd": f"{circulating_mktcap:.6f}" if circulating_mktcap is not None else None,
+                "market_cap_field_name": "eastmoney_f20_total_market_cap;eastmoney_f21_circulating_market_cap",
+                "market_cap_as_of_date": as_of_date,
+                "market_cap_source_label": "eastmoney_hk_spot_market_snapshot",
+                "market_cap_currency": "HKD",
+                "market_cap_admissibility_note": (
+                    "Public Eastmoney HK quote snapshot. f20/f21 are treated as total/circulating market cap reference only; "
+                    "do not promote to float_mktcap_hkd or verified fact truth."
+                ),
+                "latest_turnover_hkd": f"{turnover:.6f}" if turnover is not None else None,
+                "latest_volume_shares": f"{volume:.6f}" if volume is not None else None,
+                "liquidity_field_name": "eastmoney_f6_turnover;eastmoney_f5_volume",
+                "liquidity_as_of_date": as_of_date,
+                "liquidity_source_label": "eastmoney_hk_spot_market_snapshot",
+                "liquidity_currency": "HKD",
+                "as_of_date": as_of_date,
+                "source_label": "eastmoney_hk_spot_market_snapshot",
+            }
+        )
+    seed = pl.DataFrame(rows, schema={column: pl.Utf8 for column in MARKET_SNAPSHOT_COLUMNS})
+    ensure_parent(output_path)
+    seed.select(MARKET_SNAPSHOT_COLUMNS).write_csv(output_path)
+    logger.info("Market snapshot seed refreshed: rows=%s output=%s", seed.height, output_path)
+    return normalize_seed_frame(seed)
+
+
 def selected_source_ids(args: argparse.Namespace, registry: dict[str, Any]) -> list[str]:
     if args.sources == "enabled":
         return enabled_source_ids(registry)
@@ -295,10 +689,11 @@ def run_sources(
     registry: dict[str, Any],
     local_config: dict[str, Any],
     as_of_date: str,
+    base_seed: pl.DataFrame,
     logger,
-) -> tuple[list[dict[str, Any]], list[pl.DataFrame]]:
+) -> tuple[list[dict[str, Any]], pl.DataFrame]:
     summaries: list[dict[str, Any]] = []
-    frames: list[pl.DataFrame] = []
+    merged = base_seed
     for source_id in source_ids:
         source = get_registered_source(source_id, registry)
         if source_id == "tushare_hk_basic":
@@ -311,6 +706,12 @@ def run_sources(
         elif source.get("kind") == "curated_csv":
             source_path = REPO_ROOT / Path(source["path"])
             frame = load_curated_seed(source_path)
+        elif source_id == "stock_connect_southbound_official":
+            output_path = REPO_ROOT / Path(source.get("path", DEFAULT_SOUTHBOUND_SEED_PATH))
+            frame = stock_connect_southbound_seed(as_of_date, output_path, logger)
+        elif source_id == "eastmoney_hk_spot_market_snapshot":
+            output_path = REPO_ROOT / Path(source.get("path", DEFAULT_MARKET_CAP_SEED_PATH))
+            frame = eastmoney_market_snapshot_seed(as_of_date, output_path, logger)
         elif source_id == "opend_security_snapshot":
             endpoint = resolve_source_endpoint(source_id, registry=registry, local_config=local_config)
             try:
@@ -326,8 +727,14 @@ def run_sources(
             raise SystemExit(f"Unsupported source id for seed sync: {source_id}")
         logger.info("Source %s rows=%s", source_id, frame.height)
         summaries.append({"source_id": source_id, "row_count": int(frame.height)})
-        frames.append(frame)
-    return summaries, frames
+        if source_id == "stock_connect_southbound_official":
+            replace_columns = SOUTHBOUND_REPLACE_COLUMNS
+        elif source_id == "eastmoney_hk_spot_market_snapshot":
+            replace_columns = MARKET_SNAPSHOT_REPLACE_COLUMNS
+        else:
+            replace_columns = set()
+        merged = merge_seed(merged, frame, replace_columns=replace_columns)
+    return summaries, merged
 
 
 def main() -> int:
@@ -349,6 +756,7 @@ def main() -> int:
                 "Research/References/normalized/instrument_profile_seed.csv",
                 "Research/References/normalized/hkex_reit_seed.csv",
                 "Research/References/normalized/hkex_southbound_seed.csv",
+                "Research/References/normalized/hk_market_snapshot_seed.csv",
                 "local OpenD quote service (optional)",
             ],
             outputs=[
@@ -362,16 +770,14 @@ def main() -> int:
     local_config = load_local_source_config(args.local_config_path)
     source_ids = selected_source_ids(args, registry)
     base_seed = load_existing_seed(args.seed_path)
-    source_summaries, source_frames = run_sources(
+    source_summaries, merged = run_sources(
         source_ids=source_ids,
         registry=registry,
         local_config=local_config,
         as_of_date=args.as_of_date,
+        base_seed=base_seed,
         logger=logger,
     )
-    merged = base_seed
-    for frame in source_frames:
-        merged = merge_seed(merged, frame)
     merged.write_csv(args.seed_path)
     logger.info(
         "Instrument profile seed sync complete: rows=%s generated_at=%s sources=%s",

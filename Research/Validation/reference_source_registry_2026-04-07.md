@@ -7,7 +7,7 @@
 
 它解决的是：
 
-- `listing_date / southbound_eligible / instrument_family` 这类 sidecar enrichment 从哪里来
+- `listing_date / southbound_eligible / market-cap / liquidity / instrument_family` 这类 sidecar enrichment 从哪里来
 - 哪些 source 是长期注册的数据源
 - 哪些 source 只能作为 `reference_lookup / enrichment`
 
@@ -147,10 +147,93 @@
 
 当前定位：
 
-- 长期注册 source
-- 通过 curated CSV 维护
+- legacy curated CSV source
+- 默认不启用；当前优先使用 `stock_connect_southbound_official` 刷新同一路径
 
-### 7. `opend_security_snapshot`
+### 7. `stock_connect_southbound_official`
+
+角色：
+
+- `southbound_eligibility_seed`
+
+当前允许：
+
+- `southbound_eligible`
+- `southbound_as_of_date`
+- `southbound_source_label`
+- 以 `as_of_date` 为边界的 Stock Connect Southbound 当前资格 enrichment
+
+source：
+
+- SSE 港股通标的证券名单 API：`COMMON_SSE_JYFW_HGT_XXPL_BDZQQD_L`
+- SZSE 港股通标的证券名单 API：`SGT_GGTBDQD`
+- normalized seed：`Research/References/normalized/hkex_southbound_seed.csv`
+
+refresh cadence：
+
+- 按需 refresh；source 自带更新日期
+- 当前 seed 为 point-in-time snapshot，不是历史 eligibility panel
+
+as_of semantics：
+
+- `as_of_date` 来自交易所名单的更新日期
+- 若更新日期为非港股通交易日，按交易所页面说明，该名单适用于更新日期后一港股通交易日
+
+当前允许的下游用途：
+
+- current Southbound eligibility bucket
+- 港股分层研究的 point-in-time reference sidecar
+- 与 market-cap / liquidity sidecar 共同做横截面分层
+
+当前不允许：
+
+- 把 `southbound_eligible=true` 当作永久真值
+- 把未出现在 seed 的 instrument 静默写成 `false`
+- 写入 verified fact table 或 tick semantic proof
+
+### 8. `eastmoney_hk_spot_market_snapshot`
+
+角色：
+
+- `market_cap_and_liquidity_reference_snapshot`
+
+当前允许：
+
+- `total_mktcap_hkd`
+- `circulating_mktcap_hkd`
+- `latest_turnover_hkd`
+- `latest_volume_shares`
+- field-level source labels / as-of dates / currency
+
+source：
+
+- Eastmoney HK spot quote snapshot API
+- normalized seed：`Research/References/normalized/hk_market_snapshot_seed.csv`
+
+refresh cadence：
+
+- 按需 refresh；当前仅作为 latest snapshot sidecar
+- source 网络失败时允许复用已有 normalized seed，但必须保留原 seed 的 `as_of_date/source_label`
+
+as_of semantics：
+
+- `market_cap_as_of_date` / `liquidity_as_of_date` 是本地 refresh 的 as-of date
+- 本 source 不提供严格历史 trade-date panel；不得倒推历史截面真值
+
+当前允许的下游用途：
+
+- 港股横截面 size bucket reference
+- liquidity bucket reference
+- DQA / coverage / universe research 的 enrichment sidecar
+
+当前不允许：
+
+- 把 `circulating_mktcap_hkd` 冒充 `float_mktcap_hkd`
+- 把 `latest_turnover_hkd` / `latest_volume_shares` 冒充 market cap
+- 写入 verified fact table 或 tick semantic proof
+- 在没有独立 admission policy 前做历史 point-in-time 回测真值
+
+### 9. `opend_security_snapshot`
 
 角色：
 
@@ -181,7 +264,7 @@
 - 外部 source 必须保留 `source_label`
 - 时变属性必须保留 `as_of_date`
 - 新 source 若要进入默认同步链，必须先在本页或 machine-readable config 中注册
-- `tushare / OpenD / manual seed / HKEX list` 都是 `reference source`，不是 `semantic proof`
+- `tushare / OpenD / manual seed / Stock Connect list / Eastmoney snapshot` 都是 `reference source`，不是 `semantic proof`
 
 ## Current Pipeline
 
@@ -195,9 +278,10 @@
 
 1. 先跑 `tushare_hk_basic`，补 `listing_date`
 2. 再补 `hkex_reit_manual_seed`
-3. 再跑 `opend_security_snapshot`，做 current snapshot 下的 secondary classification / listing-date backfill
-4. 如有需要，再补 `hkex_southbound_manual_seed`
-5. 最后重建 `instrument_profile`
+3. 跑 `stock_connect_southbound_official` 刷新 Southbound point-in-time seed
+4. 跑 `eastmoney_hk_spot_market_snapshot` 刷新 market-cap / liquidity reference seed
+5. 再跑 `opend_security_snapshot`，做 current snapshot 下的 secondary classification / listing-date backfill；若本地 OpenD dependency / daemon 不可用，允许 warning 后跳过
+6. 最后重建 `instrument_profile`
 
 `tushare_hk_daily` / `tushare_hk_tradecal` / `tushare_hk_adjfactor` 不属于
 `instrument_profile_seed` 默认同步顺序；它们先进入

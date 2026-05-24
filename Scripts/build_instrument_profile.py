@@ -140,6 +140,24 @@ def parse_utf8_expr(column_name: str) -> pl.Expr:
     return pl.col(column_name).cast(pl.Utf8, strict=False).str.strip_chars().alias(column_name)
 
 
+def ensure_float_column(frame: pl.DataFrame, column_name: str) -> pl.DataFrame:
+    if column_name in frame.columns:
+        return frame.with_columns(pl.col(column_name).cast(pl.Float64, strict=False).alias(column_name))
+    return frame.with_columns(pl.lit(None, dtype=pl.Float64).alias(column_name))
+
+
+def ensure_utf8_column(frame: pl.DataFrame, column_name: str) -> pl.DataFrame:
+    if column_name in frame.columns:
+        return frame.with_columns(parse_utf8_expr(column_name))
+    return frame.with_columns(pl.lit(None, dtype=pl.Utf8).alias(column_name))
+
+
+def ensure_date_column(frame: pl.DataFrame, column_name: str) -> pl.DataFrame:
+    if column_name in frame.columns:
+        return frame.with_columns(pl.col(column_name).cast(pl.Utf8).str.strptime(pl.Date, strict=False))
+    return frame.with_columns(pl.lit(None, dtype=pl.Date).alias(column_name))
+
+
 def official_range_instrument_family_expr() -> pl.Expr:
     code = pl.col("instrument_key").cast(pl.Int64, strict=False)
     return (
@@ -271,7 +289,22 @@ def load_seed(seed_path: Path) -> pl.DataFrame:
         "instrument_key": pl.Utf8,
         "listing_date": pl.Date,
         "float_mktcap_hkd": pl.Float64,
+        "total_mktcap_hkd": pl.Float64,
+        "circulating_mktcap_hkd": pl.Float64,
+        "market_cap_field_name": pl.Utf8,
+        "market_cap_as_of_date": pl.Date,
+        "market_cap_source_label": pl.Utf8,
+        "market_cap_currency": pl.Utf8,
+        "market_cap_admissibility_note": pl.Utf8,
+        "latest_turnover_hkd": pl.Float64,
+        "latest_volume_shares": pl.Float64,
+        "liquidity_field_name": pl.Utf8,
+        "liquidity_as_of_date": pl.Date,
+        "liquidity_source_label": pl.Utf8,
+        "liquidity_currency": pl.Utf8,
         "southbound_eligible": pl.Boolean,
+        "southbound_as_of_date": pl.Date,
+        "southbound_source_label": pl.Utf8,
         "instrument_family": pl.Utf8,
         "instrument_family_source": pl.Utf8,
         "instrument_family_note": pl.Utf8,
@@ -287,41 +320,59 @@ def load_seed(seed_path: Path) -> pl.DataFrame:
     seed = seed.with_columns(
         pl.col("instrument_key").cast(pl.Utf8).str.strip_chars().str.zfill(5).alias("instrument_key")
     )
-    if "listing_date" in seed.columns:
-        seed = seed.with_columns(pl.col("listing_date").cast(pl.Utf8).str.strptime(pl.Date, strict=False))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Date).alias("listing_date"))
-    if "as_of_date" in seed.columns:
-        seed = seed.with_columns(pl.col("as_of_date").cast(pl.Utf8).str.strptime(pl.Date, strict=False))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Date).alias("as_of_date"))
-    if "float_mktcap_hkd" in seed.columns:
-        seed = seed.with_columns(pl.col("float_mktcap_hkd").cast(pl.Float64, strict=False))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Float64).alias("float_mktcap_hkd"))
+    seed = ensure_date_column(seed, "listing_date")
+    seed = ensure_date_column(seed, "as_of_date")
+    for column_name in (
+        "float_mktcap_hkd",
+        "total_mktcap_hkd",
+        "circulating_mktcap_hkd",
+        "latest_turnover_hkd",
+        "latest_volume_shares",
+    ):
+        seed = ensure_float_column(seed, column_name)
+    for column_name in ("market_cap_as_of_date", "liquidity_as_of_date", "southbound_as_of_date"):
+        seed = ensure_date_column(seed, column_name)
+    for column_name in (
+        "market_cap_field_name",
+        "market_cap_source_label",
+        "market_cap_currency",
+        "market_cap_admissibility_note",
+        "liquidity_field_name",
+        "liquidity_source_label",
+        "liquidity_currency",
+        "southbound_source_label",
+    ):
+        seed = ensure_utf8_column(seed, column_name)
     if "southbound_eligible" in seed.columns:
         seed = seed.with_columns(parse_bool_expr("southbound_eligible"))
     else:
         seed = seed.with_columns(pl.lit(None, dtype=pl.Boolean).alias("southbound_eligible"))
-    if "instrument_family" in seed.columns:
-        seed = seed.with_columns(parse_utf8_expr("instrument_family"))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Utf8).alias("instrument_family"))
-    if "instrument_family_source" in seed.columns:
-        seed = seed.with_columns(parse_utf8_expr("instrument_family_source"))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Utf8).alias("instrument_family_source"))
-    if "instrument_family_note" in seed.columns:
-        seed = seed.with_columns(parse_utf8_expr("instrument_family_note"))
-    else:
-        seed = seed.with_columns(pl.lit(None, dtype=pl.Utf8).alias("instrument_family_note"))
+    for column_name in ("instrument_family", "instrument_family_source", "instrument_family_note"):
+        seed = ensure_utf8_column(seed, column_name)
     if "source_label" not in seed.columns:
         seed = seed.with_columns(pl.lit("instrument_profile_seed").alias("source_label"))
+    else:
+        seed = seed.with_columns(parse_utf8_expr("source_label"))
     seed = seed.select(
         "instrument_key",
         "listing_date",
         "float_mktcap_hkd",
+        "total_mktcap_hkd",
+        "circulating_mktcap_hkd",
+        "market_cap_field_name",
+        "market_cap_as_of_date",
+        "market_cap_source_label",
+        "market_cap_currency",
+        "market_cap_admissibility_note",
+        "latest_turnover_hkd",
+        "latest_volume_shares",
+        "liquidity_field_name",
+        "liquidity_as_of_date",
+        "liquidity_source_label",
+        "liquidity_currency",
         "southbound_eligible",
+        "southbound_as_of_date",
+        "southbound_source_label",
         "instrument_family",
         "instrument_family_source",
         "instrument_family_note",
@@ -384,6 +435,9 @@ def build_profile(raw_root: Path, years: list[str], seed_path: Path) -> tuple[pl
                 pl.any_horizontal(
                     pl.col("listing_date").is_not_null(),
                     pl.col("float_mktcap_hkd").is_not_null(),
+                    pl.col("total_mktcap_hkd").is_not_null(),
+                    pl.col("circulating_mktcap_hkd").is_not_null(),
+                    pl.col("latest_turnover_hkd").is_not_null(),
                     pl.col("southbound_eligible").is_not_null(),
                     pl.col("instrument_family").is_not_null(),
                 )
@@ -426,7 +480,22 @@ def build_profile(raw_root: Path, years: list[str], seed_path: Path) -> tuple[pl
             "observed_trades_days",
             "listing_date",
             "float_mktcap_hkd",
+            "total_mktcap_hkd",
+            "circulating_mktcap_hkd",
+            "market_cap_field_name",
+            "market_cap_as_of_date",
+            "market_cap_source_label",
+            "market_cap_currency",
+            "market_cap_admissibility_note",
+            "latest_turnover_hkd",
+            "latest_volume_shares",
+            "liquidity_field_name",
+            "liquidity_as_of_date",
+            "liquidity_source_label",
+            "liquidity_currency",
             "southbound_eligible",
+            "southbound_as_of_date",
+            "southbound_source_label",
             "instrument_family",
             "instrument_family_status",
             "instrument_family_source",
@@ -443,6 +512,7 @@ def build_profile(raw_root: Path, years: list[str], seed_path: Path) -> tuple[pl
         )
         .sort("instrument_key")
     )
+    stock_candidates = profile.filter(pl.col("stock_research_candidate"))
     summary = {
         "generated_at": iso_utc_now(),
         "pipeline": "build_instrument_profile",
@@ -452,13 +522,35 @@ def build_profile(raw_root: Path, years: list[str], seed_path: Path) -> tuple[pl
         "seed_row_count": int(seed.height),
         "listing_date_non_null_count": int(profile.filter(pl.col("listing_date").is_not_null()).height),
         "float_mktcap_non_null_count": int(profile.filter(pl.col("float_mktcap_hkd").is_not_null()).height),
+        "total_mktcap_non_null_count": int(profile.filter(pl.col("total_mktcap_hkd").is_not_null()).height),
+        "circulating_mktcap_non_null_count": int(profile.filter(pl.col("circulating_mktcap_hkd").is_not_null()).height),
+        "latest_turnover_non_null_count": int(profile.filter(pl.col("latest_turnover_hkd").is_not_null()).height),
         "southbound_non_null_count": int(profile.filter(pl.col("southbound_eligible").is_not_null()).height),
         "instrument_family_classified_count": int(profile.filter(pl.col("instrument_family_status") != "listed_security_unclassified").height),
         "stock_research_candidate_count": int(profile.filter(pl.col("stock_research_candidate")).height),
+        "stock_research_candidate_coverage": {
+            "count": int(stock_candidates.height),
+            "southbound_known_count": int(stock_candidates.filter(pl.col("southbound_eligible").is_not_null()).height),
+            "southbound_true_count": int(stock_candidates.filter(pl.col("southbound_eligible") == True).height),
+            "southbound_false_count": int(stock_candidates.filter(pl.col("southbound_eligible") == False).height),
+            "southbound_null_count": int(stock_candidates.filter(pl.col("southbound_eligible").is_null()).height),
+            "float_mktcap_non_null_count": int(stock_candidates.filter(pl.col("float_mktcap_hkd").is_not_null()).height),
+            "float_mktcap_null_count": int(stock_candidates.filter(pl.col("float_mktcap_hkd").is_null()).height),
+            "total_mktcap_non_null_count": int(stock_candidates.filter(pl.col("total_mktcap_hkd").is_not_null()).height),
+            "total_mktcap_null_count": int(stock_candidates.filter(pl.col("total_mktcap_hkd").is_null()).height),
+            "circulating_mktcap_non_null_count": int(stock_candidates.filter(pl.col("circulating_mktcap_hkd").is_not_null()).height),
+            "circulating_mktcap_null_count": int(stock_candidates.filter(pl.col("circulating_mktcap_hkd").is_null()).height),
+            "latest_turnover_non_null_count": int(stock_candidates.filter(pl.col("latest_turnover_hkd").is_not_null()).height),
+            "latest_turnover_null_count": int(stock_candidates.filter(pl.col("latest_turnover_hkd").is_null()).height),
+        },
         "instrument_family_counts": profile.group_by("instrument_family").len().sort("instrument_family").to_dicts(),
         "instrument_family_status_counts": profile.group_by("instrument_family_status").len().sort("instrument_family_status").to_dicts(),
         "stock_research_candidate_status_counts": profile.group_by("stock_research_candidate_status").len().sort("stock_research_candidate_status").to_dicts(),
         "profile_status_counts": profile.group_by("profile_status").len().to_dicts(),
+        "source_label_counts": profile.group_by("source_label").len().sort("source_label").to_dicts(),
+        "southbound_source_label_counts": profile.group_by("southbound_source_label").len().sort("southbound_source_label").to_dicts(),
+        "market_cap_source_label_counts": profile.group_by("market_cap_source_label").len().sort("market_cap_source_label").to_dicts(),
+        "liquidity_source_label_counts": profile.group_by("liquidity_source_label").len().sort("liquidity_source_label").to_dicts(),
     }
     return profile, summary
 

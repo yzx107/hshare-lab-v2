@@ -76,11 +76,37 @@
       "notes": "Curated REIT override seed maintained from official HKEX REIT market-data lists. Higher priority than secondary OpenD ETF classification."
     },
     "hkex_southbound_manual_seed": {
-      "enabled": true,
+      "enabled": false,
       "kind": "curated_csv",
       "role": "southbound_eligibility_seed",
       "path": "Research/References/normalized/hkex_southbound_seed.csv",
-      "notes": "Time-bounded southbound eligibility seed. Always keep as_of_date."
+      "notes": "Legacy curated Southbound eligibility seed path. Prefer stock_connect_southbound_official for refreshes."
+    },
+    "stock_connect_southbound_official": {
+      "enabled": true,
+      "kind": "api",
+      "role": "southbound_eligibility_seed",
+      "path": "Research/References/normalized/hkex_southbound_seed.csv",
+      "fields": [
+        "instrument_key",
+        "southbound_eligible",
+        "as_of_date",
+        "source_label"
+      ],
+      "notes": "Official Stock Connect Southbound eligible-security lists from SSE and SZSE. Eligibility is point-in-time; absence is not promoted to false in this sidecar."
+    },
+    "eastmoney_hk_spot_market_snapshot": {
+      "enabled": true,
+      "kind": "api",
+      "role": "market_cap_and_liquidity_reference_snapshot",
+      "path": "Research/References/normalized/hk_market_snapshot_seed.csv",
+      "fields": [
+        "total_mktcap_hkd",
+        "circulating_mktcap_hkd",
+        "latest_turnover_hkd",
+        "latest_volume_shares"
+      ],
+      "notes": "Public HK quote snapshot. f20/f21 are total/circulating market cap references only; do not populate float_mktcap_hkd or verified fact tables."
     },
     "opend_security_snapshot": {
       "enabled": true,

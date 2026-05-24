@@ -58,8 +58,8 @@
 - `semantic_report.py`：聚合多个 semantic probe，并生成 admissibility bridge
 - `run_semantic_framework.py`：搭建 `OrderId lifecycle`、`TradeDir / OrderType / Session` 骨架，并输出 semantic report / admissibility hooks
 - `build_verified_layer.py`：按 verified admission policy materialize conservative research-ready tables；默认构建 `admit_now` 的 `verified_orders / verified_trades`，现在默认也会派生 `instrument_key`，并在 `2026` 默认暴露 `SendTime`；同时支持把 `Dir / OrderType / OrderSideVendor` 这类 `caveat-only` 字段落到单独 verified 变体
-- `build_instrument_profile.py`：从 raw zip member universe 生成 sidecar `instrument_profile`，并可选拼接 `listing_date / southbound_eligible / float_mktcap_hkd / instrument_family` seed；同时对 HKEX 官方可安全使用的产品编码区间做保守分类
-- `sync_instrument_profile_seed.py`：从注册 reference source 同步 `instrument_profile_seed`；当前已支持 `Tushare hk_basic`，并预留 `OpenD`、`HKEX REIT`、`港股通名单` lane
+- `build_instrument_profile.py`：从 raw zip member universe 生成 sidecar `instrument_profile`，并可选拼接 `listing_date / southbound_eligible / float_mktcap_hkd / total_mktcap_hkd / circulating_mktcap_hkd / liquidity / instrument_family` seed；同时对 HKEX 官方可安全使用的产品编码区间做保守分类
+- `sync_instrument_profile_seed.py`：从注册 reference source 同步 `instrument_profile_seed`；当前已支持 `Tushare hk_basic`、`HKEX REIT`、Stock Connect Southbound 官方名单、HK market snapshot size/liquidity reference、OpenD secondary snapshot
 - `sync_tushare_reference.py`：把 Tushare `hk_basic` / `hk_daily` / `hk_tradecal` / `hk_adjfactor` 作为 reference landing 落成 parquet + manifest；只供 sidecar、coverage、reconciliation 消费，不进入 raw/stage/verified 主链
 - `build_tushare_reference_registry.py`：扫描 Tushare reference manifests，生成年度 registry 并校验 parquet 行数 / schema fingerprint
 - `run_tushare_daily_universe_reconciliation.py`：对账 Tushare 日线 universe、stage observed universe、`instrument_profile` 与 `hk_basic` listed universe，输出 DQA reference parquet 与审计报告
@@ -189,7 +189,9 @@
   - `tushare_hk_tradecal`（reference landing，默认不进 seed enabled chain）
   - `tushare_hk_adjfactor`（reference landing，默认不进 seed enabled chain）
   - `hkex_reit_manual_seed`
-  - `hkex_southbound_manual_seed`
+  - `hkex_southbound_manual_seed`（legacy curated path，默认不启用）
+  - `stock_connect_southbound_official`
+  - `eastmoney_hk_spot_market_snapshot`
   - `opend_security_snapshot`（当前已接线，作为 secondary current snapshot source）
 - `OpenD` 运行前提：
   - 本机 `127.0.0.1:11111` 有可用 quote service
