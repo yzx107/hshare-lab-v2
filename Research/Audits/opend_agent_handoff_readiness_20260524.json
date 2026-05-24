@@ -1,0 +1,509 @@
+{
+  "candidate_cleaned": {
+    "available_2026_05_dates": [
+      "2026-05-04",
+      "2026-05-05",
+      "2026-05-06",
+      "2026-05-07",
+      "2026-05-08",
+      "2026-05-11",
+      "2026-05-12",
+      "2026-05-13",
+      "2026-05-14",
+      "2026-05-15",
+      "2026-05-18",
+      "2026-05-19",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22"
+    ],
+    "coverage_by_2026_05_date": [
+      {
+        "date": "2026-05-04",
+        "orders_exists": true,
+        "orders_rows": 101834150,
+        "orders_symbol_count": 15585,
+        "trades_exists": true,
+        "trades_rows": 2577151,
+        "trades_symbol_count": 8966
+      },
+      {
+        "date": "2026-05-05",
+        "orders_exists": true,
+        "orders_rows": 74694078,
+        "orders_symbol_count": 15489,
+        "trades_exists": true,
+        "trades_rows": 1978023,
+        "trades_symbol_count": 8530
+      },
+      {
+        "date": "2026-05-06",
+        "orders_exists": true,
+        "orders_rows": 132050763,
+        "orders_symbol_count": 15598,
+        "trades_exists": true,
+        "trades_rows": 4699195,
+        "trades_symbol_count": 9015
+      },
+      {
+        "date": "2026-05-07",
+        "orders_exists": true,
+        "orders_rows": 120099541,
+        "orders_symbol_count": 15610,
+        "trades_exists": true,
+        "trades_rows": 4749533,
+        "trades_symbol_count": 9440
+      },
+      {
+        "date": "2026-05-08",
+        "orders_exists": true,
+        "orders_rows": 109812805,
+        "orders_symbol_count": 15616,
+        "trades_exists": true,
+        "trades_rows": 4318103,
+        "trades_symbol_count": 9038
+      },
+      {
+        "date": "2026-05-11",
+        "orders_exists": true,
+        "orders_rows": 114104478,
+        "orders_symbol_count": 15727,
+        "trades_exists": true,
+        "trades_rows": 4590578,
+        "trades_symbol_count": 8924
+      },
+      {
+        "date": "2026-05-12",
+        "orders_exists": true,
+        "orders_rows": 122119685,
+        "orders_symbol_count": 15867,
+        "trades_exists": true,
+        "trades_rows": 4189490,
+        "trades_symbol_count": 9061
+      },
+      {
+        "date": "2026-05-13",
+        "orders_exists": true,
+        "orders_rows": 123104248,
+        "orders_symbol_count": 15906,
+        "trades_exists": true,
+        "trades_rows": 4618073,
+        "trades_symbol_count": 9027
+      },
+      {
+        "date": "2026-05-14",
+        "orders_exists": true,
+        "orders_rows": 141377331,
+        "orders_symbol_count": 15857,
+        "trades_exists": true,
+        "trades_rows": 4835331,
+        "trades_symbol_count": 9325
+      },
+      {
+        "date": "2026-05-15",
+        "orders_exists": true,
+        "orders_rows": 149631974,
+        "orders_symbol_count": 15831,
+        "trades_exists": true,
+        "trades_rows": 4946461,
+        "trades_symbol_count": 9385
+      },
+      {
+        "date": "2026-05-18",
+        "orders_exists": true,
+        "orders_rows": 143407611,
+        "orders_symbol_count": 15605,
+        "trades_exists": true,
+        "trades_rows": 4779730,
+        "trades_symbol_count": 9023
+      },
+      {
+        "date": "2026-05-19",
+        "orders_exists": true,
+        "orders_rows": 139023465,
+        "orders_symbol_count": 15527,
+        "trades_exists": true,
+        "trades_rows": 4419175,
+        "trades_symbol_count": 8562
+      },
+      {
+        "date": "2026-05-20",
+        "orders_exists": true,
+        "orders_rows": 131780467,
+        "orders_symbol_count": 15525,
+        "trades_exists": true,
+        "trades_rows": 4344141,
+        "trades_symbol_count": 8480
+      },
+      {
+        "date": "2026-05-21",
+        "orders_exists": true,
+        "orders_rows": 132857871,
+        "orders_symbol_count": 15673,
+        "trades_exists": true,
+        "trades_rows": 4792273,
+        "trades_symbol_count": 8895
+      },
+      {
+        "date": "2026-05-22",
+        "orders_exists": true,
+        "orders_rows": 124187307,
+        "orders_symbol_count": 15548,
+        "trades_exists": true,
+        "trades_rows": 4200019,
+        "trades_symbol_count": 8612
+      }
+    ],
+    "latest_date": "2026-05-22",
+    "latest_order_date": "2026-05-22",
+    "latest_trade_date": "2026-05-22"
+  },
+  "candidate_cleaned_root": "/Volumes/Data/港股Tick数据/candidate_cleaned",
+  "generated_at": "2026-05-24T02:52:03+00:00",
+  "instrument_profile": {
+    "hk_01609_count": 0,
+    "hk_01609_exists": false,
+    "hk_01879_count": 0,
+    "hk_01879_exists": false,
+    "listing_2026_count": 7061,
+    "listing_2026_stock_research_candidate_count": 41,
+    "listing_date_max": "2026-04-10",
+    "listing_date_min": "1921-01-01",
+    "recent_30_listing_date_rows": [
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55165",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-05",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55166",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55168",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55169",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-12",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55179",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-13",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55185",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-15",
+        "observed_last_date": "2026-01-20",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55190",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55192",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-15",
+        "observed_last_date": "2026-01-20",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55197",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-20",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55206",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55214",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55215",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-13",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55229",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55243",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55249",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55256",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55263",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-15",
+        "observed_last_date": "2026-01-20",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55264",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-15",
+        "observed_last_date": "2026-01-19",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55276",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55277",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-05",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55280",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55283",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-14",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55287",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55296",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55298",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-05",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55327",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-12",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55328",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-02",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55333",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-05",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55339",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-05",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      },
+      {
+        "instrument_family": "cbbc",
+        "instrument_family_status": "official_range_classified",
+        "instrument_key": "55341",
+        "listing_date": "2026-04-10",
+        "observed_first_date": "2026-01-02",
+        "observed_last_date": "2026-01-06",
+        "source_label": "opend_security_snapshot",
+        "stock_research_candidate": false
+      }
+    ],
+    "stock_research_candidate_count": 2661,
+    "target_rows": [],
+    "total_rows": 24992
+  },
+  "profile_path": "/Volumes/Data/港股Tick数据/reference/instrument_profile/latest/instrument_profile.parquet",
+  "top_of_book_only": {
+    "blocked_rows": 454,
+    "crossed_window_rows": 33,
+    "dates": [
+      "2026-05-22"
+    ],
+    "output_root": "/Volumes/Data/港股Tick数据/caveat/orderbook_replay__top_of_book_only",
+    "partition_count": 1,
+    "partitions": [
+      {
+        "blocked_rows": 454,
+        "crossed_window_rows": 33,
+        "date": "2026-05-22",
+        "path": "/Volumes/Data/港股Tick数据/caveat/orderbook_replay__top_of_book_only/top_of_book_events/year=2026/date=2026-05-22/symbol=01609/part-00000.parquet",
+        "residue_rows": 33,
+        "row_count": 454,
+        "same_ms_risk_rows": 454,
+        "symbol": "HK.01609",
+        "valid_rows": 0,
+        "window_excluded_rows": 33
+      }
+    ],
+    "same_ms_risk_rows": 454,
+    "symbols": [
+      "HK.01609"
+    ],
+    "total_rows": 454,
+    "valid_rows": 0
+  },
+  "top_of_book_root": "/Volumes/Data/港股Tick数据/caveat/orderbook_replay__top_of_book_only"
+}

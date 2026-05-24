@@ -55,6 +55,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 00064,2002-06-06,,,,,,2026-04-07,tushare_hk_basic
 00065,2009-06-22,,,,,,2026-04-07,tushare_hk_basic
 00066,2000-10-05,,,,,,2026-04-07,tushare_hk_basic
+00068,2026-04-17,,,,,,2026-05-24,tushare_hk_basic
 00069,1993-06-17,,,,,,2026-04-07,tushare_hk_basic
 00070,1973-01-01,,,,,,2026-04-07,tushare_hk_basic
 00071,1970-07-25,,,,,,2026-04-07,tushare_hk_basic
@@ -909,6 +910,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 01183,2018-02-13,,,,,,2026-04-07,tushare_hk_basic
 01184,1994-10-17,,,,,,2026-04-07,tushare_hk_basic
 01186,2008-03-13,,,,,,2026-04-07,tushare_hk_basic
+01187,2026-05-06,,,,,,2026-05-24,tushare_hk_basic
 01188,1995-04-06,,,,,,2026-04-07,tushare_hk_basic
 01193,1994-11-07,,,,,,2026-04-07,tushare_hk_basic
 01195,2003-01-20,,,,,,2026-04-07,tushare_hk_basic
@@ -944,6 +946,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 01233,2013-12-11,,,,,,2026-04-07,tushare_hk_basic
 01234,2009-09-25,,,,,,2026-04-07,tushare_hk_basic
 01235,2011-09-29,,,,,,2026-04-07,tushare_hk_basic
+01236,2026-05-11,,,,,,2026-05-24,tushare_hk_basic
 01237,2012-07-06,,,,,,2026-04-07,tushare_hk_basic
 01238,2009-10-14,,,,,,2026-04-07,tushare_hk_basic
 01239,2011-11-18,,,,,,2026-04-07,tushare_hk_basic
@@ -1195,6 +1198,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 01601,2020-01-21,,,,,,2026-04-07,tushare_hk_basic
 01606,2016-07-11,,,,,,2026-04-07,tushare_hk_basic
 01608,2016-11-24,,,,,,2026-04-07,tushare_hk_basic
+01609,2026-05-05,,,,,,2026-05-24,tushare_hk_basic
 01610,2016-11-01,,,,,,2026-04-07,tushare_hk_basic
 01611,2016-11-21,,,,,,2026-04-07,tushare_hk_basic
 01612,2016-07-13,,,,,,2026-04-07,tushare_hk_basic
@@ -1791,6 +1795,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 02465,2024-10-30,,,,,,2026-04-07,tushare_hk_basic
 02469,2023-01-09,,,,,,2026-04-07,tushare_hk_basic
 02473,2023-11-09,,,,,,2026-04-07,tushare_hk_basic
+02476,2026-04-21,,,,,,2026-05-24,tushare_hk_basic
 02477,2024-01-12,,,,,,2026-04-07,tushare_hk_basic
 02478,2024-12-17,,,,,,2026-04-07,opend_security_snapshot
 02479,2024-06-28,,,,,,2026-04-07,tushare_hk_basic
@@ -1803,6 +1808,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 02488,2011-03-28,,,,,,2026-04-07,tushare_hk_basic
 02489,2023-12-22,,,,,,2026-04-07,tushare_hk_basic
 02490,2023-09-25,,,,,,2026-04-07,tushare_hk_basic
+02493,2026-04-28,,,,,,2026-05-24,tushare_hk_basic
 02495,2024-07-10,,,,,,2026-04-07,tushare_hk_basic
 02496,2023-09-25,,,,,,2026-04-07,tushare_hk_basic
 02497,2024-03-28,,,,,,2026-04-07,tushare_hk_basic
@@ -2176,7 +2182,9 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 03199,2014-02-19,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
 03200,2026-02-06,,,,,,2026-04-07,tushare_hk_basic
 03268,2026-03-10,,,,,,2026-04-07,tushare_hk_basic
+03277,2026-04-17,,,,,,2026-05-24,tushare_hk_basic
 03288,2025-06-19,,,,,,2026-04-07,tushare_hk_basic
+03296,2026-04-23,,,,,,2026-05-24,tushare_hk_basic
 03300,2005-06-23,,,,,,2026-04-07,tushare_hk_basic
 03301,2016-01-13,,,,,,2026-04-07,tushare_hk_basic
 03302,2018-07-18,,,,,,2026-04-07,tushare_hk_basic
@@ -3109,6 +3117,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 06036,2018-03-16,,,,,,2026-04-07,tushare_hk_basic
 06038,2017-06-13,,,,,,2026-04-07,tushare_hk_basic
 06049,2019-12-19,,,,,,2026-04-07,tushare_hk_basic
+06051,2026-04-17,,,,,,2026-05-24,tushare_hk_basic
 06055,2019-06-12,,,,,,2026-04-07,tushare_hk_basic
 06058,2019-01-03,,,,,,2026-04-07,tushare_hk_basic
 06060,2017-09-28,,,,,,2026-04-07,tushare_hk_basic
@@ -3178,6 +3187,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 06639,2022-03-22,,,,,,2026-04-07,tushare_hk_basic
 06651,2025-12-30,,,,,,2026-04-07,tushare_hk_basic
 06655,2022-03-28,,,,,,2026-04-07,tushare_hk_basic
+06656,2026-04-16,,,,,,2026-05-24,tushare_hk_basic
 06657,2024-07-09,,,,,,2026-04-07,tushare_hk_basic
 06660,2022-10-06,,,,,,2026-04-07,tushare_hk_basic
 06661,2022-07-13,,,,,,2026-04-07,tushare_hk_basic
@@ -3226,6 +3236,7 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 06806,2019-04-26,,,,,,2026-04-07,tushare_hk_basic
 06808,2011-07-27,,,,,,2026-04-07,tushare_hk_basic
 06809,2026-02-09,,,,,,2026-04-07,tushare_hk_basic
+06810,2026-04-29,,,,,,2026-05-24,tushare_hk_basic
 06811,2019-06-13,,,,,,2026-04-07,tushare_hk_basic
 06812,2020-06-11,,,,,,2026-04-07,tushare_hk_basic
 06813,2021-01-01,,,,,,2026-04-07,opend_security_snapshot
@@ -3322,6 +3333,8 @@ instrument_key,listing_date,float_mktcap_hkd,southbound_eligible,instrument_fami
 07568,2019-09-19,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
 07588,2017-03-14,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
 07618,2025-12-11,,,,,,2026-04-07,tushare_hk_basic
+07630,2026-05-13,,,,,,2026-05-24,tushare_hk_basic
+07666,2026-05-13,,,,,,2026-05-24,tushare_hk_basic
 07709,2025-10-16,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
 07711,2025-03-24,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
 07747,2025-05-28,,,exchange_traded_fund,opend_security_snapshot,Current OpenD security snapshot classifies this instrument as ETF. Use as secondary reference only; curated HKEX REIT seed still has higher priority.,2026-04-07,opend_security_snapshot
