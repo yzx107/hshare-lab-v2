@@ -40,7 +40,76 @@
 - 长期注册 source
 - 上游 seed 同步可直接消费
 
-### 2. `hkex_reit_manual_seed`
+### 2. `tushare_hk_daily`
+
+角色：
+
+- `daily_bar_reference_landing`
+
+当前允许：
+
+- 日线行情截面 reference landing
+- 低频 coverage / reconciliation
+- 流动性、停牌、交易日 universe 辅助 sidecar
+
+当前不允许：
+
+- 替代 tick / order / trade verified fact
+- 证明 tick 字段语义
+- 在没有独立 admission policy 前进入 verified 默认表
+
+当前定位：
+
+- 已注册 source
+- 默认不进入 `sync_instrument_profile_seed --sources enabled`
+- 通过 `Scripts.sync_tushare_reference` 落地 parquet + manifest
+
+### 3. `tushare_hk_tradecal`
+
+角色：
+
+- `calendar_reference_landing`
+
+当前允许：
+
+- 港股交易日历 reference landing
+- 增量任务调度基准
+- DQA / coverage 的日期全集对照
+
+当前不允许：
+
+- 替代 raw inventory 本身
+- 在未检查 source coverage 前直接推断 raw 缺失原因
+
+当前定位：
+
+- 已注册 source
+- 默认不进入 `sync_instrument_profile_seed --sources enabled`
+- 通过 `Scripts.sync_tushare_reference` 落地 parquet + manifest
+
+### 4. `tushare_hk_adjfactor`
+
+角色：
+
+- `adjustment_factor_reference_landing`
+
+当前允许：
+
+- 复权因子 reference landing
+- future adjustment policy 的输入
+
+当前不允许：
+
+- 在没有独立 adjustment contract 前生成 adjusted return truth
+- 默认进入 verified 或 alpha 表
+
+当前定位：
+
+- 已注册 source
+- 默认不进入 `sync_instrument_profile_seed --sources enabled`
+- 只落地，不在本阶段消费
+
+### 5. `hkex_reit_manual_seed`
 
 角色：
 
@@ -61,7 +130,7 @@
 - 通过 curated CSV 维护
 - 当前 seed 已补入官方 HKEX REIT 名单对应的 REIT override，用于修正低位 `REIT / unit trust` 被误落入股票候选池的问题
 
-### 3. `hkex_southbound_manual_seed`
+### 6. `hkex_southbound_manual_seed`
 
 角色：
 
@@ -81,7 +150,7 @@
 - 长期注册 source
 - 通过 curated CSV 维护
 
-### 4. `opend_security_snapshot`
+### 7. `opend_security_snapshot`
 
 角色：
 
@@ -129,3 +198,8 @@
 3. 再跑 `opend_security_snapshot`，做 current snapshot 下的 secondary classification / listing-date backfill
 4. 如有需要，再补 `hkex_southbound_manual_seed`
 5. 最后重建 `instrument_profile`
+
+`tushare_hk_daily` / `tushare_hk_tradecal` / `tushare_hk_adjfactor` 不属于
+`instrument_profile_seed` 默认同步顺序；它们先进入
+`reference/tushare/<endpoint>/<partition>/`，再由 coverage / reconciliation / adjustment policy
+显式消费。

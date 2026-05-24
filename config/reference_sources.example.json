@@ -20,6 +20,54 @@
       ],
       "notes": "Use as listing_date/basic HK security metadata enrichment. Do not treat as security-type proof by default."
     },
+    "tushare_hk_daily": {
+      "enabled": false,
+      "kind": "api",
+      "role": "daily_bar_reference_landing",
+      "credential_env": "TUSHARE_TOKEN",
+      "local_credential_key": "tushare.token",
+      "fields": [
+        "ts_code",
+        "trade_date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "pre_close",
+        "change",
+        "pct_chg",
+        "vol",
+        "amount"
+      ],
+      "notes": "Use as end-of-day HK reference bars for coverage/reconciliation and low-frequency sidecars. Do not treat as tick-level semantic proof."
+    },
+    "tushare_hk_tradecal": {
+      "enabled": false,
+      "kind": "api",
+      "role": "calendar_reference_landing",
+      "credential_env": "TUSHARE_TOKEN",
+      "local_credential_key": "tushare.token",
+      "fields": [
+        "cal_date",
+        "is_open",
+        "pretrade_date"
+      ],
+      "notes": "Use as HK market calendar reference for incremental scheduling and date coverage checks."
+    },
+    "tushare_hk_adjfactor": {
+      "enabled": false,
+      "kind": "api",
+      "role": "adjustment_factor_reference_landing",
+      "credential_env": "TUSHARE_TOKEN",
+      "local_credential_key": "tushare.token",
+      "fields": [
+        "ts_code",
+        "trade_date",
+        "cum_adjfactor",
+        "close_price"
+      ],
+      "notes": "Use as adjustment-factor reference landing only. Requires a separate adjustment policy before adjusted prices enter research tables."
+    },
     "hkex_reit_manual_seed": {
       "enabled": true,
       "kind": "curated_csv",
